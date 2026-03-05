@@ -25,6 +25,7 @@ import {
     BedDouble,
     Shield,
 } from 'lucide-react';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
@@ -101,6 +102,7 @@ export default function Navbar() {
 
                 {/* Right Side */}
                 <div className="flex items-center gap-2">
+                    <ThemeToggle />
                     {user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

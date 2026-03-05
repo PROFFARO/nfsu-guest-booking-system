@@ -1,5 +1,6 @@
 import { Noto_Sans } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,18 +22,20 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${notoSans.variable} antialiased min-h-screen flex flex-col`}>
-        <AuthProvider>
-          <SocketProvider>
-            <TooltipProvider>
-              <Navbar />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <Toaster richColors position="top-right" />
-            </TooltipProvider>
-          </SocketProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <TooltipProvider>
+                <Navbar />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <Toaster richColors position="top-right" />
+              </TooltipProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
