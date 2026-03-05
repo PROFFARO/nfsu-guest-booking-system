@@ -13,11 +13,11 @@ import { Calendar, BookOpen, BedDouble, ArrowRight, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors = {
-    pending: 'bg-amber-500/10 text-amber-500',
-    confirmed: 'bg-emerald-500/10 text-emerald-500',
-    cancelled: 'bg-red-500/10 text-red-500',
-    completed: 'bg-blue-500/10 text-blue-500',
-    'no-show': 'bg-slate-500/10 text-slate-400',
+    pending: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    confirmed: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
+    cancelled: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-600',
+    completed: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-600',
+    'no-show': 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-600',
 };
 
 export default function DashboardPage() {
@@ -45,99 +45,95 @@ export default function DashboardPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold">Welcome back, {user?.name?.split(' ')[0]}!</h1>
-                    <p className="mt-1 text-muted-foreground">Here&apos;s an overview of your bookings</p>
+                <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-border pb-4 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Portal Dashboard</h1>
+                        <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            Official Overview for {user?.name}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="mb-8 grid gap-4 sm:grid-cols-3">
-                    <Card className="border-border/40 bg-card/50">
-                        <CardContent className="flex items-center gap-4 p-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
-                                <BookOpen className="h-6 w-6 text-cyan-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">{bookings.length}</p>
-                                <p className="text-sm text-muted-foreground">Total Bookings</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-border/40 bg-card/50">
-                        <CardContent className="flex items-center gap-4 p-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
-                                <Calendar className="h-6 w-6 text-emerald-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">{upcomingBookings.length}</p>
-                                <p className="text-sm text-muted-foreground">Upcoming</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-border/40 bg-card/50">
-                        <CardContent className="flex items-center gap-4 p-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
-                                <BedDouble className="h-6 w-6 text-blue-500" />
-                            </div>
-                            <div>
-                                <Button variant="link" className="h-auto p-0 text-cyan-500" asChild>
-                                    <Link href="/rooms">Browse Rooms →</Link>
-                                </Button>
-                                <p className="text-sm text-muted-foreground">Find your next stay</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Compact Stats */}
+                <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-0 border-2 border-border rounded-sm overflow-hidden bg-card shadow-sm">
+                    <div className="flex items-center gap-4 p-4 border-b sm:border-b-0 sm:border-r border-border bg-background">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
+                            <BookOpen className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Total Bookings</p>
+                            <p className="text-xl font-noto-bold text-foreground leading-none">{bookings.length}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 border-b sm:border-b-0 sm:border-r border-border bg-background">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
+                            <Calendar className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Upcoming Stay</p>
+                            <p className="text-xl font-noto-bold text-foreground leading-none">{upcomingBookings.length}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4 bg-muted/5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-[#0056b3]/10 dark:bg-cyan-500/10 border border-[#0056b3]/20 dark:border-cyan-500/20">
+                            <BedDouble className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
+                        </div>
+                        <div>
+                            <Link href="/rooms" className="text-xs font-noto-bold text-[#0056b3] dark:text-cyan-500 hover:underline uppercase tracking-wide flex items-center">
+                                New Request <ArrowRight className="ml-1 h-3 w-3" />
+                            </Link>
+                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-wider mt-0.5">Browse Real-Time Catalog</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Recent Bookings */}
-                <Card className="border-border/40 bg-card/50">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Recent Bookings</CardTitle>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href="/dashboard/bookings">
-                                View All <ArrowRight className="ml-1 h-4 w-4" />
-                            </Link>
-                        </Button>
+                <Card className="rounded-sm border-2 border-border bg-card shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-border bg-muted/10">
+                        <CardTitle className="text-sm font-noto-bold text-foreground uppercase tracking-wide">Recent Applications</CardTitle>
+                        <Link href="/dashboard/bookings" className="text-[10px] font-noto-bold text-[#0056b3] dark:text-cyan-500 hover:underline uppercase tracking-widest flex items-center">
+                            View Ledger <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0">
                         {loading ? (
-                            <div className="space-y-4">
+                            <div className="p-4 space-y-3">
                                 {[1, 2, 3].map((i) => (
-                                    <Skeleton key={i} className="h-16 w-full" />
+                                    <Skeleton key={i} className="h-12 w-full rounded-sm" />
                                 ))}
                             </div>
                         ) : bookings.length === 0 ? (
-                            <div className="py-8 text-center">
-                                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                                <p className="text-muted-foreground">No bookings yet</p>
-                                <Button variant="link" className="text-cyan-500" asChild>
-                                    <Link href="/rooms">Browse rooms to make your first booking</Link>
-                                </Button>
+                            <div className="py-8 text-center border-b border-border">
+                                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground opacity-50" />
+                                <p className="text-xs font-noto-bold text-foreground uppercase tracking-wide">No Records Found</p>
+                                <Link href="/rooms" className="text-[10px] font-noto-bold text-[#0056b3] dark:text-cyan-500 hover:underline uppercase tracking-widest mt-1 inline-block">
+                                    Initiate New Request
+                                </Link>
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="divide-y divide-border">
                                 {bookings.slice(0, 5).map((booking) => (
                                     <div
                                         key={booking._id}
-                                        className="flex items-center justify-between rounded-lg border border-border/40 p-4 transition-colors hover:bg-accent/30"
+                                        className="flex items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10">
-                                                <BedDouble className="h-5 w-5 text-cyan-500" />
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
+                                                <BedDouble className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
                                             </div>
                                             <div>
-                                                <p className="font-medium">
+                                                <p className="text-sm font-noto-bold text-foreground uppercase tracking-tight">
                                                     Room {booking.room?.roomNumber || 'N/A'}
                                                 </p>
-                                                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                <p className="flex items-center gap-1 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                                                     <Clock className="h-3 w-3" />
-                                                    {format(new Date(booking.checkIn), 'MMM dd')} — {format(new Date(booking.checkOut), 'MMM dd, yyyy')}
+                                                    {format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm font-semibold text-cyan-500">₹{booking.totalAmount}</span>
-                                            <Badge variant="outline" className={statusColors[booking.status]}>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-sm font-noto-bold text-[#0056b3] dark:text-cyan-500">₹{booking.totalAmount}</span>
+                                            <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 ${statusColors[booking.status]}`}>
                                                 {booking.status}
                                             </Badge>
                                         </div>

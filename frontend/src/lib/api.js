@@ -69,6 +69,7 @@ export const api = {
         getById: (id) => request(`/bookings/${id}`),
         update: (id, body) => request(`/bookings/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
         updateStatus: (id, body) => request(`/bookings/${id}/status`, { method: 'PUT', body: JSON.stringify(body) }),
+        updatePayment: (id, paymentStatus) => request(`/bookings/${id}/payment`, { method: 'PUT', body: JSON.stringify({ paymentStatus }) }),
         cancel: (id, reason) => request(`/bookings/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
         markPaid: (id) => request(`/bookings/${id}/mark-paid`, { method: 'POST' }),
     },

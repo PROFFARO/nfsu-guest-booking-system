@@ -1,62 +1,77 @@
+'use client';
+
 import Link from 'next/link';
 import { Building2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export default function Footer() {
     return (
-        <footer className="border-t border-border/40 bg-background/50">
+        <footer className="border-t-2 border-border bg-card">
             <div className="container mx-auto px-4 py-12">
                 <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="space-y-4">
-                        <Link href="/" className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
-                                <Building2 className="h-4 w-4 text-white" />
+                        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
+                            <div className="flex items-center justify-center p-1">
+                                <img
+                                    src="/logo.png"
+                                    alt="NFSU Logo"
+                                    className="h-12 w-auto object-contain"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                    }}
+                                />
+                                <div className="hidden h-10 w-10 items-center justify-center rounded-sm bg-[#0056b3] shadow-inner">
+                                    <Building2 className="h-6 w-6 text-white" />
+                                </div>
                             </div>
-                            <span className="text-lg font-bold">
-                                Campus<span className="text-cyan-500">Stay</span>
-                            </span>
+                            <div className="flex flex-col flex-1 pl-1 border-l-2 border-border ml-1">
+                                <span className="text-[17px] font-noto-bold tracking-tight text-foreground leading-tight">
+                                    NFSU Guest Management
+                                </span>
+                                <span className="text-[10px] font-noto-medium text-muted-foreground uppercase tracking-widest leading-none">
+                                    Official Booking Portal
+                                </span>
+                            </div>
                         </Link>
-                        <p className="text-sm text-muted-foreground">
-                            NFSU Guest House Booking System. Premium accommodation for guests and visitors.
+                        <p className="text-sm font-noto-medium text-muted-foreground leading-relaxed mt-2">
+                            NFSU Guest House Booking System <br /> Provides accommodation facilities for official guests and visitors.
                         </p>
                     </div>
 
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-semibold">Quick Links</h4>
-                        <div className="flex flex-col gap-2">
-                            <Link href="/rooms" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Browse Rooms</Link>
-                            <Link href="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Sign In</Link>
-                            <Link href="/register" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Register</Link>
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-noto-bold uppercase tracking-widest text-foreground border-b border-border pb-2 inline-block">Quick Links</h4>
+                        <div className="flex flex-col gap-2.5 mt-2">
+                            <Link href="/rooms" className="text-sm font-noto-medium text-muted-foreground hover:text-[#0056b3] dark:hover:text-cyan-400 transition-colors">Browse Rooms</Link>
+                            <Link href="/login" className="text-sm font-noto-medium text-muted-foreground hover:text-[#0056b3] dark:hover:text-cyan-400 transition-colors">Sign In</Link>
+                            <Link href="/register" className="text-sm font-noto-medium text-muted-foreground hover:text-[#0056b3] dark:hover:text-cyan-400 transition-colors">Register Account</Link>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-semibold">Contact</h4>
-                        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                            <p>National Forensic Sciences University</p>
-                            <p>Gandhinagar, Gujarat</p>
-                            <p>guesthouse@nfsu.ac.in</p>
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-noto-bold uppercase tracking-widest text-foreground border-b border-border pb-2 inline-block">Contact</h4>
+                        <div className="flex flex-col gap-2.5 text-sm font-noto-medium text-muted-foreground mt-2">
+                            <p>National Forensic Sciences University, Delhi</p>
+                            <p>LNJN-NICFS Campus, Near Jaipur Golden Hospital, Outer Ring Rd,
+                                Institutional Area, Sector 3, Rohini,
+                                Delhi-110085</p>
+                            <p className="text-[#0056b3] dark:text-cyan-400">directoroffice_dc@nfsu.ac.in</p>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <h4 className="text-sm font-semibold">Information</h4>
-                        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-noto-bold uppercase tracking-widest text-foreground border-b border-border pb-2 inline-block">Information</h4>
+                        <div className="flex flex-col gap-2.5 text-sm font-noto-medium text-muted-foreground mt-2">
                             <p>78 rooms across 6 floors</p>
                             <p>Single & Double occupancy</p>
-                            <p>24/7 Support</p>
+                            <p>24/7 Support Desk</p>
                         </div>
                     </div>
                 </div>
 
-                <Separator className="my-8 opacity-50" />
-
-                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                    <p className="text-xs text-muted-foreground">
-                        &copy; {new Date().getFullYear()} CampusStay Suite. All rights reserved.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        Built for NFSU
+                <div className="mt-12 pt-6 border-t border-border flex flex-col items-center justify-between gap-4 sm:flex-row">
+                    <p className="text-xs font-noto-medium text-muted-foreground uppercase tracking-wide">
+                        &copy; {new Date().getFullYear()} NFSU Delhi. All rights reserved.
                     </p>
                 </div>
             </div>

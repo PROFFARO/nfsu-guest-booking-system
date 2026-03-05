@@ -182,19 +182,19 @@ export default function RoomManagementPage() {
     const RoomForm = ({ onSubmit, submitLabel }) => (
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="roomNumber">Room Number *</Label>
+                <div className="space-y-1.5">
+                    <Label htmlFor="roomNumber" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Number *</Label>
                     <Input
                         id="roomNumber"
                         placeholder="e.g. 101"
                         value={form.roomNumber}
                         onChange={(e) => setForm({ ...form, roomNumber: e.target.value })}
-                        className={errors.roomNumber ? 'border-destructive' : ''}
+                        className={`rounded-sm border-border bg-background h-10 ${errors.roomNumber ? 'border-red-500' : ''}`}
                     />
-                    {errors.roomNumber && <p className="text-xs text-destructive">{errors.roomNumber}</p>}
+                    {errors.roomNumber && <p className="text-[11px] font-noto-medium text-red-500">{errors.roomNumber}</p>}
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="pricePerNight">Price / Night (₹) *</Label>
+                <div className="space-y-1.5">
+                    <Label htmlFor="pricePerNight" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Price / Night (₹) *</Label>
                     <Input
                         id="pricePerNight"
                         type="number"
@@ -202,17 +202,17 @@ export default function RoomManagementPage() {
                         min="0"
                         value={form.pricePerNight}
                         onChange={(e) => setForm({ ...form, pricePerNight: e.target.value })}
-                        className={errors.pricePerNight ? 'border-destructive' : ''}
+                        className={`rounded-sm border-border bg-background h-10 ${errors.pricePerNight ? 'border-red-500' : ''}`}
                     />
-                    {errors.pricePerNight && <p className="text-xs text-destructive">{errors.pricePerNight}</p>}
+                    {errors.pricePerNight && <p className="text-[11px] font-noto-medium text-red-500">{errors.pricePerNight}</p>}
                 </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <Label>Room Type *</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Type *</Label>
                     <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                        <SelectTrigger className={errors.type ? 'border-destructive' : ''}>
-                            <SelectValue />
+                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.type ? 'border-red-500' : ''}`}>
+                            <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="single">Single</SelectItem>
@@ -220,22 +220,22 @@ export default function RoomManagementPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
-                    <Label>Floor *</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Floor *</Label>
                     <Select value={form.floor} onValueChange={(v) => setForm({ ...form, floor: v })}>
-                        <SelectTrigger className={errors.floor ? 'border-destructive' : ''}>
-                            <SelectValue />
+                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.floor ? 'border-red-500' : ''}`}>
+                            <SelectValue placeholder="Select floor" />
                         </SelectTrigger>
                         <SelectContent>
                             {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f}>Floor {f}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
-                    <Label>Block *</Label>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Block *</Label>
                     <Select value={form.block} onValueChange={(v) => setForm({ ...form, block: v })}>
-                        <SelectTrigger className={errors.block ? 'border-destructive' : ''}>
-                            <SelectValue />
+                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.block ? 'border-red-500' : ''}`}>
+                            <SelectValue placeholder="Select block" />
                         </SelectTrigger>
                         <SelectContent>
                             {['A', 'B', 'C', 'D', 'E', 'F'].map(b => <SelectItem key={b} value={b}>Block {b}</SelectItem>)}
@@ -243,17 +243,17 @@ export default function RoomManagementPage() {
                     </Select>
                 </div>
             </div>
-            <div className="space-y-2">
-                <Label>Facilities</Label>
+            <div className="space-y-1.5">
+                <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Facilities</Label>
                 <div className="flex flex-wrap gap-2">
                     {FACILITIES.map(fac => (
                         <button
                             key={fac}
                             type="button"
                             onClick={() => toggleFacility(fac)}
-                            className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${form.facilities.includes(fac)
-                                ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
-                                : 'border-border text-muted-foreground hover:border-foreground/30'
+                            className={`rounded-sm border px-3 py-1.5 text-[11px] font-noto-medium uppercase tracking-wider transition-colors ${form.facilities.includes(fac)
+                                ? 'border-[#0056b3] bg-[#0056b3]/10 text-[#0056b3] dark:border-cyan-500 dark:bg-cyan-500/10 dark:text-cyan-400'
+                                : 'border-border bg-background text-muted-foreground hover:bg-muted'
                                 }`}
                         >
                             {fac}
@@ -261,8 +261,8 @@ export default function RoomManagementPage() {
                     ))}
                 </div>
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+            <div className="space-y-1.5">
+                <Label htmlFor="description" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Description</Label>
                 <Textarea
                     id="description"
                     placeholder="Optional room description (max 500 chars)"
@@ -270,12 +270,12 @@ export default function RoomManagementPage() {
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     maxLength={500}
                     rows={3}
-                    className={errors.description ? 'border-destructive' : ''}
+                    className={`rounded-sm border-border bg-background ${errors.description ? 'border-red-500' : ''}`}
                 />
-                <p className="text-xs text-muted-foreground">{form.description.length}/500</p>
+                <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.description.length}/500</p>
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="notes">Internal Notes</Label>
+            <div className="space-y-1.5">
+                <Label htmlFor="notes" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Internal Notes</Label>
                 <Textarea
                     id="notes"
                     placeholder="Staff-only notes (max 1000 chars)"
@@ -283,13 +283,15 @@ export default function RoomManagementPage() {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     maxLength={1000}
                     rows={2}
+                    className="rounded-sm border-border bg-background"
                 />
+                <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.notes.length}/1000</p>
             </div>
-            <DialogFooter className="gap-2 pt-2">
+            <DialogFooter className="gap-2 pt-4 border-t border-border mt-2">
                 <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
+                    <Button variant="outline" className="rounded-sm font-noto-medium h-9 px-4">Cancel</Button>
                 </DialogClose>
-                <Button variant="cta" onClick={onSubmit} disabled={saving}>
+                <Button onClick={onSubmit} disabled={saving} className="rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-9 px-6 shadow-sm">
                     {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {submitLabel}
                 </Button>
@@ -303,10 +305,10 @@ export default function RoomManagementPage() {
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold">Room Management</h1>
-                        <p className="text-muted-foreground">Create, edit, and manage all rooms</p>
+                        <h1 className="text-2xl font-noto-bold text-foreground">Room Management</h1>
+                        <p className="text-sm font-noto-medium text-muted-foreground mt-1 tracking-wide">Create, edit, and manage all rooms</p>
                     </div>
-                    <Button variant="cta" onClick={openCreate}>
+                    <Button onClick={openCreate} className="gap-2 bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium rounded-sm shadow-sm">
                         <Plus className="mr-2 h-4 w-4" /> Add Room
                     </Button>
                 </div>
@@ -341,7 +343,7 @@ export default function RoomManagementPage() {
                 </div>
 
                 {/* Table */}
-                <Card className="border-border/40 bg-card/50">
+                <Card className="border border-border bg-card shadow-sm rounded-sm">
                     <CardContent className="p-0 overflow-x-auto">
                         {loading ? (
                             <div className="p-6 space-y-3">
@@ -356,32 +358,32 @@ export default function RoomManagementPage() {
                         ) : (
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Room</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Floor</TableHead>
-                                        <TableHead>Block</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Facilities</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                    <TableRow className="border-border">
+                                        <TableHead className="font-noto-bold text-muted-foreground w-[100px]">Room</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Type</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Floor</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Block</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Price</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Facilities</TableHead>
+                                        <TableHead className="font-noto-bold text-muted-foreground">Status</TableHead>
+                                        <TableHead className="text-right font-noto-bold text-muted-foreground">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {rooms.map((room) => (
-                                        <TableRow key={room._id}>
-                                            <TableCell className="font-semibold">{room.roomNumber}</TableCell>
-                                            <TableCell className="capitalize">{room.type}</TableCell>
-                                            <TableCell>{room.floor}</TableCell>
-                                            <TableCell>{room.block}</TableCell>
-                                            <TableCell className="tabular-nums">₹{room.pricePerNight}</TableCell>
+                                        <TableRow key={room._id} className="border-border">
+                                            <TableCell className="font-noto-bold text-sm text-foreground">{room.roomNumber}</TableCell>
+                                            <TableCell className="capitalize font-noto-medium text-sm text-muted-foreground">{room.type}</TableCell>
+                                            <TableCell className="font-noto-medium text-sm text-muted-foreground">{room.floor}</TableCell>
+                                            <TableCell className="font-noto-medium text-sm text-muted-foreground">{room.block}</TableCell>
+                                            <TableCell className="font-noto-bold text-sm text-[#0056b3] dark:text-cyan-500 tabular-nums">₹{room.pricePerNight}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-wrap gap-1 max-w-[140px]">
                                                     {(room.facilities || []).slice(0, 3).map(f => (
-                                                        <Badge key={f} variant="secondary" className="text-[10px] px-1.5 py-0">{f}</Badge>
+                                                        <Badge key={f} variant="outline" className="text-[10px] font-noto-medium uppercase tracking-wider px-1.5 py-0 border-border bg-muted/30">{f}</Badge>
                                                     ))}
                                                     {(room.facilities || []).length > 3 && (
-                                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                        <Badge variant="outline" className="text-[10px] font-noto-bold px-1.5 py-0 border-border bg-muted/30">
                                                             +{room.facilities.length - 3}
                                                         </Badge>
                                                     )}
@@ -389,9 +391,9 @@ export default function RoomManagementPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Select value={room.status} onValueChange={(v) => handleStatusChange(room._id, v)}>
-                                                    <SelectTrigger className={`w-[140px] h-8 text-xs font-medium capitalize ${room.status === 'vacant' ? 'text-emerald-500' :
-                                                        room.status === 'booked' ? 'text-red-500' :
-                                                            room.status === 'held' ? 'text-amber-500' : 'text-slate-400'
+                                                    <SelectTrigger className={`w-[130px] h-8 text-xs font-noto-bold uppercase tracking-wider rounded-sm border-transparent ${room.status === 'vacant' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                                                        room.status === 'booked' ? 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400' :
+                                                            room.status === 'held' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-400'
                                                         }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
@@ -405,11 +407,11 @@ export default function RoomManagementPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => openEdit(room)} className="h-7 px-2 text-xs gap-1">
+                                                    <Button variant="outline" size="sm" onClick={() => openEdit(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-border bg-background hover:bg-muted/50">
                                                         <Pencil className="h-3 w-3" /> Edit
                                                     </Button>
                                                     {isAdmin && (
-                                                        <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs gap-1">
+                                                        <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
                                                             <Trash2 className="h-3 w-3" /> Delete
                                                         </Button>
                                                     )}
@@ -440,12 +442,12 @@ export default function RoomManagementPage() {
 
                 {/* Create Room Dialog */}
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogContent className="max-w-lg">
+                    <DialogContent className="max-w-lg rounded-sm border-border bg-card shadow-md">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Plus className="h-5 w-5 text-cyan-500" /> Add New Room
+                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
+                                <Plus className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Add New Room
                             </DialogTitle>
-                            <DialogDescription>
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
                                 Fill in the details to create a new room. Fields marked * are required.
                             </DialogDescription>
                         </DialogHeader>
@@ -455,12 +457,12 @@ export default function RoomManagementPage() {
 
                 {/* Edit Room Dialog */}
                 <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogContent className="max-w-lg">
+                    <DialogContent className="max-w-lg rounded-sm border-border bg-card shadow-md">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Pencil className="h-5 w-5 text-cyan-500" /> Edit Room {selectedRoom?.roomNumber}
+                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
+                                <Pencil className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Edit Room {selectedRoom?.roomNumber}
                             </DialogTitle>
-                            <DialogDescription>
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
                                 Update the room information. Fields marked * are required.
                             </DialogDescription>
                         </DialogHeader>
@@ -470,13 +472,13 @@ export default function RoomManagementPage() {
 
                 {/* Delete Confirmation Dialog */}
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                    <DialogContent className="max-w-sm">
+                    <DialogContent className="max-w-sm rounded-sm border-border bg-card shadow-md">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-destructive">
+                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-red-600 dark:text-red-500">
                                 <AlertTriangle className="h-5 w-5" /> Delete Room
                             </DialogTitle>
-                            <DialogDescription>
-                                Are you sure you want to delete room <strong>{selectedRoom?.roomNumber}</strong> (Block {selectedRoom?.block}, Floor {selectedRoom?.floor})?
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
+                                Are you sure you want to delete room <strong className="text-foreground">{selectedRoom?.roomNumber}</strong> (Block {selectedRoom?.block}, Floor {selectedRoom?.floor})?
                                 This will deactivate the room and it won&apos;t appear in listings.
                             </DialogDescription>
                         </DialogHeader>

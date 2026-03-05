@@ -26,6 +26,7 @@ import {
     Search,
     Filter,
     SlidersHorizontal,
+    ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -38,10 +39,10 @@ const facilityIcons = {
 };
 
 const statusColors = {
-    vacant: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    booked: 'bg-red-500/10 text-red-500 border-red-500/20',
-    held: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    maintenance: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    vacant: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
+    booked: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-600',
+    held: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    maintenance: 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-600',
 };
 
 export default function RoomBrowsePage() {
@@ -100,10 +101,10 @@ export default function RoomBrowsePage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-8"
+                className="mb-8 border-b-2 border-border pb-4"
             >
-                <h1 className="mb-2 text-3xl font-bold">Browse Rooms</h1>
-                <p className="text-muted-foreground">Find the perfect room for your stay at NFSU Guest House</p>
+                <h1 className="mb-2 text-3xl font-noto-bold uppercase tracking-tight text-[#0056b3] dark:text-cyan-500">Official Stay Accommodations</h1>
+                <p className="text-sm font-noto-medium text-muted-foreground uppercase tracking-widest">NFSU Gandhinagar Campus · Real-Time Availability</p>
             </motion.div>
 
             {/* Filters */}
@@ -122,10 +123,10 @@ export default function RoomBrowsePage() {
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="grid gap-4 rounded-xl border border-border/40 bg-card/50 p-4 sm:grid-cols-2 lg:grid-cols-4"
+                        className="grid gap-4 rounded-sm border-2 border-border bg-card shadow-sm p-4 sm:grid-cols-2 lg:grid-cols-4"
                     >
-                        <div className="space-y-2">
-                            <Label>Room Type</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Type</Label>
                             <Select value={filters.type || 'all'} onValueChange={(v) => updateFilter('type', v)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -135,8 +136,8 @@ export default function RoomBrowsePage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Floor</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Floor</Label>
                             <Select value={filters.floor || 'all'} onValueChange={(v) => updateFilter('floor', v)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -147,8 +148,8 @@ export default function RoomBrowsePage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Block</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Block</Label>
                             <Select value={filters.block || 'all'} onValueChange={(v) => updateFilter('block', v)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -159,8 +160,8 @@ export default function RoomBrowsePage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Status</Label>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Status</Label>
                             <Select value={filters.status || 'all'} onValueChange={(v) => updateFilter('status', v)}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -179,21 +180,21 @@ export default function RoomBrowsePage() {
             {loading ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {Array.from({ length: 8 }).map((_, i) => (
-                        <Card key={i} className="border-border/40">
-                            <CardContent className="p-4 space-y-3">
-                                <Skeleton className="h-6 w-24" />
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-3/4" />
-                                <Skeleton className="h-8 w-full" />
+                        <Card key={i} className="rounded-sm border-2 border-border shadow-sm">
+                            <CardContent className="p-4 space-y-4">
+                                <Skeleton className="h-6 w-1/3 rounded-sm" />
+                                <Skeleton className="h-4 w-1/2 rounded-sm" />
+                                <div className="flex gap-2"><Skeleton className="h-5 w-16 rounded-sm" /><Skeleton className="h-5 w-16 rounded-sm" /></div>
+                                <div className="pt-4 border-t border-border flex justify-between"><Skeleton className="h-6 w-20 rounded-sm" /><Skeleton className="h-8 w-16 rounded-sm" /></div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             ) : rooms.length === 0 ? (
-                <div className="py-20 text-center">
-                    <BedDouble className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold">No rooms found</h3>
-                    <p className="text-muted-foreground">Try adjusting your filters</p>
+                <div className="py-20 text-center border-2 border-dashed border-border rounded-sm bg-muted/10">
+                    <BedDouble className="mx-auto mb-4 h-10 w-10 text-muted-foreground opacity-50" />
+                    <h3 className="text-base font-noto-bold text-foreground tracking-wide">No Data Available</h3>
+                    <p className="text-sm font-noto-medium text-muted-foreground mt-1">Adjust filters to find available rooms.</p>
                 </div>
             ) : (
                 <>
@@ -206,51 +207,49 @@ export default function RoomBrowsePage() {
                                 transition={{ delay: i * 0.05 }}
                             >
                                 <Link href={`/rooms/${room._id}`}>
-                                    <Card className="group h-full border-border/40 bg-card/50 transition-all duration-300 hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/5 cursor-pointer">
-                                        <CardContent className="p-5">
-                                            <div className="mb-3 flex items-start justify-between">
+                                    <Card className="group h-full rounded-sm border-2 border-border bg-card shadow-sm hover:border-[#0056b3] dark:hover:border-cyan-500 transition-colors cursor-pointer flex flex-col">
+                                        <CardContent className="p-0 flex-1 flex flex-col">
+                                            <div className="p-4 border-b border-border bg-muted/10 flex items-start justify-between">
                                                 <div>
-                                                    <h3 className="text-lg font-semibold">Room {room.roomNumber}</h3>
-                                                    <p className="text-sm text-muted-foreground">
+                                                    <h3 className="text-base font-noto-bold tracking-tight text-foreground uppercase">Room {room.roomNumber}</h3>
+                                                    <p className="text-xs font-noto-bold text-muted-foreground mt-0.5 uppercase tracking-widest">
                                                         Floor {room.floor} · Block {room.block}
                                                     </p>
                                                 </div>
-                                                <Badge variant="outline" className={statusColors[room.status]}>
+                                                <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 ${statusColors[room.status]}`}>
                                                     {room.status}
                                                 </Badge>
                                             </div>
 
-                                            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-                                                <BedDouble className="h-4 w-4" />
-                                                <span className="capitalize">{room.type}</span>
+                                            <div className="p-4 flex-1">
+                                                <div className="mb-3 flex items-center gap-2 text-sm font-noto-medium text-foreground">
+                                                    <BedDouble className="h-4 w-4 text-[#0056b3] dark:text-cyan-500" />
+                                                    <span className="capitalize">{room.type} Occupancy</span>
+                                                </div>
+
+                                                {room.facilities?.length > 0 && (
+                                                    <div className="mb-4 flex flex-wrap gap-1.5">
+                                                        {room.facilities.slice(0, 4).map((f) => {
+                                                            const Icon = facilityIcons[f];
+                                                            return (
+                                                                <Badge key={f} variant="outline" className="rounded-sm bg-background border-border text-[10px] uppercase font-noto-bold tracking-wide gap-1 pr-2">
+                                                                    {Icon && <Icon className="h-3 w-3 text-[#0056b3] dark:text-cyan-600" />}
+                                                                    {f}
+                                                                </Badge>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {room.facilities?.length > 0 && (
-                                                <div className="mb-4 flex flex-wrap gap-1">
-                                                    {room.facilities.slice(0, 4).map((f) => {
-                                                        const Icon = facilityIcons[f];
-                                                        return (
-                                                            <Badge key={f} variant="secondary" className="text-xs gap-1">
-                                                                {Icon && <Icon className="h-3 w-3" />}
-                                                                {f}
-                                                            </Badge>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-lg font-bold text-cyan-500">
+                                            <div className="p-3 px-4 border-t border-border bg-muted/5 flex items-center justify-between mt-auto">
+                                                <p className="text-xl font-noto-bold text-foreground">
                                                     ₹{room.pricePerNight}
-                                                    <span className="text-xs font-normal text-muted-foreground">/night</span>
+                                                    <span className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest ml-1">/ Night</span>
                                                 </p>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-cyan-500 group-hover:bg-cyan-500/10"
-                                                >
-                                                    View →
-                                                </Button>
+                                                <div className="text-[#0056b3] dark:text-cyan-500 group-hover:underline text-xs font-noto-bold uppercase tracking-widest flex items-center">
+                                                    Details <ArrowRight className="ml-1 h-3 w-3" />
+                                                </div>
                                             </div>
                                         </CardContent>
                                     </Card>

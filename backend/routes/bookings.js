@@ -22,7 +22,7 @@ router.post('/', [
   body('purpose').isIn(['academic', 'business', 'personal', 'other']).withMessage('Invalid purpose'),
   body('purposeDetails').optional().isLength({ max: 500 }).withMessage('Purpose details cannot exceed 500 characters'),
   body('numberOfGuests').isInt({ min: 1, max: 4 }).withMessage('Number of guests must be between 1 and 4'),
-  body('paymentOption').optional().isIn(['pay_now','pay_later']).withMessage('Invalid payment option')
+  body('paymentOption').optional().isIn(['pay_now', 'pay_later']).withMessage('Invalid payment option')
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
@@ -94,14 +94,14 @@ router.post('/', [
   if (paymentOption === 'pay_later') {
     booking.status = 'confirmed';
     booking.paymentMethod = 'cash';
-    booking.paymentStatus = 'pending';
+    booking.paymentStatus = 'unpaid';
     await booking.save();
     await Room.findByIdAndUpdate(room._id, { status: 'booked', holdBy: null, holdUntil: null });
 
     // Populate and emit events
     await booking.populate('room', 'roomNumber type floor block pricePerNight');
-    try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch {}
-    try { getIO().emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch {}
+    try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
+    try { getIO().emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
 
     return res.status(201).json({
       status: 'success',
@@ -112,7 +112,7 @@ router.post('/', [
 
   // Otherwise keep room in held state until payment confirmation
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch {}
+  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
 
   return res.status(201).json({
     status: 'success',
@@ -142,9 +142,54 @@ router.post('/:id/mark-paid', [
   booking.paymentStatus = 'paid';
   booking.paymentMethod = 'cash';
   await booking.save();
-  try { getIO().emit('bookingUpdated', { bookingId: booking._id, paymentStatus: 'paid' }); } catch {}
+  try { getIO().emit('bookingUpdated', { bookingId: booking._id, paymentStatus: 'paid' }); } catch { }
 
   res.json({ status: 'success', message: 'Booking marked as paid', data: { booking } });
+}));
+
+// @route   PUT /api/bookings/:id/payment
+// @desc    Override payment status (Admin/Staff only)
+// @access  Private (Admin/Staff)
+router.put('/:id/payment', [
+  authMiddleware,
+  staffMiddleware,
+  param('id').isMongoId().withMessage('Invalid booking ID'),
+  body('paymentStatus').isIn(['unpaid', 'paid']).withMessage('Invalid payment status')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { paymentStatus } = req.body;
+  const booking = await Booking.findById(req.params.id);
+
+  if (!booking) {
+    return res.status(404).json({ status: 'error', message: 'Booking not found' });
+  }
+
+  booking.paymentStatus = paymentStatus;
+
+  if (paymentStatus === 'paid') {
+    // Assume cash for admin manual overrides if not already set, 
+    // or just leave as is. We'll ensure it has a valid enum value.
+    if (!booking.paymentMethod || booking.paymentMethod === 'none') {
+      booking.paymentMethod = 'cash';
+    }
+  }
+
+  await booking.save();
+
+  try { getIO().emit('bookingUpdated', { bookingId: booking._id, paymentStatus }); } catch { }
+
+  // Populate room details for response
+  await booking.populate('room', 'roomNumber type floor block pricePerNight');
+
+  res.json({
+    status: 'success',
+    message: 'Payment status overridden successfully',
+    data: { booking }
+  });
 }));
 
 // @route   POST /api/bookings/:id/checkout
@@ -171,22 +216,22 @@ router.get('/', [
   }
 
   const { status, page = 1, limit = 20 } = req.query;
-  
+
   // Build query
   let query = { isActive: true };
-  
+
   // Regular users can only see their own bookings
   if (req.user.role === 'user') {
     query.user = req.user._id;
   }
-  
+
   if (status) {
     query.status = status;
   }
 
   // Calculate pagination
   const skip = (page - 1) * limit;
-  
+
   // Get bookings with pagination
   const bookings = await Booking.find(query)
     .populate('room', 'roomNumber type floor block pricePerNight')
@@ -279,7 +324,7 @@ router.put('/:id', [
   }
 
   const booking = await Booking.findById(req.params.id);
-  
+
   if (!booking) {
     return res.status(404).json({
       status: 'error',
@@ -307,14 +352,14 @@ router.put('/:id', [
   if ((req.body.checkIn || req.body.checkOut) && req.user.role === 'user') {
     const checkIn = req.body.checkIn ? new Date(req.body.checkIn) : booking.checkIn;
     const checkOut = req.body.checkOut ? new Date(req.body.checkOut) : booking.checkOut;
-    
+
     const isAvailable = await Booking.checkRoomAvailability(
       booking.room,
       checkIn,
       checkOut,
       booking._id
     );
-    
+
     if (!isAvailable) {
       return res.status(400).json({
         status: 'error',
@@ -361,7 +406,7 @@ router.put('/:id/status', [
 
   const { status, notes } = req.body;
   const booking = await Booking.findById(req.params.id);
-  
+
   if (!booking) {
     return res.status(404).json({
       status: 'error',
@@ -428,7 +473,7 @@ router.delete('/:id', [
 
   const { reason } = req.body;
   const booking = await Booking.findById(req.params.id);
-  
+
   if (!booking) {
     return res.status(404).json({
       status: 'error',

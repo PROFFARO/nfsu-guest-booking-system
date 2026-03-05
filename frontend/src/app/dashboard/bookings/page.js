@@ -25,18 +25,16 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusColors = {
-    pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    confirmed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
-    completed: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    'no-show': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    pending: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    confirmed: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
+    cancelled: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-600',
+    completed: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-600',
+    'no-show': 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-600',
 };
 
 const paymentColors = {
-    pending: 'bg-amber-500/10 text-amber-500',
-    paid: 'bg-emerald-500/10 text-emerald-500',
-    failed: 'bg-red-500/10 text-red-500',
-    refunded: 'bg-blue-500/10 text-blue-500',
+    unpaid: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    paid: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
 };
 
 export default function MyBookingsPage() {
@@ -80,108 +78,119 @@ export default function MyBookingsPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+                <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-border pb-4 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold">My Bookings</h1>
-                        <p className="text-muted-foreground">Manage your room reservations</p>
+                        <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Booking Ledger</h1>
+                        <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            Official Room Reservation Records
+                        </p>
                     </div>
                     <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter Status" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                        <SelectTrigger className="w-[180px] rounded-sm border-2 border-border h-10 font-noto-bold text-xs uppercase tracking-wide">
+                            <SelectValue placeholder="Filter By Status" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-sm border-2 border-border">
+                            <SelectItem value="all" className="font-noto-medium text-xs uppercase tracking-wide">All Statuses</SelectItem>
+                            <SelectItem value="pending" className="font-noto-medium text-xs uppercase tracking-wide">Pending</SelectItem>
+                            <SelectItem value="confirmed" className="font-noto-medium text-xs uppercase tracking-wide">Confirmed</SelectItem>
+                            <SelectItem value="cancelled" className="font-noto-medium text-xs uppercase tracking-wide">Cancelled</SelectItem>
+                            <SelectItem value="completed" className="font-noto-medium text-xs uppercase tracking-wide">Completed</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
 
                 {loading ? (
-                    <div className="space-y-4">
-                        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+                    <div className="space-y-3">
+                        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-sm border-2 border-border" />)}
                     </div>
                 ) : bookings.length === 0 ? (
-                    <div className="py-20 text-center">
-                        <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold">No bookings found</h3>
-                        <p className="text-muted-foreground">You haven&apos;t made any bookings yet</p>
+                    <div className="py-20 text-center border-2 border-border rounded-sm bg-card shadow-sm">
+                        <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+                        <h3 className="text-sm font-noto-bold uppercase tracking-wide">No Records Found</h3>
+                        <p className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest mt-1">You haven&apos;t filed any applications yet</p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        {bookings.map((booking) => (
-                            <Card key={booking._id} className="border-border/40 bg-card/50">
-                                <CardContent className="p-6">
-                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10">
-                                                <BedDouble className="h-6 w-6 text-cyan-500" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold">Room {booking.room?.roomNumber || 'N/A'}</h3>
-                                                <p className="text-sm text-muted-foreground capitalize">
-                                                    {booking.room?.type} · Floor {booking.room?.floor} · Block {booking.room?.block}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="h-3.5 w-3.5" />
-                                                        {format(new Date(booking.checkIn), 'MMM dd')} — {format(new Date(booking.checkOut), 'MMM dd, yyyy')}
-                                                    </span>
-                                                    <span className="font-semibold text-cyan-500">₹{booking.totalAmount}</span>
-                                                </div>
-                                            </div>
+                    <div className="border-2 border-border rounded-sm bg-card shadow-sm overflow-hidden">
+                        <div className="divide-y divide-border">
+                            {bookings.map((booking) => (
+                                <div key={booking._id} className="p-4 sm:p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-background hover:bg-muted/30 transition-colors">
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
+                                            <BedDouble className="h-6 w-6 text-[#0056b3] dark:text-cyan-500" />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className={paymentColors[booking.paymentStatus]}>
-                                                {booking.paymentStatus}
-                                            </Badge>
-                                            <Badge variant="outline" className={statusColors[booking.status]}>
-                                                {booking.status}
-                                            </Badge>
-                                            {!['cancelled', 'completed'].includes(booking.status) && (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent>
-                                                        <DialogHeader>
-                                                            <DialogTitle>Cancel Booking</DialogTitle>
-                                                            <DialogDescription>Are you sure? This cannot be undone.</DialogDescription>
-                                                        </DialogHeader>
-                                                        <div className="space-y-2">
-                                                            <Label>Reason (optional)</Label>
-                                                            <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder="Why are you cancelling?" />
-                                                        </div>
-                                                        <DialogFooter>
-                                                            <DialogClose asChild>
-                                                                <Button variant="outline">Keep Booking</Button>
-                                                            </DialogClose>
-                                                            <DialogClose asChild>
-                                                                <Button variant="destructive" onClick={() => handleCancel(booking._id)}>Cancel Booking</Button>
-                                                            </DialogClose>
-                                                        </DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            )}
+                                        <div>
+                                            <h3 className="text-sm font-noto-bold text-foreground uppercase tracking-tight">Room {booking.room?.roomNumber || 'N/A'}</h3>
+                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex flex-wrap gap-2 items-center">
+                                                <span>{booking.room?.type}</span> <span className="text-border mx-[-2px]">•</span>
+                                                <span>Floor {booking.room?.floor}</span> <span className="text-border mx-[-2px]">•</span>
+                                                <span>Block {booking.room?.block}</span>
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-4 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                                                <span className="flex items-center gap-1.5 bg-muted/40 px-2 py-0.5 rounded-sm border border-border/50">
+                                                    <Clock className="h-3 w-3" />
+                                                    {format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}
+                                                </span>
+                                                <span className="font-noto-bold text-[#0056b3] dark:text-cyan-500 text-xs">₹{booking.totalAmount}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                                        <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6 ${paymentColors[booking.paymentStatus]}`}>
+                                            Pay: {booking.paymentStatus}
+                                        </Badge>
+                                        <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6 ${statusColors[booking.status]}`}>
+                                            Status: {booking.status}
+                                        </Badge>
+                                        {!['cancelled', 'completed'].includes(booking.status) && (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="rounded-sm border-2 border-border shadow-md">
+                                                    <DialogHeader>
+                                                        <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">Revoke Application</DialogTitle>
+                                                        <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
+                                                            Are you certain you wish to withdraw this booking request? This official action cannot be undone.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="space-y-3 mt-4">
+                                                        <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Justification (Optional)</Label>
+                                                        <Textarea
+                                                            className="rounded-sm border-2 border-border text-sm font-noto-medium focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#0056b3] dark:focus-visible:border-cyan-600 transition-none"
+                                                            value={cancelReason}
+                                                            onChange={(e) => setCancelReason(e.target.value)}
+                                                            placeholder="Enter official reason for cancellation..."
+                                                        />
+                                                    </div>
+                                                    <DialogFooter className="mt-6 gap-2 sm:gap-0">
+                                                        <DialogClose asChild>
+                                                            <Button variant="outline" className="rounded-sm border-2 border-border font-noto-bold uppercase text-xs tracking-wide">Retain Application</Button>
+                                                        </DialogClose>
+                                                        <DialogClose asChild>
+                                                            <Button variant="destructive" className="rounded-sm font-noto-bold uppercase text-xs tracking-wide" onClick={() => handleCancel(booking._id)}>Execute Withdrawal</Button>
+                                                        </DialogClose>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
                 {pagination && pagination.totalPages > 1 && (
-                    <div className="mt-8 flex items-center justify-center gap-2">
-                        <Button variant="outline" size="sm" disabled={!pagination.hasPrevPage} onClick={() => setPage((p) => p - 1)}>
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                        <Button variant="outline" size="sm" className="rounded-sm border-2 border-border h-8 w-8 p-0" disabled={!pagination.hasPrevPage} onClick={() => setPage((p) => p - 1)}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span className="px-4 text-sm text-muted-foreground">
-                            Page {pagination.currentPage} of {pagination.totalPages}
+                        <span className="px-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest bg-muted/30 border border-border rounded-sm py-1.5">
+                            Page {pagination.currentPage} / {pagination.totalPages}
                         </span>
-                        <Button variant="outline" size="sm" disabled={!pagination.hasNextPage} onClick={() => setPage((p) => p + 1)}>
+                        <Button variant="outline" size="sm" className="rounded-sm border-2 border-border h-8 w-8 p-0" disabled={!pagination.hasNextPage} onClick={() => setPage((p) => p + 1)}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>

@@ -55,76 +55,83 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="container mx-auto max-w-2xl px-4 py-8">
+        <div className="container mx-auto max-w-5xl px-4 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <div>
-                    <h1 className="text-3xl font-bold">Profile</h1>
-                    <p className="text-muted-foreground">Manage your account settings</p>
+                    <h1 className="text-3xl font-noto-bold text-foreground tracking-tight">Profile</h1>
+                    <p className="text-sm font-noto-medium text-muted-foreground mt-1">Manage your account settings</p>
                 </div>
 
                 {/* Info */}
-                <Card className="border-border/40 bg-card/50">
-                    <CardContent className="flex items-center gap-4 p-6">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-xl font-bold text-white">
+                <Card className="rounded-sm border-border bg-card shadow-sm">
+                    <CardContent className="flex items-start gap-5 p-6">
+                        <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-sm bg-[#0056b3] dark:bg-cyan-600 text-3xl font-noto-bold text-white shadow-sm mt-0.5">
                             {user?.name?.charAt(0)?.toUpperCase()}
                         </div>
-                        <div>
-                            <p className="text-lg font-semibold">{user?.name}</p>
-                            <p className="text-sm text-muted-foreground">{user?.email}</p>
-                            <Badge variant="secondary" className="mt-1 capitalize">{user?.role}</Badge>
+                        <div className="flex flex-col">
+                            <h2 className="text-xl font-noto-bold text-foreground leading-tight">{user?.name}</h2>
+                            <p className="text-sm font-noto-medium text-muted-foreground mt-0.5">{user?.email}</p>
+                            <div className="mt-3">
+                                <Badge variant="outline" className="rounded-sm text-[11px] font-noto-bold uppercase tracking-widest border-border bg-muted/20 px-2.5 py-0.5 text-foreground">
+                                    {user?.role}
+                                </Badge>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Edit Profile */}
-                <Card className="border-border/40 bg-card/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <User className="h-5 w-5" /> Edit Profile
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleProfileUpdate} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone</Label>
-                                <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required maxLength={10} />
-                            </div>
-                            <Button type="submit" disabled={saving} variant="cta">
-                                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                Save Changes
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                {/* Forms Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* Edit Profile */}
+                    <Card className="rounded-sm border-border bg-card shadow-sm">
+                        <div className="px-6 py-4 border-b border-border bg-muted/10">
+                            <h2 className="flex items-center gap-2 font-noto-bold text-lg text-foreground">
+                                <User className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Edit Profile
+                            </h2>
+                        </div>
+                        <CardContent className="p-6">
+                            <form onSubmit={handleProfileUpdate} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="name" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Full Name</Label>
+                                    <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="rounded-sm border-border bg-background h-10" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="phone" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Phone</Label>
+                                    <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required maxLength={10} className="rounded-sm border-border bg-background h-10" />
+                                </div>
+                                <Button type="submit" disabled={saving} className="rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-10 px-6 shadow-sm mt-2 w-full md:w-auto">
+                                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Save Changes
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
 
-                {/* Change Password */}
-                <Card className="border-border/40 bg-card/50">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="h-5 w-5" /> Change Password
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="currentPassword">Current Password</Label>
-                                <Input id="currentPassword" type="password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="newPassword">New Password</Label>
-                                <Input id="newPassword" type="password" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} required placeholder="Min 6 characters" />
-                            </div>
-                            <Button type="submit" variant="outline" disabled={changingPw}>
-                                {changingPw ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                Change Password
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                    {/* Change Password */}
+                    <Card className="rounded-sm border-border bg-card shadow-sm">
+                        <div className="px-6 py-4 border-b border-border bg-muted/10">
+                            <h2 className="flex items-center gap-2 font-noto-bold text-lg text-foreground">
+                                <Lock className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Change Password
+                            </h2>
+                        </div>
+                        <CardContent className="p-6">
+                            <form onSubmit={handlePasswordChange} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="currentPassword" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Current Password</Label>
+                                    <Input id="currentPassword" type="password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} required className="rounded-sm border-border bg-background h-10" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="newPassword" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">New Password</Label>
+                                    <Input id="newPassword" type="password" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} required placeholder="Min 6 characters" className="rounded-sm border-border bg-background h-10" />
+                                </div>
+                                <Button type="submit" variant="outline" disabled={changingPw} className="rounded-sm border-border bg-background hover:bg-muted font-noto-medium h-10 px-6 mt-2 w-full md:w-auto">
+                                    {changingPw ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Change Password
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
             </motion.div>
         </div>
     );

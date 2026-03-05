@@ -38,24 +38,48 @@ export default function Navbar() {
         router.push('/');
     };
 
-    // Different nav links depending on auth state
-    const navLinks = user
-        ? [
+    // Role-based nav links — each role sees ONLY their relevant links
+    const getNavLinks = () => {
+        if (!user) {
+            return [
+                { href: '/', label: 'Home' },
+                { href: '/rooms', label: 'Browse Rooms' },
+            ];
+        }
+
+        if (user.role === 'admin') {
+            // Admin: manage everything from admin panel
+            return [
+                { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+                { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
+                { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+                { href: '/admin/users', label: 'Users', icon: Shield },
+            ];
+        }
+
+        if (user.role === 'staff') {
+            // Staff: manage rooms and bookings only
+            return [
+                { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+                { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
+                { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+            ];
+        }
+
+        // Regular user: browse and manage their own bookings
+        return [
             { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
             { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { href: '/dashboard/bookings', label: 'My Bookings', icon: BookOpen },
-            ...((user.role === 'admin' || user.role === 'staff')
-                ? [{ href: '/admin', label: 'Admin Panel', icon: Shield }]
-                : []),
-        ]
-        : [
-            { href: '/', label: 'Home' },
-            { href: '/rooms', label: 'Browse Rooms' },
         ];
+    };
+
+    const navLinks = getNavLinks();
 
     const isActive = (href) => {
         if (href === '/') return pathname === '/';
         if (href === '/dashboard') return pathname === '/dashboard';
+        if (href === '/admin') return pathname === '/admin';
         return pathname.startsWith(href);
     };
 
@@ -72,68 +96,87 @@ export default function Navbar() {
         .slice(0, 2) || 'U';
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-50 w-full border-b border-border bg-background shadow-sm">
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 {/* Logo */}
-                <Link href={logoHref} className="flex items-center gap-2 transition-opacity hover:opacity-80">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25">
-                        <Building2 className="h-5 w-5 text-white" />
+                <Link href={logoHref} className="flex items-center gap-3 transition-opacity hover:opacity-90">
+                    <div className="flex items-center justify-center p-1">
+                        {/* Using standard img to avoid Next.js Image config issues, assuming the user will place logo.png in public dir */}
+                        <img
+                            src="/logo.png"
+                            alt="NFSU Logo"
+                            className="h-12 w-auto object-contain"
+                            onError={(e) => {
+                                // Fallback to Building icon if image isn't loaded yet
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }}
+                        />
+                        <div className="hidden h-10 w-10 items-center justify-center rounded-sm bg-[#0056b3] shadow-inner">
+                            <Building2 className="h-6 w-6 text-white" />
+                        </div>
                     </div>
-                    <span className="hidden text-lg font-bold tracking-tight sm:block">
-                        Campus<span className="text-cyan-500">Stay</span>
-                    </span>
+                    <div className="flex flex-col flex-1 pl-1 border-l-2 border-border ml-1">
+                        <span className="text-[17px] font-noto-bold tracking-tight text-foreground leading-tight">
+                            NFSU Guest Management
+                        </span>
+                        <span className="text-[10px] font-noto-medium text-muted-foreground uppercase tracking-widest leading-none">
+                            Official Booking Portal
+                        </span>
+                    </div>
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav className="hidden items-center gap-1 md:flex">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.href}
-                            href={link.href}
-                            className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive(link.href)
-                                ? 'bg-accent text-accent-foreground'
-                                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                                }`}
-                        >
-                            {link.label}
-                        </Link>
-                    ))}
+                <nav className="hidden h-full items-center gap-6 md:flex">
+                    {navLinks.map((link) => {
+                        const active = isActive(link.href);
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`flex h-full items-center border-b-2 px-1 text-sm font-noto-semibold transition-colors ${active
+                                    ? 'border-[#0056b3] text-[#0056b3] dark:border-cyan-500 dark:text-cyan-500'
+                                    : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground'
+                                    }`}
+                            >
+                                {link.label}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 {/* Right Side */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                     <ThemeToggle />
                     {user ? (
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                    <Avatar className="h-9 w-9 border-2 border-cyan-500/50">
-                                        <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-semibold text-white">
-                                            {initials}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
+                            <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#0056b3] focus-visible:ring-offset-2 transition-transform hover:scale-105 active:scale-95">
+                                <Avatar className="h-9 w-9 border border-border/50 hover:border-[#0056b3]/50 shadow-sm transition-colors">
+                                    <AvatarFallback className="bg-[#0056b3] text-white text-xs font-noto-bold">
+                                        {initials}
+                                    </AvatarFallback>
+                                </Avatar>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <div className="flex items-center gap-2 px-2 py-1.5">
-                                    <div className="flex flex-col space-y-0.5">
-                                        <p className="text-sm font-medium">{user.name}</p>
-                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                            <DropdownMenuContent align="end" className="w-56 rounded-sm border-border bg-card shadow-md p-0 overflow-hidden">
+                                <div className="flex flex-col gap-1 px-4 py-3 border-b border-border bg-muted/10">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-noto-bold text-foreground leading-none">{user.name}</p>
+                                        <Badge variant="outline" className="text-[10px] font-noto-bold uppercase tracking-widest border-border bg-background px-1.5 py-0">
+                                            {user.role}
+                                        </Badge>
                                     </div>
-                                    <Badge variant="secondary" className="ml-auto text-[10px] capitalize">
-                                        {user.role}
-                                    </Badge>
+                                    <p className="text-xs font-noto-medium text-muted-foreground">{user.email}</p>
                                 </div>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
-                                    <User className="mr-2 h-4 w-4" />
-                                    Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    Logout
-                                </DropdownMenuItem>
+                                <div className="p-1">
+                                    <DropdownMenuItem onClick={() => router.push('/dashboard/profile')} className="font-noto-medium text-sm cursor-pointer rounded-sm focus:bg-muted/50 h-9">
+                                        <User className="mr-2 h-4 w-4 text-muted-foreground" />
+                                        Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleLogout} className="font-noto-medium text-sm text-red-600 dark:text-red-500 cursor-pointer rounded-sm focus:bg-red-50 dark:focus:bg-red-500/10 focus:text-red-700 dark:focus:text-red-400 h-9">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        Logout
+                                    </DropdownMenuItem>
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (

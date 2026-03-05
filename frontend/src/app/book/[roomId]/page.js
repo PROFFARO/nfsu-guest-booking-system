@@ -124,42 +124,47 @@ export default function BookingFormPage({ params }) {
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <Button variant="ghost" size="sm" className="mb-6" onClick={() => router.back()}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-
-                <h1 className="mb-2 text-3xl font-bold">Complete Your Booking</h1>
-                <p className="mb-8 text-muted-foreground">Fill in the details to reserve Room {room?.roomNumber}</p>
+                <div className="mb-6 border-b-2 border-border pb-4">
+                    <Button variant="outline" size="sm" className="mb-6 rounded-sm border-2 border-border font-noto-bold text-xs uppercase tracking-widest h-8" onClick={() => router.back()}>
+                        <ArrowLeft className="mr-2 h-3.5 w-3.5" /> Return
+                    </Button>
+                    <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Official Room Requisition</h1>
+                    <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                        Submit Application for Room {room?.roomNumber}
+                    </p>
+                </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="grid gap-8 lg:grid-cols-3">
+                    <div className="grid gap-6 lg:grid-cols-3">
                         {/* Form Fields */}
                         <div className="space-y-6 lg:col-span-2">
-                            <Card className="border-border/40 bg-card/50">
-                                <CardHeader>
-                                    <CardTitle>Guest Information</CardTitle>
+                            <Card className="rounded-sm border-2 border-border bg-card shadow-sm overflow-hidden">
+                                <CardHeader className="p-4 border-b border-border bg-muted/10">
+                                    <CardTitle className="text-sm font-noto-bold text-foreground uppercase tracking-wide">Applicant Details</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid gap-4 sm:grid-cols-2">
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="grid gap-5 sm:grid-cols-2">
                                         <div className="space-y-2">
-                                            <Label htmlFor="guestName">Full Name</Label>
-                                            <Input id="guestName" value={form.guestName} onChange={update('guestName')} required />
+                                            <Label htmlFor="guestName" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Full Legal Name</Label>
+                                            <Input id="guestName" className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.guestName} onChange={update('guestName')} required />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="email">Email</Label>
-                                            <Input id="email" type="email" value={form.email} onChange={update('email')} required />
+                                            <Label htmlFor="email" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Registered Email</Label>
+                                            <Input id="email" type="email" className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.email} onChange={update('email')} required />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="phone">Phone</Label>
-                                            <Input id="phone" value={form.phone} onChange={update('phone')} required maxLength={10} />
+                                            <Label htmlFor="phone" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Contact Number</Label>
+                                            <Input id="phone" className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.phone} onChange={update('phone')} required readOnly={false} maxLength={10} minLength={10} pattern="[0-9]*" />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="numberOfGuests">Guests</Label>
+                                            <Label htmlFor="numberOfGuests" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Occupants</Label>
                                             <Select value={String(form.numberOfGuests)} onValueChange={(v) => setForm({ ...form, numberOfGuests: v })}>
-                                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                                <SelectContent>
+                                                <SelectTrigger className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-sm border-2 border-border">
                                                     {[1, 2, 3, 4].map((n) => (
-                                                        <SelectItem key={n} value={String(n)}>{n} Guest{n > 1 ? 's' : ''}</SelectItem>
+                                                        <SelectItem key={n} value={String(n)} className="font-noto-medium text-sm">{n} Person{n > 1 ? 's' : ''}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
@@ -168,40 +173,42 @@ export default function BookingFormPage({ params }) {
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-border/40 bg-card/50">
-                                <CardHeader>
-                                    <CardTitle>Stay Details</CardTitle>
+                            <Card className="rounded-sm border-2 border-border bg-card shadow-sm overflow-hidden">
+                                <CardHeader className="p-4 border-b border-border bg-muted/10">
+                                    <CardTitle className="text-sm font-noto-bold text-foreground uppercase tracking-wide">Stay Requirements</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid gap-4 sm:grid-cols-2">
+                                <CardContent className="p-6 space-y-5">
+                                    <div className="grid gap-5 sm:grid-cols-2">
                                         <div className="space-y-2">
-                                            <Label htmlFor="checkIn">Check-in Date</Label>
-                                            <Input id="checkIn" type="date" min={minDate} value={form.checkIn} onChange={update('checkIn')} required />
+                                            <Label htmlFor="checkIn" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Arrival Date</Label>
+                                            <Input id="checkIn" type="date" min={minDate} className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.checkIn} onChange={update('checkIn')} required />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="checkOut">Check-out Date</Label>
-                                            <Input id="checkOut" type="date" min={form.checkIn || minDate} value={form.checkOut} onChange={update('checkOut')} required />
+                                            <Label htmlFor="checkOut" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Departure Date</Label>
+                                            <Input id="checkOut" type="date" min={form.checkIn || minDate} className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.checkOut} onChange={update('checkOut')} required />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="purpose">Purpose of Stay</Label>
+                                        <Label htmlFor="purpose" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Primary Purpose of Visit</Label>
                                         <Select value={form.purpose} onValueChange={(v) => setForm({ ...form, purpose: v })}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="academic">Academic</SelectItem>
-                                                <SelectItem value="business">Business</SelectItem>
-                                                <SelectItem value="personal">Personal</SelectItem>
-                                                <SelectItem value="other">Other</SelectItem>
+                                            <SelectTrigger className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-sm border-2 border-border">
+                                                <SelectItem value="academic" className="font-noto-medium text-sm">Academic / Educational</SelectItem>
+                                                <SelectItem value="business" className="font-noto-medium text-sm">Official / Business</SelectItem>
+                                                <SelectItem value="personal" className="font-noto-medium text-sm">Personal Visit</SelectItem>
+                                                <SelectItem value="other" className="font-noto-medium text-sm">Other</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="purposeDetails">Purpose Details (optional)</Label>
-                                        <Input id="purposeDetails" value={form.purposeDetails} onChange={update('purposeDetails')} placeholder="Brief description..." />
+                                        <Label htmlFor="purposeDetails" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Detailed Justification (Optional)</Label>
+                                        <Input id="purposeDetails" className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm" value={form.purposeDetails} onChange={update('purposeDetails')} placeholder="Provide brief context..." />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="specialRequests">Special Requests (optional)</Label>
-                                        <Textarea id="specialRequests" value={form.specialRequests} onChange={update('specialRequests')} placeholder="Any specific requirements..." rows={3} />
+                                        <Label htmlFor="specialRequests" className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Special Accommodations (Optional)</Label>
+                                        <Textarea id="specialRequests" className="rounded-sm border-2 border-border font-noto-medium text-sm" value={form.specialRequests} onChange={update('specialRequests')} placeholder="Enter specific requirements..." rows={3} />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -209,50 +216,55 @@ export default function BookingFormPage({ params }) {
 
                         {/* Summary Sidebar */}
                         <div>
-                            <Card className="sticky top-24 border-border/40 bg-card/50">
-                                <CardHeader>
-                                    <CardTitle>Booking Summary</CardTitle>
+                            <Card className="sticky top-24 rounded-sm border-2 border-[#0056b3] dark:border-cyan-700 bg-card shadow-sm overflow-hidden">
+                                <CardHeader className="bg-[#0056b3] dark:bg-cyan-800 p-3">
+                                    <CardTitle className="text-sm font-noto-bold text-white uppercase tracking-wide text-center">Estimation Ledger</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-600/10 p-4">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <BedDouble className="h-5 w-5 text-cyan-500" />
-                                            <span className="font-semibold">Room {room?.roomNumber}</span>
+                                <CardContent className="p-0">
+                                    <div className="p-5 border-b border-border bg-background">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
+                                                <BedDouble className="h-4 w-4 text-[#0056b3] dark:text-cyan-500" />
+                                            </div>
+                                            <span className="text-sm font-noto-bold uppercase tracking-tight text-foreground">Room {room?.roomNumber}</span>
                                         </div>
-                                        <p className="text-sm text-muted-foreground capitalize">{room?.type} · Floor {room?.floor} · Block {room?.block}</p>
+                                        <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest pl-11">
+                                            {room?.type} · Floor {room?.floor} · Block {room?.block}
+                                        </p>
                                     </div>
 
-                                    <Separator />
+                                    <div className="p-5 space-y-4 text-sm bg-muted/5 font-noto-medium">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">Base Tariff (Per Night)</span>
+                                            <span className="font-noto-bold">₹{room?.pricePerNight}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">Calculated Nights</span>
+                                            <span className="font-noto-bold">{nights || '—'}</span>
+                                        </div>
 
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Rate per night</span>
-                                            <span>₹{room?.pricePerNight}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Nights</span>
-                                            <span>{nights || '—'}</span>
-                                        </div>
-                                        <Separator />
-                                        <div className="flex justify-between text-base font-semibold">
-                                            <span>Total</span>
-                                            <span className="text-cyan-500">₹{totalAmount || '—'}</span>
+                                        <Separator className="bg-border" />
+
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs font-noto-bold text-foreground uppercase tracking-widest">Total Projection</span>
+                                            <span className="text-lg font-noto-bold text-[#0056b3] dark:text-cyan-500">₹{totalAmount || '—'}</span>
                                         </div>
                                     </div>
 
-                                    <Badge variant="secondary" className="w-full justify-center py-1.5">
-                                        Pay at Reception (Cash)
-                                    </Badge>
+                                    <div className="p-5 border-t border-border bg-background space-y-4">
+                                        <Badge variant="outline" className="w-full justify-center py-2 rounded-sm border-border text-[10px] font-noto-bold uppercase tracking-widest">
+                                            Payment: Processing At Reception
+                                        </Badge>
 
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        variant="cta"
-                                        disabled={submitting || nights <= 0}
-                                    >
-                                        {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                        Confirm Booking
-                                    </Button>
+                                        <Button
+                                            type="submit"
+                                            className="w-full rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-bold h-10 uppercase tracking-wider text-xs"
+                                            disabled={submitting || nights <= 0}
+                                        >
+                                            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Submit Requisition
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                         </div>

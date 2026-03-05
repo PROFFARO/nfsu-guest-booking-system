@@ -54,10 +54,7 @@ export default function RegisterPage() {
 
     return (
         <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-            <div className="absolute inset-0 -z-10">
-                <div className="absolute left-1/4 top-1/4 h-72 w-72 rounded-full bg-cyan-500/5 blur-3xl" />
-                <div className="absolute bottom-1/4 right-1/3 h-72 w-72 rounded-full bg-blue-600/5 blur-3xl" />
-            </div>
+            {/* Removed AI-ish background blur blobs */}
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -65,55 +62,67 @@ export default function RegisterPage() {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-md"
             >
-                <Card className="border-border/40 bg-card/80 backdrop-blur-xl">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/25">
-                            <Building2 className="h-6 w-6 text-white" />
+                <Card className="rounded-sm border-border bg-card shadow-sm">
+                    <CardHeader className="text-center border-b border-border bg-muted/10 pb-6 rounded-t-sm">
+                        <div className="mx-auto mb-4 flex justify-center">
+                            <img
+                                src="/logo.png"
+                                alt="NFSU Logo"
+                                className="h-14 w-auto object-contain"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                            />
+                            <div className="hidden h-14 w-14 items-center justify-center rounded-sm bg-[#0056b3] dark:bg-cyan-700 shadow-sm border border-[#004494] dark:border-cyan-600">
+                                <Building2 className="h-7 w-7 text-white" />
+                            </div>
                         </div>
-                        <CardTitle className="text-2xl">Create Account</CardTitle>
-                        <CardDescription>Join CampusStay to start booking rooms</CardDescription>
+                        <CardTitle className="text-2xl font-noto-bold text-foreground tracking-tight">Create Official Account</CardTitle>
+                        <CardDescription className="text-sm font-noto-medium text-muted-foreground mt-2">Register with CampusStay to book guest house rooms</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input id="name" placeholder="John Doe" value={form.name} onChange={update('name')} required />
+                            <div className="space-y-1.5">
+                                <Label htmlFor="name" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Full Name</Label>
+                                <Input id="name" placeholder="e.g. Ramesh Kumar" value={form.name} onChange={update('name')} required className="rounded-sm border-border bg-background h-10 font-noto-medium" />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" placeholder="you@example.com" value={form.email} onChange={update('email')} required autoComplete="email" />
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Email Address</Label>
+                                <Input id="email" type="email" placeholder="ramesh.kumar@example.gov.in" value={form.email} onChange={update('email')} required autoComplete="email" className="rounded-sm border-border bg-background h-10 font-noto-medium" />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <Input id="phone" placeholder="9876543210" value={form.phone} onChange={update('phone')} required maxLength={10} />
+                            <div className="space-y-1.5">
+                                <Label htmlFor="phone" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Mobile Number</Label>
+                                <Input id="phone" placeholder="Enter 10-digit mobile number" value={form.phone} onChange={update('phone')} required maxLength={10} className="rounded-sm border-border bg-background h-10 font-noto-medium" />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="password" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Password</Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
                                         type={showPass ? 'text' : 'password'}
-                                        placeholder="Min 6 characters"
+                                        placeholder="Minimum 6 characters"
                                         value={form.password}
                                         onChange={update('password')}
                                         required
                                         autoComplete="new-password"
+                                        className="rounded-sm border-border bg-background h-10 font-noto-medium pr-10"
                                     />
                                     <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                         {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
                             </div>
-                            <Button type="submit" className="w-full" variant="cta" disabled={loading}>
+                            <Button type="submit" className="w-full rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-bold h-10 uppercase tracking-wider mt-2 shadow-sm" disabled={loading}>
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                Create Account
+                                Register Account
                             </Button>
                         </form>
 
-                        <div className="mt-6 text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
-                            <Link href="/login" className="font-medium text-cyan-500 hover:underline">
-                                Sign In
+                        <div className="mt-6 text-center text-sm font-noto-medium text-muted-foreground">
+                            Already registered?{' '}
+                            <Link href="/login" className="font-noto-bold text-[#0056b3] dark:text-cyan-400 hover:underline">
+                                Sign In Here
                             </Link>
                         </div>
                     </CardContent>

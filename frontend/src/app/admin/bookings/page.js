@@ -3,32 +3,27 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, CheckCircle, DollarSign } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const statusColors = {
-    pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    confirmed: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
-    completed: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    'no-show': 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    pending: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    confirmed: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
+    cancelled: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-600',
+    completed: 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-600',
+    'no-show': 'bg-slate-50 dark:bg-slate-950/30 text-slate-700 dark:text-slate-400 border-slate-600',
 };
 
 const paymentColors = {
-    pending: 'bg-amber-500/10 text-amber-500',
-    paid: 'bg-emerald-500/10 text-emerald-500',
-    failed: 'bg-red-500/10 text-red-500',
-    refunded: 'bg-blue-500/10 text-blue-500',
+    unpaid: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
+    paid: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-600',
 };
 
 export default function BookingManagementPage() {
@@ -46,7 +41,7 @@ export default function BookingManagementPage() {
             const res = await api.bookings.list(params);
             setBookings(res.data.bookings);
             setPagination(res.data.pagination);
-        } catch { toast.error('Failed to load bookings'); }
+        } catch { toast.error('Failed to load recent applications'); }
         finally { setLoading(false); }
     };
 
@@ -55,111 +50,139 @@ export default function BookingManagementPage() {
     const handleStatusChange = async (bookingId, newStatus) => {
         try {
             await api.bookings.updateStatus(bookingId, { status: newStatus });
-            toast.success('Booking status updated');
+            toast.success('Directive status forcefully updated');
             fetchBookings();
         } catch (err) {
-            toast.error(err.message || 'Failed to update');
+            toast.error(err.message || 'Failed to update system status');
         }
     };
 
-    const handleMarkPaid = async (bookingId) => {
+    const handlePaymentStatusChange = async (bookingId, newPaymentStatus) => {
         try {
-            await api.bookings.markPaid(bookingId);
-            toast.success('Booking marked as paid');
+            await api.bookings.updatePayment(bookingId, newPaymentStatus);
+            toast.success(`Financial clearing updated to: ${newPaymentStatus.toUpperCase()}`);
             fetchBookings();
         } catch (err) {
-            toast.error(err.message || 'Failed to mark paid');
+            toast.error(err.message || 'Failed to update financial status');
         }
     };
 
     return (
-        <div className="p-6">
+        <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold">Booking Management</h1>
-                    <p className="text-muted-foreground">View and manage all bookings</p>
+                {/* Header */}
+                <div className="mb-8 border-b-2 border-border pb-5">
+                    <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Application & Directive Management</h1>
+                    <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                        Central Database of Lodging Provisions and Clearances
+                    </p>
                 </div>
 
-                <div className="mb-6">
+                {/* Filters */}
+                <div className="mb-6 flex items-center justify-between">
                     <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="no-show">No Show</SelectItem>
+                        <SelectTrigger className="w-[200px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-xs uppercase tracking-widest">
+                            <SelectValue placeholder="FILTER BY STATUS" />
+                        </SelectTrigger>
+                        <SelectContent className="border-2 border-border rounded-sm">
+                            <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Records</SelectItem>
+                            <SelectItem value="pending" className="font-noto-bold text-xs uppercase tracking-widest">Pending</SelectItem>
+                            <SelectItem value="confirmed" className="font-noto-bold text-xs uppercase tracking-widest">Confirmed</SelectItem>
+                            <SelectItem value="cancelled" className="font-noto-bold text-xs uppercase tracking-widest">Cancelled</SelectItem>
+                            <SelectItem value="completed" className="font-noto-bold text-xs uppercase tracking-widest">Completed</SelectItem>
+                            <SelectItem value="no-show" className="font-noto-bold text-xs uppercase tracking-widest">No Show</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    <div className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-4 py-2 bg-muted/30 rounded-sm">
+                        Total System Records: {pagination?.totalBookings || 0}
+                    </div>
                 </div>
 
-                <Card className="border-border/40 bg-card/50">
+                {/* Main Datagrid */}
+                <Card className="border-2 border-border bg-card shadow-none rounded-sm overflow-hidden">
+                    <div className="bg-[#0056b3] dark:bg-cyan-900 border-b-2 border-border px-4 py-3 flex justify-between items-center">
+                        <h2 className="text-xs font-noto-bold text-white uppercase tracking-widest">Official Directives Ledger</h2>
+                    </div>
                     <CardContent className="p-0">
                         {loading ? (
                             <div className="p-6 space-y-3">
-                                {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                                {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-14 w-full rounded-none border-b-2 border-border" />)}
                             </div>
                         ) : bookings.length === 0 ? (
-                            <div className="py-16 text-center">
-                                <BookOpen className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
-                                <p className="text-muted-foreground">No bookings found</p>
+                            <div className="py-16 text-center border-b-2 border-border bg-muted/10">
+                                <BookOpen className="mx-auto mb-4 h-10 w-10 text-muted-foreground/50" />
+                                <p className="text-xs text-muted-foreground font-noto-bold uppercase tracking-widest">No Official Records Found in Database</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Guest</TableHead>
-                                            <TableHead>Room</TableHead>
-                                            <TableHead>Check-in</TableHead>
-                                            <TableHead>Check-out</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Payment</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                    <TableHeader className="bg-muted/30">
+                                        <TableRow className="border-b-2 border-border hover:bg-transparent">
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Applicant/Personnel</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Facility Allocation</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Authorized Duration</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Tariff (INR)</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Clearance Logs</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Directives Override</TableHead>
                                         </TableRow>
                                     </TableHeader>
-                                    <TableBody>
+                                    <TableBody className="divide-y divide-border">
                                         {bookings.map((b) => (
-                                            <TableRow key={b._id}>
-                                                <TableCell>
-                                                    <div>
-                                                        <p className="font-medium">{b.guestName}</p>
-                                                        <p className="text-xs text-muted-foreground">{b.email}</p>
+                                            <TableRow key={b._id} className="hover:bg-muted/10 transition-colors border-border">
+                                                <TableCell className="align-top py-4">
+                                                    <div className="font-noto-bold text-foreground text-xs uppercase tracking-tight">{b.guestName}</div>
+                                                    <div className="text-[10px] text-muted-foreground font-noto-medium mt-0.5">{b.email}</div>
+                                                    <div className="text-[10px] text-muted-foreground font-noto-medium mt-0.5 font-mono">{b.phone}</div>
+                                                </TableCell>
+                                                <TableCell className="align-top py-4">
+                                                    <div className="font-noto-bold text-foreground text-xs uppercase tracking-tight">Room {b.room?.roomNumber || 'N/A'}</div>
+                                                    <div className="text-[10px] text-muted-foreground font-noto-medium uppercase tracking-widest mt-0.5">{b.room?.type} / Floor {b.room?.floor}</div>
+                                                </TableCell>
+                                                <TableCell className="align-top py-4 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                                                    <div>{format(new Date(b.checkIn), 'dd MMM yyyy')}</div>
+                                                    <div className="text-border mx-1">↓</div>
+                                                    <div>{format(new Date(b.checkOut), 'dd MMM yyyy')}</div>
+                                                </TableCell>
+                                                <TableCell className="align-top py-4 text-right font-noto-bold text-[#0056b3] dark:text-cyan-500 text-sm">
+                                                    ₹{b.totalAmount}
+                                                </TableCell>
+                                                <TableCell className="align-top py-4 text-center">
+                                                    <div className="flex flex-col gap-2 items-center">
+                                                        <Badge variant="outline" className={`w-[90px] justify-center rounded-sm border-2 uppercase text-[9px] font-noto-bold tracking-widest px-1 py-0.5 h-6 ${paymentColors[b.paymentStatus]}`}>
+                                                            {b.paymentStatus}
+                                                        </Badge>
+                                                        <Badge variant="outline" className={`w-[90px] justify-center rounded-sm border-2 uppercase text-[9px] font-noto-bold tracking-widest px-1 py-0.5 h-6 ${statusColors[b.status]}`}>
+                                                            {b.status}
+                                                        </Badge>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell>{b.room?.roomNumber || 'N/A'}</TableCell>
-                                                <TableCell className="text-sm">{format(new Date(b.checkIn), 'MMM dd, yyyy')}</TableCell>
-                                                <TableCell className="text-sm">{format(new Date(b.checkOut), 'MMM dd, yyyy')}</TableCell>
-                                                <TableCell className="font-semibold text-cyan-500">₹{b.totalAmount}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className={paymentColors[b.paymentStatus]}>
-                                                        {b.paymentStatus}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className={statusColors[b.status]}>{b.status}</Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1">
+                                                <TableCell className="align-top py-4">
+                                                    <div className="flex flex-col gap-2 items-center">
+                                                        {/* Status Override */}
                                                         <Select value={b.status} onValueChange={(v) => handleStatusChange(b._id, v)}>
-                                                            <SelectTrigger className="w-[120px] h-7 text-xs">
+                                                            <SelectTrigger className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-border bg-background focus:ring-0">
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="pending">Pending</SelectItem>
-                                                                <SelectItem value="confirmed">Confirmed</SelectItem>
-                                                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                                                                <SelectItem value="completed">Completed</SelectItem>
-                                                                <SelectItem value="no-show">No Show</SelectItem>
+                                                            <SelectContent className="border-2 border-border rounded-sm">
+                                                                <SelectItem value="pending" className="text-[10px] font-noto-bold uppercase tracking-widest">Pending</SelectItem>
+                                                                <SelectItem value="confirmed" className="text-[10px] font-noto-bold uppercase tracking-widest">Confirmed</SelectItem>
+                                                                <SelectItem value="cancelled" className="text-[10px] font-noto-bold uppercase tracking-widest">Cancelled</SelectItem>
+                                                                <SelectItem value="completed" className="text-[10px] font-noto-bold uppercase tracking-widest">Completed</SelectItem>
+                                                                <SelectItem value="no-show" className="text-[10px] font-noto-bold uppercase tracking-widest">No Show</SelectItem>
                                                             </SelectContent>
                                                         </Select>
-                                                        {b.paymentStatus !== 'paid' && b.status !== 'cancelled' && (
-                                                            <Button size="sm" variant="ghost" className="h-7 text-xs text-emerald-500" onClick={() => handleMarkPaid(b._id)}>
-                                                                <DollarSign className="h-3 w-3 mr-1" /> Paid
-                                                            </Button>
-                                                        )}
+
+                                                        {/* Financial Override */}
+                                                        <Select value={b.paymentStatus} onValueChange={(v) => handlePaymentStatusChange(b._id, v)}>
+                                                            <SelectTrigger className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-border bg-background focus:ring-0 text-[#0056b3] dark:text-cyan-500">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="border-2 border-border rounded-sm">
+                                                                <SelectItem value="unpaid" className="text-[10px] font-noto-bold uppercase tracking-widest">Fin: Unpaid</SelectItem>
+                                                                <SelectItem value="paid" className="text-[10px] font-noto-bold uppercase tracking-widest">Fin: Paid</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -171,14 +194,17 @@ export default function BookingManagementPage() {
                     </CardContent>
                 </Card>
 
+                {/* Pagination */}
                 {pagination && pagination.totalPages > 1 && (
                     <div className="mt-6 flex items-center justify-center gap-2">
-                        <Button variant="outline" size="sm" disabled={!pagination.hasPrevPage} onClick={() => setPage(p => p - 1)}>
-                            <ChevronLeft className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="rounded-sm border-2 border-border font-noto-bold uppercase tracking-widest text-xs h-9" disabled={!pagination.hasPrevPage} onClick={() => setPage(p => p - 1)}>
+                            <ChevronLeft className="h-4 w-4 mr-1" /> Prev
                         </Button>
-                        <span className="px-4 text-sm text-muted-foreground">Page {pagination.currentPage} of {pagination.totalPages}</span>
-                        <Button variant="outline" size="sm" disabled={!pagination.hasNextPage} onClick={() => setPage(p => p + 1)}>
-                            <ChevronRight className="h-4 w-4" />
+                        <span className="px-4 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            Folio {pagination.currentPage} / {pagination.totalPages}
+                        </span>
+                        <Button variant="outline" size="sm" className="rounded-sm border-2 border-border font-noto-bold uppercase tracking-widest text-xs h-9" disabled={!pagination.hasNextPage} onClick={() => setPage(p => p + 1)}>
+                            Next <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
                     </div>
                 )}

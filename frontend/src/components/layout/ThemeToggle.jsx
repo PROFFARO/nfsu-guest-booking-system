@@ -11,7 +11,7 @@ export default function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <Button variant="ghost" size="icon-sm" className="rounded-full" disabled>
+            <Button variant="ghost" size="icon-sm" className="rounded-sm border-2 border-border" disabled>
                 <div className="h-4 w-4" />
             </Button>
         );
@@ -24,7 +24,7 @@ export default function ThemeToggle() {
                     variant="ghost"
                     size="icon-sm"
                     onClick={toggleTheme}
-                    className="relative rounded-full border border-border/50 hover:border-cyan-500/30 hover:bg-cyan-500/5"
+                    className="relative rounded-sm border-2 border-border hover:border-[#0056b3] dark:hover:border-cyan-500 hover:bg-muted/10 transition-colors"
                     aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
                     <AnimatePresence mode="wait">
