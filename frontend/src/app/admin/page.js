@@ -306,7 +306,7 @@ export default function AdminDashboard() {
                                     <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Applicant</th>
                                     <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Facility</th>
                                     <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Duration</th>
-                                    <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Tariff (INR)</th>
+                                    <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Price (INR)</th>
                                     <th className="px-4 py-3 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Status</th>
                                 </tr>
                             </thead>

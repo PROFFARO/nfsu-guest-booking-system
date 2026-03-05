@@ -122,7 +122,7 @@ export default function BookingManagementPage() {
                                             <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Applicant/Personnel</TableHead>
                                             <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Facility Allocation</TableHead>
                                             <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Authorized Duration</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Tariff (INR)</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Price (INR)</TableHead>
                                             <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Clearance Logs</TableHead>
                                             <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Directives Override</TableHead>
                                         </TableRow>

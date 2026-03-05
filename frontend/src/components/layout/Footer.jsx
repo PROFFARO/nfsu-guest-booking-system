@@ -52,10 +52,13 @@ export default function Footer() {
                         <h4 className="text-sm font-noto-bold uppercase tracking-widest text-foreground border-b border-border pb-2 inline-block">Contact</h4>
                         <div className="flex flex-col gap-2.5 text-sm font-noto-medium text-muted-foreground mt-2">
                             <p>National Forensic Sciences University, Delhi</p>
+                            <p>Office Timings: <span className="font-noto-bold font-bold">09:00 AM - 06:00 PM</span></p>
+
                             <p>LNJN-NICFS Campus, Near Jaipur Golden Hospital, Outer Ring Rd,
                                 Institutional Area, Sector 3, Rohini,
                                 Delhi-110085</p>
-                            <p className="text-[#0056b3] dark:text-cyan-400">directoroffice_dc@nfsu.ac.in</p>
+                            <p>Call Us: <span className="font-noto-bold font-bold">911127521091, 911127514161, 911127512371</span></p>
+                            <p><button onClick={() => window.location.href = "mailto:[EMAIL_ADDRESS]"} className="text-[#0056b3] dark:text-cyan-400 cursor-pointer">directoroffice_dc@nfsu.ac.in</button></p>
                         </div>
                     </div>
 

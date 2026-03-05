@@ -116,7 +116,7 @@ export default function RoomDetailPage({ params }) {
                                             <IndianRupee className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-0.5">Approved Tariff</p>
+                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-0.5">Approved Price</p>
                                             <p className="text-sm font-noto-bold text-foreground">₹{room.pricePerNight} <span className="text-[10px] font-noto-medium text-muted-foreground uppercase tracking-wider">/ night</span></p>
                                         </div>
                                     </div>

@@ -235,7 +235,7 @@ export default function BookingFormPage({ params }) {
 
                                     <div className="p-5 space-y-4 text-sm bg-muted/5 font-noto-medium">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">Base Tariff (Per Night)</span>
+                                            <span className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">Base Price (Per Night)</span>
                                             <span className="font-noto-bold">₹{room?.pricePerNight}</span>
                                         </div>
                                         <div className="flex justify-between items-center">
