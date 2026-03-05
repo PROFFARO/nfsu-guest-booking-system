@@ -116,8 +116,9 @@ export default function LandingPage() {
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Button
+                className="w-full sm:w-auto"
+                variant="cta"
                 size="lg"
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 px-8 text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 sm:w-auto"
                 asChild
               >
                 <Link href="/rooms">
@@ -207,8 +208,8 @@ export default function LandingPage() {
               Explore our available rooms and secure your stay at NFSU Guest House today.
             </p>
             <Button
+              variant="cta"
               size="lg"
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 px-8 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40"
               asChild
             >
               <Link href="/rooms">

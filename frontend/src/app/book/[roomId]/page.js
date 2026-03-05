@@ -246,7 +246,8 @@ export default function BookingFormPage({ params }) {
 
                                     <Button
                                         type="submit"
-                                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
+                                        className="w-full"
+                                        variant="cta"
                                         disabled={submitting || nights <= 0}
                                     >
                                         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

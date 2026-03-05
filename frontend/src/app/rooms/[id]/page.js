@@ -186,7 +186,8 @@ export default function RoomDetailPage({ params }) {
                                 {room.status === 'vacant' ? (
                                     user ? (
                                         <Button
-                                            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
+                                            className="w-full"
+                                            variant="cta"
                                             asChild
                                         >
                                             <Link href={`/book/${room._id}`}>

@@ -104,7 +104,7 @@ export default function RegisterPage() {
                                     </button>
                                 </div>
                             </div>
-                            <Button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25" disabled={loading}>
+                            <Button type="submit" className="w-full" variant="cta" disabled={loading}>
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Create Account
                             </Button>

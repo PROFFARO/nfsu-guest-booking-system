@@ -25,7 +25,7 @@ export default function BookingConfirmationPage() {
                             Your reservation has been successfully created. Please pay at the reception during check-in.
                         </p>
                         <div className="flex flex-col gap-3">
-                            <Button asChild className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
+                            <Button asChild variant="cta">
                                 <Link href="/dashboard/bookings">
                                     <Calendar className="mr-2 h-4 w-4" />
                                     View My Bookings

@@ -139,7 +139,7 @@ export default function Navbar() {
                             <Button variant="ghost" size="sm" asChild>
                                 <Link href="/login">Sign In</Link>
                             </Button>
-                            <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40" asChild>
+                            <Button size="sm" variant="cta" asChild>
                                 <Link href="/register">Get Started</Link>
                             </Button>
                         </div>
@@ -173,7 +173,7 @@ export default function Navbar() {
                                         <Button variant="outline" asChild onClick={() => setOpen(false)}>
                                             <Link href="/login">Sign In</Link>
                                         </Button>
-                                        <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white" asChild onClick={() => setOpen(false)}>
+                                        <Button variant="cta" asChild onClick={() => setOpen(false)}>
                                             <Link href="/register">Get Started</Link>
                                         </Button>
                                     </div>

@@ -93,7 +93,7 @@ export default function ProfilePage() {
                                 <Label htmlFor="phone">Phone</Label>
                                 <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required maxLength={10} />
                             </div>
-                            <Button type="submit" disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
+                            <Button type="submit" disabled={saving} variant="cta">
                                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Save Changes
                             </Button>

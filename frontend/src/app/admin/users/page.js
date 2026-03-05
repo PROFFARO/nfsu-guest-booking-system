@@ -200,7 +200,7 @@ export default function UserManagementPage() {
                                                                 <DialogFooter>
                                                                     <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
                                                                     <DialogClose asChild>
-                                                                        <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white" onClick={() => handleResetPassword(u._id)}>
+                                                                        <Button variant="cta" onClick={() => handleResetPassword(u._id)}>
                                                                             Reset Password
                                                                         </Button>
                                                                     </DialogClose>
