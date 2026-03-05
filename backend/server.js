@@ -37,9 +37,9 @@ const PORT = process.env.PORT || 5000;
 // CORS configuration (must be before any other middleware)
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://localhost:5173',
-  'https://nfsu-frontend.vercel.app',
-  'https://yourdomain.com'
+  // 'http://localhost:5173',
+  // 'https://nfsu-frontend.vercel.app',
+  // 'https://yourdomain.com'
 ];
 
 // Add custom origins from environment variable
@@ -54,7 +54,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -63,7 +63,7 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -85,19 +85,19 @@ app.options('*', cors(corsOptions));
 // Manual CORS middleware as fallback
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
+
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin');
   }
-  
+
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return;
   }
-  
+
   next();
 });
 
@@ -127,8 +127,8 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'success', 
+  res.status(200).json({
+    status: 'success',
     message: 'Campus Stay Suite API is running',
     timestamp: new Date().toISOString(),
     corsOrigins: allowedOrigins,
@@ -157,12 +157,12 @@ app.use('/api/users', authMiddleware, userRoutes);
 // Serve static files in production only if dist folder exists
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../dist');
-  
+
   // Check if dist folder exists (for monorepo deployments)
   try {
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
-      
+
       app.get('*', (req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
       });
@@ -206,7 +206,7 @@ setInterval(async () => {
       r.holdBy = null;
       r.holdUntil = null;
       await r.save();
-      try { getIO().emit('roomStatusUpdated', { roomId: r._id, status: 'vacant' }); } catch {}
+      try { getIO().emit('roomStatusUpdated', { roomId: r._id, status: 'vacant' }); } catch { }
     }
   } catch (e) {
     console.error('Error cleaning up expired holds:', e.message);
