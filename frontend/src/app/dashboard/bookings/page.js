@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -44,6 +44,15 @@ export default function MyBookingsPage() {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [cancelReason, setCancelReason] = useState('');
+
+    const handleDownloadInvoice = async (bookingId) => {
+        try {
+            await api.bookings.downloadInvoice(bookingId);
+            toast.success('Invoice downloaded successfully');
+        } catch {
+            toast.error('Failed to download invoice');
+        }
+    };
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -141,6 +150,11 @@ export default function MyBookingsPage() {
                                         <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6 ${statusColors[booking.status]}`}>
                                             Status: {booking.status}
                                         </Badge>
+                                        {['confirmed', 'completed'].includes(booking.status) && (
+                                            <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(booking._id)} title="Download Invoice">
+                                                <FileText className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                         {!['cancelled', 'completed'].includes(booking.status) && (
                                             <Dialog>
                                                 <DialogTrigger asChild>

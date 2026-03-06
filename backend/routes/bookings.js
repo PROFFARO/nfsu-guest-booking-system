@@ -6,6 +6,8 @@ import { authMiddleware, adminMiddleware, staffMiddleware, userOnlyMiddleware } 
 import { bookingCreateLimiter } from '../middleware/rateLimiter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { getIO } from '../realtime/socket.js';
+import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail } from '../services/emailService.js';
+import { generateInvoicePDF } from '../services/invoiceService.js';
 
 const router = express.Router();
 
@@ -112,6 +114,9 @@ router.post('/', [
       message: 'Booking confirmed. Pay at reception to complete payment.',
       data: { booking }
     });
+
+    // Fire-and-forget: send confirmation email
+    sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
   }
 
   // Otherwise keep room in held state until payment confirmation
@@ -194,6 +199,36 @@ router.put('/:id/payment', [
     message: 'Payment status overridden successfully',
     data: { booking }
   });
+
+  // Fire-and-forget: send payment status email
+  sendEmail(booking.email, paymentStatusChangeEmail(booking, paymentStatus)).catch(() => { });
+}));
+
+// @route   GET /api/bookings/:id/invoice
+// @desc    Download booking invoice as PDF
+// @access  Private (owner or admin/staff)
+router.get('/:id/invoice', [
+  authMiddleware,
+  param('id').isMongoId().withMessage('Invalid booking ID')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const booking = await Booking.findById(req.params.id)
+    .populate('room', 'roomNumber type floor block pricePerNight');
+
+  if (!booking) {
+    return res.status(404).json({ status: 'error', message: 'Booking not found' });
+  }
+
+  // Only the booking owner or admin/staff can download invoices
+  if (req.user.role === 'user' && booking.user.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ status: 'error', message: 'Access denied' });
+  }
+
+  generateInvoicePDF(booking, res);
 }));
 
 // @route   POST /api/bookings/:id/checkout
@@ -510,10 +545,16 @@ router.delete('/:id', [
     await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
   }
 
+  // Populate for email
+  await booking.populate('room', 'roomNumber type floor block pricePerNight');
+
   res.json({
     status: 'success',
     message: 'Booking cancelled successfully'
   });
+
+  // Fire-and-forget: send cancellation email
+  sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
 }));
 
 export default router;

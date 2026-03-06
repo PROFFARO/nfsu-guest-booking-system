@@ -81,6 +81,23 @@ export const api = {
         updatePayment: (id, paymentStatus) => request(`/bookings/${id}/payment`, { method: 'PUT', body: JSON.stringify({ paymentStatus }) }),
         cancel: (id, reason) => request(`/bookings/${id}`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
         markPaid: (id) => request(`/bookings/${id}/mark-paid`, { method: 'POST' }),
+        downloadInvoice: async (id) => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const res = await fetch(`${API_BASE}/bookings/${id}/invoice`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Failed to download invoice');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `NFSU_Invoice_${id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        },
     },
 
     users: {

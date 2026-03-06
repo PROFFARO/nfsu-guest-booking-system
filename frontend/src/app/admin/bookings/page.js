@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -32,6 +32,15 @@ export default function BookingManagementPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
+
+    const handleDownloadInvoice = async (bookingId) => {
+        try {
+            await api.bookings.downloadInvoice(bookingId);
+            toast.success('Invoice downloaded');
+        } catch {
+            toast.error('Failed to download invoice');
+        }
+    };
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -119,12 +128,12 @@ export default function BookingManagementPage() {
                                 <Table>
                                     <TableHeader className="bg-muted/30">
                                         <TableRow className="border-b-2 border-border hover:bg-transparent">
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Applicant/Personnel</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Facility Allocation</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Authorized Duration</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right">Price (INR)</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Clearance Logs</TableHead>
-                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center">Directives Override</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest min-w-[140px]">Applicant/Personnel</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest min-w-[160px]">Facility Allocation</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest min-w-[120px]">Authorized Duration</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-right min-w-[80px]">Price (INR)</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center min-w-[100px]">Clearance Logs</TableHead>
+                                            <TableHead className="py-4 text-[10px] font-noto-bold text-foreground uppercase tracking-widest text-center min-w-[140px]">Directives Override</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody className="divide-y divide-border">
@@ -137,9 +146,9 @@ export default function BookingManagementPage() {
                                                 </TableCell>
                                                 <TableCell className="align-top py-4">
                                                     <div className="font-noto-bold text-foreground text-xs uppercase tracking-tight">Room {b.room?.roomNumber || 'N/A'}</div>
-                                                    <div className="text-[10px] text-muted-foreground font-noto-medium uppercase tracking-widest mt-0.5">{b.room?.type} / Floor {b.room?.floor}</div>
+                                                    <div className="text-[10px] text-muted-foreground font-noto-medium uppercase tracking-widest mt-0.5">{b.room?.type} / Floor {b.room?.floor} / Block {b.room?.block}</div>
                                                 </TableCell>
-                                                <TableCell className="align-top py-4 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                                                <TableCell className="align-top py-4 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
                                                     <div>{format(new Date(b.checkIn), 'dd MMM yyyy')}</div>
                                                     <div className="text-border mx-1">↓</div>
                                                     <div>{format(new Date(b.checkOut), 'dd MMM yyyy')}</div>
@@ -183,6 +192,13 @@ export default function BookingManagementPage() {
                                                                 <SelectItem value="paid" className="text-[10px] font-noto-bold uppercase tracking-widest">Fin: Paid</SelectItem>
                                                             </SelectContent>
                                                         </Select>
+
+                                                        {/* Invoice Download */}
+                                                        {['confirmed', 'completed'].includes(b.status) && (
+                                                            <Button variant="outline" size="sm" className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(b._id)}>
+                                                                <FileText className="h-3 w-3 mr-1" /> Invoice
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
