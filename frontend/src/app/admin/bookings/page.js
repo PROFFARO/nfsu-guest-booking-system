@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -31,6 +32,8 @@ export default function BookingManagementPage() {
     const [pagination, setPagination] = useState(null);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+    const [exporting, setExporting] = useState(false);
     const [page, setPage] = useState(1);
 
     const handleDownloadInvoice = async (bookingId) => {
@@ -96,6 +99,22 @@ export default function BookingManagementPage() {
         }
     };
 
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const params = {};
+            if (statusFilter) params.status = statusFilter;
+            if (dateRange.startDate) params.startDate = dateRange.startDate;
+            if (dateRange.endDate) params.endDate = dateRange.endDate;
+            await api.bookings.export(params);
+            toast.success('Report downloaded successfully');
+        } catch (err) {
+            toast.error('Failed to export report');
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -107,24 +126,38 @@ export default function BookingManagementPage() {
                     </p>
                 </div>
 
-                {/* Filters */}
-                <div className="mb-6 flex items-center justify-between">
-                    <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="w-[200px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-xs uppercase tracking-widest">
-                            <SelectValue placeholder="FILTER BY STATUS" />
-                        </SelectTrigger>
-                        <SelectContent className="border-2 border-border rounded-sm">
-                            <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Records</SelectItem>
-                            <SelectItem value="pending" className="font-noto-bold text-xs uppercase tracking-widest">Pending</SelectItem>
-                            <SelectItem value="confirmed" className="font-noto-bold text-xs uppercase tracking-widest">Confirmed</SelectItem>
-                            <SelectItem value="cancelled" className="font-noto-bold text-xs uppercase tracking-widest">Cancelled</SelectItem>
-                            <SelectItem value="completed" className="font-noto-bold text-xs uppercase tracking-widest">Completed</SelectItem>
-                            <SelectItem value="no-show" className="font-noto-bold text-xs uppercase tracking-widest">No Show</SelectItem>
-                        </SelectContent>
-                    </Select>
+                {/* Filters & Actions */}
+                <div className="mb-6 flex flex-col md:flex-row items-end md:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
+                            <SelectTrigger className="w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-xs uppercase tracking-widest">
+                                <SelectValue placeholder="STATUS" />
+                            </SelectTrigger>
+                            <SelectContent className="border-2 border-border rounded-sm">
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Records</SelectItem>
+                                <SelectItem value="pending" className="font-noto-bold text-xs uppercase tracking-widest">Pending</SelectItem>
+                                <SelectItem value="confirmed" className="font-noto-bold text-xs uppercase tracking-widest">Confirmed</SelectItem>
+                                <SelectItem value="cancelled" className="font-noto-bold text-xs uppercase tracking-widest">Cancelled</SelectItem>
+                                <SelectItem value="completed" className="font-noto-bold text-xs uppercase tracking-widest">Completed</SelectItem>
+                                <SelectItem value="no-show" className="font-noto-bold text-xs uppercase tracking-widest">No Show</SelectItem>
+                            </SelectContent>
+                        </Select>
 
-                    <div className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-4 py-2 bg-muted/30 rounded-sm">
-                        Total System Records: {pagination?.totalBookings || 0}
+                        <div className="flex items-center gap-2">
+                            <Input type="date" className="w-[140px] h-10 rounded-sm border-2 border-border text-xs font-noto-medium uppercase tracking-widest" value={dateRange.startDate} onChange={(e) => setDateRange(p => ({ ...p, startDate: e.target.value }))} title="Start Date" />
+                            <span className="text-muted-foreground font-noto-bold">—</span>
+                            <Input type="date" className="w-[140px] h-10 rounded-sm border-2 border-border text-xs font-noto-medium uppercase tracking-widest" value={dateRange.endDate} onChange={(e) => setDateRange(p => ({ ...p, endDate: e.target.value }))} title="End Date" />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto self-end md:self-auto">
+                        <div className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 py-2 bg-muted/30 rounded-sm h-10 flex items-center">
+                            Records: {pagination?.totalBookings || 0}
+                        </div>
+                        <Button onClick={handleExport} disabled={exporting} className="h-10 px-4 rounded-sm font-noto-bold text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white gap-2" title="Download filtered report as CSV">
+                            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                            Export CSV
+                        </Button>
                     </div>
                 </div>
 

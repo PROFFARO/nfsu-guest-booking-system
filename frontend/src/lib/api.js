@@ -102,6 +102,24 @@ export const api = {
         },
         checkin: (id) => request(`/bookings/${id}/checkin`, { method: 'POST' }),
         checkout: (id) => request(`/bookings/${id}/checkout`, { method: 'POST' }),
+        export: async (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const res = await fetch(`${API_BASE}/bookings/export${qs ? `?${qs}` : ''}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Failed to export bookings');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `NFSU_Bookings_Report_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        },
     },
 
     users: {

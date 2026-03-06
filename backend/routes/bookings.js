@@ -8,6 +8,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import { getIO } from '../realtime/socket.js';
 import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail } from '../services/emailService.js';
 import { generateInvoicePDF } from '../services/invoiceService.js';
+import { bookingsToCSV, buildExportQuery } from '../services/reportService.js';
 
 const router = express.Router();
 
@@ -325,6 +326,34 @@ router.post('/:id/checkout', [
     message: 'Guest checked out successfully. Booking completed.',
     data: { booking }
   });
+}));
+
+// @route   GET /api/bookings/export
+// @desc    Export bookings data as CSV
+// @access  Private (Admin/Staff)
+router.get('/export', [
+  authMiddleware,
+  staffMiddleware,
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601(),
+  query('status').optional().isIn(['pending', 'confirmed', 'cancelled', 'completed', 'no-show']),
+  query('paymentStatus').optional().isIn(['unpaid', 'paid'])
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const queryParams = buildExportQuery(req.query);
+  const bookings = await Booking.find(queryParams)
+    .populate('room', 'roomNumber type floor block')
+    .sort({ createdAt: -1 });
+
+  const csv = bookingsToCSV(bookings);
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename=nfsu-bookings-export-${new Date().toISOString().split('T')[0]}.csv`);
+  res.status(200).send(csv);
 }));
 
 // @route   GET /api/bookings
