@@ -104,7 +104,7 @@ export default function RoomBrowsePage() {
                 className="mb-8 border-b-2 border-border pb-4"
             >
                 <h1 className="mb-2 text-3xl font-noto-bold uppercase tracking-tight text-[#0056b3] dark:text-cyan-500">Official Stay Accommodations</h1>
-                <p className="text-sm font-noto-medium text-muted-foreground uppercase tracking-widest">NFSU Gandhinagar Campus · Real-Time Availability</p>
+                <p className="text-sm font-noto-medium text-muted-foreground uppercase tracking-widest">NFSU Delhi Campus</p>
             </motion.div>
 
             {/* Filters */}

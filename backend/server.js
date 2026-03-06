@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
+import xssClean from 'xss-clean';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -120,6 +121,9 @@ app.use(mongoSanitize({
     console.warn(`⚠️  Mongo injection attempt blocked on ${key} from IP: ${req.ip}`);
   }
 }));
+
+// XSS Protection — Layer 1: xss-clean (strips HTML from input)
+app.use(xssClean());
 
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {

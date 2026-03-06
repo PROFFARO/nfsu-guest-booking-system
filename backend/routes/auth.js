@@ -21,8 +21,16 @@ router.post('/register', [
     .normalizeEmail()
     .withMessage('Please provide a valid email'),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/[A-Z]/)
+    .withMessage('Password must contain at least one uppercase letter')
+    .matches(/[a-z]/)
+    .withMessage('Password must contain at least one lowercase letter')
+    .matches(/\d/)
+    .withMessage('Password must contain at least one number')
+    .matches(/[!@#$%^&*()_+\-={}|;':",./<>?]/)
+    .withMessage('Password must contain at least one special character'),
   body('phone')
     .matches(/^[0-9]{10}$/)
     .withMessage('Please provide a valid 10-digit phone number')
@@ -214,8 +222,16 @@ router.put('/change-password', authMiddleware, [
     .notEmpty()
     .withMessage('Current password is required'),
   body('newPassword')
-    .isLength({ min: 6 })
-    .withMessage('New password must be at least 6 characters long')
+    .isLength({ min: 8 })
+    .withMessage('New password must be at least 8 characters long')
+    .matches(/[A-Z]/)
+    .withMessage('Password must contain at least one uppercase letter')
+    .matches(/[a-z]/)
+    .withMessage('Password must contain at least one lowercase letter')
+    .matches(/\d/)
+    .withMessage('Password must contain at least one number')
+    .matches(/[!@#$%^&*()_+\-={}|;':",./<>?]/)
+    .withMessage('Password must contain at least one special character')
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);

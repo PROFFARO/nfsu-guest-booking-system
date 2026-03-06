@@ -21,6 +21,15 @@ async function request(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+        // If token expired or invalid, auto-logout
+        if (res.status === 401 && token) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            // Redirect to login if we're in the browser
+            if (typeof window !== 'undefined' && !endpoint.includes('/auth/login')) {
+                window.location.href = '/login?expired=true';
+            }
+        }
         const error = new Error(data.message || 'Something went wrong');
         error.status = res.status;
         error.data = data;

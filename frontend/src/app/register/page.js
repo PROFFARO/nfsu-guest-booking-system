@@ -32,8 +32,12 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (form.password.length < 6) {
-            toast.error('Password must be at least 6 characters');
+        if (form.password.length < 8) {
+            toast.error('Password must be at least 8 characters');
+            return;
+        }
+        if (!/[A-Z]/.test(form.password) || !/[a-z]/.test(form.password) || !/\d/.test(form.password) || !/[!@#$%^&*()_+\-={}|;':",./<>?]/.test(form.password)) {
+            toast.error('Password must contain uppercase, lowercase, number, and special character');
             return;
         }
         if (!/^[0-9]{10}$/.test(form.phone)) {
@@ -101,10 +105,11 @@ export default function RegisterPage() {
                                     <Input
                                         id="password"
                                         type={showPass ? 'text' : 'password'}
-                                        placeholder="Minimum 6 characters"
+                                        placeholder="Min. 8 characters"
                                         value={form.password}
                                         onChange={update('password')}
                                         required
+                                        minLength={8}
                                         autoComplete="new-password"
                                         className="rounded-sm border-border bg-background h-10 font-noto-medium pr-10"
                                     />
@@ -112,6 +117,7 @@ export default function RegisterPage() {
                                         {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
+                                <p className="text-[10px] font-noto-medium text-muted-foreground mt-1">Must include: uppercase, lowercase, number, and special character (!@#$%...)</p>
                             </div>
                             <Button type="submit" className="w-full rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-bold h-10 uppercase tracking-wider mt-2 shadow-sm" disabled={loading}>
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
