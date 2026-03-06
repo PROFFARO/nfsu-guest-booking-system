@@ -59,6 +59,14 @@ const roomSchema = new mongoose.Schema({
       message: 'Please provide valid image URLs'
     }
   }],
+  rating: {
+    type: Number,
+    default: 0
+  },
+  numReviews: {
+    type: Number,
+    default: 0
+  },
   amenities: [{
     name: String,
     available: {

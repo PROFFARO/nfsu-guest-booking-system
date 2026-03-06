@@ -9,24 +9,24 @@ import nodemailer from 'nodemailer';
 let transporter;
 
 function getTransporter() {
-    if (transporter) return transporter;
+  if (transporter) return transporter;
 
-    transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-    });
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
 
-    return transporter;
+  return transporter;
 }
 
 // Common header/footer for all emails
 function emailWrapper(title, bodyContent) {
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,7 +91,7 @@ function emailWrapper(title, bodyContent) {
 
 // Reusable table row for booking details
 function detailRow(label, value) {
-    return `
+  return `
     <tr>
       <td style="padding:8px 12px;border:1px solid #e5e7eb;background:#f8f9fa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#4b5563;width:40%;">${label}</td>
       <td style="padding:8px 12px;border:1px solid #e5e7eb;font-size:13px;color:#1f2937;font-weight:500;">${value}</td>
@@ -99,15 +99,15 @@ function detailRow(label, value) {
 }
 
 function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    });
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 function formatCurrency(amount) {
-    return `₹${Number(amount).toLocaleString('en-IN')}`;
+  return `₹${Number(amount).toLocaleString('en-IN')}`;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ function formatCurrency(amount) {
  * Booking Confirmation Email
  */
 export function bookingConfirmationEmail(booking) {
-    const body = `
+  const body = `
     <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
       Dear <strong>${booking.guestName}</strong>,
     </p>
@@ -157,17 +157,17 @@ export function bookingConfirmationEmail(booking) {
       For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
     </p>`;
 
-    return {
-        subject: `NFSU Guest House — Booking Confirmed [Ref: ${booking._id}]`,
-        html: emailWrapper('BOOKING CONFIRMATION — OFFICIAL NOTIFICATION', body),
-    };
+  return {
+    subject: `NFSU Guest House — Booking Confirmed [Ref: ${booking._id}]`,
+    html: emailWrapper('BOOKING CONFIRMATION — OFFICIAL NOTIFICATION', body),
+  };
 }
 
 /**
  * Booking Cancellation Email
  */
 export function bookingCancellationEmail(booking) {
-    const body = `
+  const body = `
     <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
       Dear <strong>${booking.guestName}</strong>,
     </p>
@@ -199,21 +199,21 @@ export function bookingCancellationEmail(booking) {
       For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
     </p>`;
 
-    return {
-        subject: `NFSU Guest House — Booking Cancelled [Ref: ${booking._id}]`,
-        html: emailWrapper('BOOKING CANCELLATION — OFFICIAL NOTIFICATION', body),
-    };
+  return {
+    subject: `NFSU Guest House — Booking Cancelled [Ref: ${booking._id}]`,
+    html: emailWrapper('BOOKING CANCELLATION — OFFICIAL NOTIFICATION', body),
+  };
 }
 
 /**
  * Payment Status Change Email
  */
 export function paymentStatusChangeEmail(booking, newStatus) {
-    const isPaid = newStatus === 'paid';
-    const statusColor = isPaid ? '#0f766e' : '#b45309';
-    const statusLabel = isPaid ? 'PAID' : 'UNPAID';
+  const isPaid = newStatus === 'paid';
+  const statusColor = isPaid ? '#0f766e' : '#b45309';
+  const statusLabel = isPaid ? 'PAID' : 'UNPAID';
 
-    const body = `
+  const body = `
     <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
       Dear <strong>${booking.guestName}</strong>,
     </p>
@@ -257,10 +257,48 @@ export function paymentStatusChangeEmail(booking, newStatus) {
       For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
     </p>`;
 
-    return {
-        subject: `NFSU Guest House — Payment ${statusLabel} [Ref: ${booking._id}]`,
-        html: emailWrapper(`PAYMENT UPDATE — ${statusLabel}`, body),
-    };
+  return {
+    subject: `NFSU Guest House — Payment ${statusLabel} [Ref: ${booking._id}]`,
+    html: emailWrapper(`PAYMENT UPDATE — ${statusLabel}`, body),
+  };
+}
+
+/**
+ * Password Reset Email
+ */
+export function sendPasswordResetEmail(user, resetUrl) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${user.name}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      We received a request to reset the password associated with your account on the NFSU Guest House Management System.
+    </p>
+
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${resetUrl}" style="background-color:#0056b3;color:#ffffff;padding:12px 24px;text-decoration:none;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:4px;display:inline-block;">
+        Reset Password
+      </a>
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Security Notice
+      </p>
+      <p style="margin:8px 0 0;color:#374151;font-size:12px;line-height:1.6;">
+        This link is only valid for <strong>10 minutes</strong>. If you did not request a password reset, please ignore this email or contact administration immediately. Do not share this link with anyone.
+      </p>
+    </div>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      If the button above does not work, copy and paste the following URL into your browser:<br/>
+      <a href="${resetUrl}" style="color:#0056b3;word-wrap:break-word;">${resetUrl}</a>
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Password Reset Request`,
+    html: emailWrapper('ACCOUNT RECOVERY — OFFICIAL NOTIFICATION', body),
+  };
 }
 
 // ────────────────────────────────────────────────────────────
@@ -272,25 +310,25 @@ export function paymentStatusChangeEmail(booking, newStatus) {
  * Fails silently in development if SMTP is not configured.
  */
 export async function sendEmail(to, { subject, html }) {
-    // Skip if SMTP is not configured
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.log(`📧 [Email Skipped — SMTP not configured] To: ${to} | Subject: ${subject}`);
-        return { skipped: true };
-    }
+  // Skip if SMTP is not configured
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log(`📧 [Email Skipped — SMTP not configured] To: ${to} | Subject: ${subject}`);
+    return { skipped: true };
+  }
 
-    try {
-        const transport = getTransporter();
-        const info = await transport.sendMail({
-            from: `"NFSU Guest House" <${process.env.SMTP_USER}>`,
-            to,
-            subject,
-            html,
-        });
+  try {
+    const transport = getTransporter();
+    const info = await transport.sendMail({
+      from: `"NFSU Guest House" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html,
+    });
 
-        console.log(`📧 Email sent to ${to} — MessageId: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error(`📧 Email failed to ${to}:`, error.message);
-        return { success: false, error: error.message };
-    }
+    console.log(`📧 Email sent to ${to} — MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`📧 Email failed to ${to}:`, error.message);
+    return { success: false, error: error.message };
+  }
 }

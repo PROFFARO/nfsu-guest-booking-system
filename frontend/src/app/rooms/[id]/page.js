@@ -23,6 +23,8 @@ import {
     Calendar,
     IndianRupee,
     Info,
+    Star,
+    MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,6 +39,7 @@ const statusColors = {
 export default function RoomDetailPage({ params }) {
     const { id } = use(params);
     const [room, setRoom] = useState(null);
+    const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
     const router = useRouter();
@@ -46,6 +49,13 @@ export default function RoomDetailPage({ params }) {
             try {
                 const res = await api.rooms.getById(id);
                 setRoom(res.data.room);
+
+                try {
+                    const reviewsRes = await api.reviews.getByRoom(id);
+                    setReviews(reviewsRes.data.reviews || []);
+                } catch (e) {
+                    console.error("Failed to load reviews");
+                }
             } catch {
                 toast.error('Room not found');
                 router.push('/rooms');
@@ -86,10 +96,18 @@ export default function RoomDetailPage({ params }) {
                         <div className="flex items-start justify-between border-b-2 border-border pb-4">
                             <div>
                                 <h1 className="text-3xl font-noto-bold tracking-tight text-foreground uppercase">Room {room.roomNumber}</h1>
-                                <p className="mt-1 flex items-center gap-2 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
-                                    <MapPin className="h-4 w-4 text-[#0056b3] dark:text-cyan-500" />
-                                    Floor {room.floor} · Block {room.block}
-                                </p>
+                                <div className="mt-2 flex items-center gap-4 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                                    <span className="flex items-center gap-1.5">
+                                        <MapPin className="h-4 w-4 text-[#0056b3] dark:text-cyan-500" />
+                                        Floor {room.floor} · Block {room.block}
+                                    </span>
+                                    {room.numReviews > 0 && (
+                                        <span className="flex items-center gap-1 text-amber-500 border-l-2 border-border pl-4">
+                                            <Star className="h-3.5 w-3.5 fill-amber-500" />
+                                            {room.rating.toFixed(1)} ({room.numReviews} Reviews)
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-3 py-1 ${statusColors[room.status]}`}>
                                 {room.status}
@@ -168,6 +186,50 @@ export default function RoomDetailPage({ params }) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Reviews Section */}
+                        <div className="mt-8">
+                            <h3 className="text-lg font-noto-bold text-foreground uppercase tracking-wide border-b-2 border-border pb-2 mb-4 flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
+                                Guest Feedback
+                            </h3>
+
+                            {reviews.length === 0 ? (
+                                <div className="p-6 text-center border-2 border-border border-dashed rounded-sm bg-muted/10">
+                                    <p className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">No official feedback has been recorded for this room yet.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {reviews.map((review) => (
+                                        <Card key={review._id} className="rounded-sm border-2 border-border bg-card shadow-sm">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div>
+                                                        <p className="font-noto-bold text-sm text-foreground">{review.user?.name || 'Guest'}</p>
+                                                        <p className="text-[10px] font-noto-medium text-muted-foreground tracking-widest uppercase">
+                                                            {format(new Date(review.createdAt), 'dd MMM yyyy')}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <Star
+                                                                key={star}
+                                                                className={`h-3.5 w-3.5 ${review.rating >= star ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/30'}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {review.comment && (
+                                                    <p className="text-sm font-noto-medium text-muted-foreground mt-3 italic">
+                                                        "{review.comment}"
+                                                    </p>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Booking Action Card */}

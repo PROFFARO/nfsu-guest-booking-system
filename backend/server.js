@@ -22,6 +22,7 @@ import authRoutes from './routes/auth.js';
 import roomRoutes from './routes/rooms.js';
 import bookingRoutes from './routes/bookings.js';
 import userRoutes from './routes/users.js';
+import reviewRoutes from './routes/reviews.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -58,31 +59,18 @@ if (process.env.NODE_ENV === 'development') {
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('❌ CORS blocked request from origin:', origin);
-      }
+      console.warn(`⚠️ Blocked CORS request from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 200
 };
+
 app.use(cors(corsOptions));
-
-
-
-// Explicitly handle preflight
-app.options('*', cors(corsOptions));
-
 // Manual CORS middleware as fallback
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -157,6 +145,7 @@ app.use('/api/rooms', apiLimiter, roomRoutes);
 app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 // Payments routes removed
 app.use('/api/users', apiLimiter, authMiddleware, userRoutes);
+app.use('/api/reviews', apiLimiter, reviewRoutes);
 
 // Serve static files in production only if dist folder exists
 if (process.env.NODE_ENV === 'production') {

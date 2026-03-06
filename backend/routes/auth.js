@@ -323,4 +323,85 @@ router.post('/logout', authMiddleware, (req, res) => {
   });
 });
 
+import crypto from 'crypto';
+import { sendPasswordResetEmail, sendEmail } from '../services/emailService.js';
+
+// @route   POST /api/auth/forgot-password
+// @desc    Forgot password -> send reset email
+// @access  Public
+router.post('/forgot-password', [
+  body('email').isEmail().withMessage('Please provide a valid email')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    // Return success to prevent email enumeration attacks
+    return res.status(200).json({ status: 'success', message: 'If an account exists, a reset link will be sent.' });
+  }
+
+  // Get reset token
+  const resetToken = user.getResetPasswordToken();
+  await user.save({ validateBeforeSave: false });
+
+  // Create reset url
+  const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+  // Fire-and-forget email dispatch
+  const { subject, html } = sendPasswordResetEmail(user, resetUrl);
+  sendEmail(user.email, { subject, html }).catch((err) => console.error("Forgot Password Email failed:", err));
+
+  res.status(200).json({ status: 'success', message: 'If an account exists, a reset link will be sent.' });
+}));
+
+// @route   PUT /api/auth/reset-password/:token
+// @desc    Reset password using token
+// @access  Public
+router.put('/reset-password/:token', [
+  body('password')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-={}|;':",./<>?]).{8,}$/)
+    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', errors: errors.array() });
+  }
+
+  // Get hashed token
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return res.status(400).json({ status: 'error', message: 'Invalid or expired token' });
+  }
+
+  // Set new password
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  // Reset login attempt trackers just in case they were locked out
+  user.loginAttempts = 0;
+  user.lockUntil = null;
+
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Password successfully reset'
+  });
+}));
+
 export default router;

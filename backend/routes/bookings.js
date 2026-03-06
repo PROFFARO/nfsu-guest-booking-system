@@ -110,14 +110,14 @@ router.post('/', [
     try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
     try { getIO().emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
 
+    // Fire-and-forget: send confirmation email before returning
+    sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
+
     return res.status(201).json({
       status: 'success',
       message: 'Booking confirmed. Pay at reception to complete payment.',
       data: { booking }
     });
-
-    // Fire-and-forget: send confirmation email
-    sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
   }
 
   // Otherwise keep room in held state until payment confirmation
@@ -195,14 +195,14 @@ router.put('/:id/payment', [
   // Populate room details for response
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
 
+  // Fire-and-forget: send payment status email
+  sendEmail(booking.email, paymentStatusChangeEmail(booking, paymentStatus)).catch(() => { });
+
   res.json({
     status: 'success',
     message: 'Payment status overridden successfully',
     data: { booking }
   });
-
-  // Fire-and-forget: send payment status email
-  sendEmail(booking.email, paymentStatusChangeEmail(booking, paymentStatus)).catch(() => { });
 }));
 
 // @route   GET /api/bookings/:id/invoice
@@ -668,13 +668,13 @@ router.delete('/:id', [
   // Populate for email
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
 
+  // Fire-and-forget: send cancellation email
+  sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
+
   res.json({
     status: 'success',
     message: 'Booking cancelled successfully'
   });
-
-  // Fire-and-forget: send cancellation email
-  sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
 }));
 
 export default router;

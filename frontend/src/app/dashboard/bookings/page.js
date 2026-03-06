@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -44,6 +44,9 @@ export default function MyBookingsPage() {
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [cancelReason, setCancelReason] = useState('');
+    const [reviewBookingId, setReviewBookingId] = useState(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
 
     const handleDownloadInvoice = async (bookingId) => {
         try {
@@ -81,6 +84,24 @@ export default function MyBookingsPage() {
             fetchBookings();
         } catch (err) {
             toast.error(err.message || 'Failed to cancel');
+        }
+    };
+
+    const handleReviewSubmit = async () => {
+        if (!reviewBookingId) return;
+        try {
+            await api.reviews.create({
+                booking: reviewBookingId,
+                rating: reviewRating,
+                comment: reviewComment
+            });
+            toast.success('Feedback submitted successfully');
+            setReviewBookingId(null);
+            setReviewRating(5);
+            setReviewComment('');
+            fetchBookings();
+        } catch (err) {
+            toast.error(err.message || 'Failed to submit feedback');
         }
     };
 
@@ -164,6 +185,58 @@ export default function MyBookingsPage() {
                                             <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(booking._id)} title="Download Invoice">
                                                 <FileText className="h-3 w-3" />
                                             </Button>
+                                        )}
+                                        {booking.status === 'completed' && (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="h-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700 text-[10px] font-noto-bold uppercase tracking-widest px-3" onClick={() => setReviewBookingId(booking._id)}>
+                                                        Rate Stay
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="rounded-sm border-2 border-border shadow-md">
+                                                    <DialogHeader>
+                                                        <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">Guest Feedback</DialogTitle>
+                                                        <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
+                                                            Please rate your stay and leave an official comment to help us maintain government standards.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="space-y-4 mt-4">
+                                                        <div>
+                                                            <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest mb-2 block">Rating (1-5 Stars)</Label>
+                                                            <div className="flex items-center gap-1">
+                                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                                    <button
+                                                                        key={star}
+                                                                        type="button"
+                                                                        onClick={() => setReviewRating(star)}
+                                                                        className="focus:outline-none focus-visible:ring-1 focus-visible:ring-[#0056b3] rounded-sm p-1 transition-transform active:scale-95"
+                                                                    >
+                                                                        <Star className={`h-6 w-6 ${reviewRating >= star ? 'fill-[#0056b3] text-[#0056b3] dark:fill-cyan-500 dark:text-cyan-500' : 'text-muted-foreground/30'}`} />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Comments (Optional)</Label>
+                                                            <Textarea
+                                                                className="rounded-sm border-2 border-border text-sm font-noto-medium focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#0056b3] dark:focus-visible:border-cyan-600 transition-none"
+                                                                value={reviewComment}
+                                                                onChange={(e) => setReviewComment(e.target.value)}
+                                                                placeholder="Enter your overall feedback here..."
+                                                                rows={4}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <DialogFooter className="mt-6 gap-2 sm:gap-0">
+                                                        <DialogClose asChild>
+                                                            <Button variant="outline" className="rounded-sm border-2 border-border font-noto-bold uppercase text-xs tracking-wide" onClick={() => { setReviewBookingId(null); setReviewRating(5); setReviewComment(''); }}>Cancel</Button>
+                                                        </DialogClose>
+                                                        <DialogClose asChild>
+                                                            <Button className="bg-[#0056b3] hover:bg-[#004494] text-white rounded-sm font-noto-bold uppercase text-xs tracking-wide" onClick={handleReviewSubmit}>Submit Feedback</Button>
+                                                        </DialogClose>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
                                         )}
                                         {!['cancelled', 'completed'].includes(booking.status) && (
                                             <Dialog>

@@ -47,6 +47,8 @@ export const api = {
         getMe: () => request('/auth/me'),
         updateProfile: (body) => request('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }),
         changePassword: (body) => request('/auth/change-password', { method: 'PUT', body: JSON.stringify(body) }),
+        forgotPassword: (body) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
+        resetPassword: (token, body) => request(`/auth/reset-password/${token}`, { method: 'PUT', body: JSON.stringify(body) }),
         refresh: () => request('/auth/refresh', { method: 'POST' }),
         logout: () => request('/auth/logout', { method: 'POST' }),
     },
@@ -133,5 +135,15 @@ export const api = {
         activate: (id) => request(`/users/${id}/activate`, { method: 'PUT' }),
         resetPassword: (id, newPassword) => request(`/users/${id}/reset-password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
         stats: () => request('/users/stats'),
+    },
+
+    reviews: {
+        create: (body) => request('/reviews', { method: 'POST', body: JSON.stringify(body) }),
+        getAll: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/reviews${qs ? `?${qs}` : ''}`);
+        },
+        getByRoom: (roomId) => request(`/reviews/room/${roomId}`),
+        checkStatus: (bookingId) => request(`/reviews/check/${bookingId}`),
     },
 };

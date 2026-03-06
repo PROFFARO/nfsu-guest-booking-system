@@ -11,7 +11,8 @@ import {
     Users,
     GripVertical,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Star
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const adminLinks = [
     { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
     { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
     { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
+    { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
 ];
 
 export default function Sidebar() {
