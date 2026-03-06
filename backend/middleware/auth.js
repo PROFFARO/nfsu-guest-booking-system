@@ -92,3 +92,15 @@ export const ownerOrAdminMiddleware = (resourceUserId) => {
     }
   };
 };
+
+// Middleware to restrict access to regular users only (blocks admin/staff)
+export const userOnlyMiddleware = (req, res, next) => {
+  if (req.user && req.user.role === 'user') {
+    next();
+  } else {
+    return res.status(403).json({
+      status: 'error',
+      message: 'Access denied. This action is restricted to guest users only. Administrative accounts cannot create bookings.'
+    });
+  }
+};

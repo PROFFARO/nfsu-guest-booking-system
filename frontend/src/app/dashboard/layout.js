@@ -13,6 +13,10 @@ export default function DashboardLayout({ children }) {
         if (!loading && !user) {
             router.push('/login');
         }
+        // Block admin/staff from accessing user dashboard
+        if (!loading && user && (user.role === 'admin' || user.role === 'staff')) {
+            router.push('/admin');
+        }
     }, [user, loading, router]);
 
     if (loading) {
@@ -25,6 +29,8 @@ export default function DashboardLayout({ children }) {
     }
 
     if (!user) return null;
+    // Prevent rendering for admin/staff while redirect is in progress
+    if (user.role === 'admin' || user.role === 'staff') return null;
 
     return <>{children}</>;
 }

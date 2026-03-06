@@ -3,6 +3,7 @@ import http from 'http';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -23,6 +24,7 @@ import userRoutes from './routes/users.js';
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
 import { authMiddleware } from './middleware/auth.js';
+import { authLimiter, apiLimiter, bookingCreateLimiter } from './middleware/rateLimiter.js';
 
 // Load environment variables
 dotenv.config({ path: './config.env' });
@@ -110,6 +112,15 @@ app.use(helmet());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Sanitize data — prevent NoSQL injection
+// Strips out $ and . from req.body, req.query, req.params
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    console.warn(`⚠️  Mongo injection attempt blocked on ${key} from IP: ${req.ip}`);
+  }
+}));
+
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -148,11 +159,12 @@ app.get('/api/cors-test', (req, res) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/bookings', authMiddleware, bookingRoutes);
+// Rate limit: strict on auth (10 req/15min), general on all API (100 req/15min)
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/rooms', apiLimiter, roomRoutes);
+app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 // Payments routes removed
-app.use('/api/users', authMiddleware, userRoutes);
+app.use('/api/users', apiLimiter, authMiddleware, userRoutes);
 
 // Serve static files in production only if dist folder exists
 if (process.env.NODE_ENV === 'production') {

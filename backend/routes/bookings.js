@@ -2,7 +2,8 @@ import express from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import Booking from '../models/Booking.js';
 import Room from '../models/Room.js';
-import { authMiddleware, adminMiddleware, staffMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, staffMiddleware, userOnlyMiddleware } from '../middleware/auth.js';
+import { bookingCreateLimiter } from '../middleware/rateLimiter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { getIO } from '../realtime/socket.js';
 
@@ -13,6 +14,9 @@ const router = express.Router();
 // @access  Private
 // Create booking and optionally start payment flow
 router.post('/', [
+  bookingCreateLimiter,
+  authMiddleware,
+  userOnlyMiddleware,
   body('roomId').isMongoId().withMessage('Valid room ID is required'),
   body('checkIn').isISO8601().withMessage('Valid check-in date is required'),
   body('checkOut').isISO8601().withMessage('Valid check-out date is required'),

@@ -42,6 +42,12 @@ export default function BookingFormPage({ params }) {
             router.push('/login');
             return;
         }
+        // Block admin/staff from accessing guest booking form
+        if (user.role === 'admin' || user.role === 'staff') {
+            toast.error('Administrative accounts cannot create guest bookings.');
+            router.push('/admin');
+            return;
+        }
         setForm((prev) => ({
             ...prev,
             guestName: user.name || '',
