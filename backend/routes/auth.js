@@ -109,14 +109,26 @@ router.post('/login', [
   }
 
   const { email, password } = req.body;
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCK_DURATION = 30 * 60 * 1000; // 30 minutes
 
-  // Find user by email and include password
-  const user = await User.findOne({ email }).select('+password');
+  // Find user by email and include password + lockout fields
+  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
 
   if (!user) {
     return res.status(401).json({
       status: 'error',
       message: 'Invalid credentials'
+    });
+  }
+
+  // Check if account is locked
+  if (user.isLocked) {
+    const remainingMs = user.lockUntil - Date.now();
+    const remainingMin = Math.ceil(remainingMs / 60000);
+    return res.status(423).json({
+      status: 'error',
+      message: `Account is temporarily locked due to too many failed login attempts. Try again in ${remainingMin} minute(s).`
     });
   }
 
@@ -130,9 +142,27 @@ router.post('/login', [
   // Check password
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
+    // Increment failed login attempts
+    const updates = { $inc: { loginAttempts: 1 } };
+    // Lock account after MAX_LOGIN_ATTEMPTS
+    if (user.loginAttempts + 1 >= MAX_LOGIN_ATTEMPTS) {
+      updates.$set = { lockUntil: new Date(Date.now() + LOCK_DURATION) };
+    }
+    await User.updateOne({ _id: user._id }, updates);
+
+    const attemptsLeft = MAX_LOGIN_ATTEMPTS - (user.loginAttempts + 1);
     return res.status(401).json({
       status: 'error',
-      message: 'Invalid credentials'
+      message: attemptsLeft > 0
+        ? `Invalid credentials. ${attemptsLeft} attempt(s) remaining before account lockout.`
+        : 'Account locked due to too many failed attempts. Try again in 30 minutes.'
+    });
+  }
+
+  // Successful login — reset lockout counters
+  if (user.loginAttempts > 0 || user.lockUntil) {
+    await User.updateOne({ _id: user._id }, {
+      $set: { loginAttempts: 0, lockUntil: null }
     });
   }
 

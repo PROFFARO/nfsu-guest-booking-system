@@ -73,9 +73,22 @@ const userSchema = new mongoose.Schema({
       enum: ['A', 'B', 'C', 'D', 'E', 'F', 'any'],
       default: 'any'
     }
+  },
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
+});
+
+// Virtual to check if account is currently locked
+userSchema.virtual('isLocked').get(function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
 // Index for better query performance (email already has unique index)

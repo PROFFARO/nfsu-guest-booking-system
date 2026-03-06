@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xssClean from 'xss-clean';
+import hpp from 'hpp';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -51,7 +52,9 @@ if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins.push(...customOrigins);
 }
 
-console.log('🌐 Allowed CORS Origins:', allowedOrigins);
+if (process.env.NODE_ENV === 'development') {
+  console.log('🌐 Allowed CORS Origins:', allowedOrigins);
+}
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -61,7 +64,9 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log('❌ CORS blocked request from origin:', origin);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ CORS blocked request from origin:', origin);
+      }
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -73,14 +78,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Debug middleware to log CORS requests
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    console.log(`🔍 Request from origin: ${origin}, Method: ${req.method}, Path: ${req.path}`);
-  }
-  next();
-});
+
 
 // Explicitly handle preflight
 app.options('*', cors(corsOptions));
@@ -125,6 +123,9 @@ app.use(mongoSanitize({
 // XSS Protection — Layer 1: xss-clean (strips HTML from input)
 app.use(xssClean());
 
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
+
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -144,21 +145,8 @@ mongoose.connect(process.env.MONGODB_URI)
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'Campus Stay Suite API is running',
-    timestamp: new Date().toISOString(),
-    corsOrigins: allowedOrigins,
-    requestOrigin: req.headers.origin || 'no-origin'
-  });
-});
-
-// CORS test endpoint
-app.get('/api/cors-test', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'CORS test endpoint',
-    origin: req.headers.origin,
-    allowedOrigins: allowedOrigins,
-    headers: req.headers
+    message: 'NFSU Guest House API is running',
+    timestamp: new Date().toISOString()
   });
 });
 
