@@ -50,18 +50,18 @@ router.get('/', [
 
   // Build filter object
   const filters = { isActive: true };
-  
+
   if (type) filters.type = type;
   if (status) filters.status = status;
   if (floor) filters.floor = floor;
   if (block) filters.block = block;
-  
+
   if (minPrice || maxPrice) {
     filters.pricePerNight = {};
     if (minPrice) filters.pricePerNight.$gte = Number(minPrice);
     if (maxPrice) filters.pricePerNight.$lte = Number(maxPrice);
   }
-  
+
   if (facilities) {
     const facilityArray = facilities.split(',').map(f => f.trim());
     filters.facilities = { $in: facilityArray };
@@ -72,7 +72,7 @@ router.get('/', [
   if (checkIn && checkOut) {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
-    
+
     // Validate dates
     if (start >= end) {
       return res.status(400).json({
@@ -95,15 +95,15 @@ router.get('/', [
     }).select('room');
 
     const conflictingRoomIds = new Set(conflictingBookings.map(b => b.room.toString()));
-    
+
     // Get available rooms (excluding conflicting ones)
     const availableRoomIds = roomIds.filter(id => !conflictingRoomIds.has(id.toString()));
-    
+
     // Fetch full room data for available rooms with pagination
     const skip = (page - 1) * limit;
-    rooms = await Room.find({ 
+    rooms = await Room.find({
       _id: { $in: availableRoomIds },
-      ...filters 
+      ...filters
     })
       .sort({ floor: 1, block: 1, roomNumber: 1 })
       .skip(skip)
@@ -128,7 +128,7 @@ router.get('/', [
 
   // Calculate pagination
   const skip = (page - 1) * limit;
-  
+
   // Get rooms with pagination
   rooms = await Room.find(filters)
     .sort({ floor: 1, block: 1, roomNumber: 1 })
@@ -158,12 +158,12 @@ router.get('/', [
 // @access  Public
 router.get('/stats', asyncHandler(async (req, res) => {
   const stats = await Room.getRoomStats();
-  
+
   // Get total counts
   const totalRooms = await Room.countDocuments({ isActive: true });
-  const availableRooms = await Room.countDocuments({ 
-    status: 'vacant', 
-    isActive: true 
+  const availableRooms = await Room.countDocuments({
+    status: 'vacant',
+    isActive: true
   });
 
   res.json({
@@ -263,7 +263,7 @@ router.get('/availability', [
 
   // Build filter object
   const filters = { isActive: true };
-  
+
   if (type) filters.type = type;
   if (floor) filters.floor = floor;
   if (block) filters.block = block;
@@ -275,7 +275,7 @@ router.get('/availability', [
   if (checkIn && checkOut) {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
-    
+
     // Validate dates
     if (start >= end) {
       return res.status(400).json({
@@ -296,15 +296,15 @@ router.get('/availability', [
     }).select('room');
 
     const conflictingRoomIds = new Set(conflictingBookings.map(b => b.room.toString()));
-    
+
     // Process each room to determine availability and status
     const roomsWithStatus = allRooms.map(room => {
       const isAvailableForDates = !conflictingRoomIds.has(room._id.toString());
-      
+
       // Determine availability message based on current status and date availability
       let availabilityMessage = '';
       let isAvailable = false;
-      
+
       if (isAvailableForDates) {
         if (room.status === 'vacant') {
           availabilityMessage = 'Available';
@@ -361,9 +361,9 @@ router.get('/availability', [
   const roomsWithStatus = allRooms.map(room => ({
     ...room.toObject(),
     isAvailable: room.status === 'vacant',
-    availabilityMessage: room.status === 'vacant' ? 'Available' : 
-                        room.status === 'booked' ? 'Currently Booked' :
-                        room.status === 'held' ? 'Temporarily Held' : 'Under Maintenance',
+    availabilityMessage: room.status === 'vacant' ? 'Available' :
+      room.status === 'booked' ? 'Currently Booked' :
+        room.status === 'held' ? 'Temporarily Held' : 'Under Maintenance',
     currentStatus: room.status
   }));
 
@@ -394,7 +394,7 @@ router.get('/:id', [
   }
 
   const room = await Room.findById(req.params.id);
-  
+
   if (!room) {
     return res.status(404).json({
       status: 'error',
@@ -433,7 +433,7 @@ router.post('/', [
   }
 
   const roomData = req.body;
-  
+
   // Check if room number already exists
   const existingRoom = await Room.findOne({ roomNumber: roomData.roomNumber });
   if (existingRoom) {
@@ -445,7 +445,7 @@ router.post('/', [
 
   const room = new Room(roomData);
   await room.save();
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch {}
+  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.status(201).json({
     status: 'success',
@@ -475,7 +475,7 @@ router.put('/:id', [
   }
 
   const room = await Room.findById(req.params.id);
-  
+
   if (!room) {
     return res.status(404).json({
       status: 'error',
@@ -505,7 +505,7 @@ router.delete('/:id', [
   param('id').isMongoId().withMessage('Invalid room ID')
 ], asyncHandler(async (req, res) => {
   const room = await Room.findById(req.params.id);
-  
+
   if (!room) {
     return res.status(404).json({
       status: 'error',
@@ -544,7 +544,7 @@ router.put('/:id/status', [
 
   const { status } = req.body;
   const room = await Room.findById(req.params.id);
-  
+
   if (!room) {
     return res.status(404).json({
       status: 'error',
@@ -553,7 +553,7 @@ router.put('/:id/status', [
   }
 
   await room.updateStatus(status);
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch {}
+  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.json({
     status: 'success',
@@ -561,6 +561,93 @@ router.put('/:id/status', [
     data: {
       room
     }
+  });
+}));
+
+// @route   POST /api/rooms/:id/maintenance
+// @desc    Schedule maintenance for a room
+// @access  Private (Admin only)
+router.post('/:id/maintenance', [
+  authMiddleware,
+  adminMiddleware,
+  param('id').isMongoId().withMessage('Invalid room ID'),
+  body('startDate').isISO8601().withMessage('Valid start date is required'),
+  body('endDate').isISO8601().withMessage('Valid end date is required'),
+  body('reason').optional().isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { startDate, endDate, reason } = req.body;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (start >= end) {
+    return res.status(400).json({ status: 'error', message: 'End date must be after start date' });
+  }
+
+  const room = await Room.findById(req.params.id);
+  if (!room) {
+    return res.status(404).json({ status: 'error', message: 'Room not found' });
+  }
+
+  // Set maintenance schedule
+  room.maintenanceSchedule = {
+    startDate: start,
+    endDate: end,
+    reason: reason || 'Scheduled maintenance',
+    scheduledBy: req.user._id
+  };
+
+  // If maintenance starts today or has already started, set status to maintenance
+  if (start <= new Date()) {
+    room.status = 'maintenance';
+    room.holdBy = null;
+    room.holdUntil = null;
+  }
+
+  await room.save();
+  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+
+  res.json({
+    status: 'success',
+    message: 'Maintenance scheduled successfully',
+    data: { room }
+  });
+}));
+
+// @route   DELETE /api/rooms/:id/maintenance
+// @desc    Clear maintenance schedule and restore room
+// @access  Private (Admin only)
+router.delete('/:id/maintenance', [
+  authMiddleware,
+  adminMiddleware,
+  param('id').isMongoId().withMessage('Invalid room ID')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const room = await Room.findById(req.params.id);
+  if (!room) {
+    return res.status(404).json({ status: 'error', message: 'Room not found' });
+  }
+
+  room.maintenanceSchedule = { startDate: null, endDate: null, reason: '', scheduledBy: null };
+  if (room.status === 'maintenance') {
+    room.status = 'vacant';
+  }
+  await room.save();
+
+  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+
+  res.json({
+    status: 'success',
+    message: 'Maintenance schedule cleared. Room restored to vacant.',
+    data: { room }
   });
 }));
 

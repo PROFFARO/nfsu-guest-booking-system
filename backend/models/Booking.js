@@ -107,6 +107,25 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     maxlength: [1000, 'Notes cannot exceed 1000 characters']
   },
+  // Check-in / Check-out tracking
+  checkedInAt: {
+    type: Date,
+    default: null
+  },
+  checkedInBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  checkedOutAt: {
+    type: Date,
+    default: null
+  },
+  checkedOutBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true

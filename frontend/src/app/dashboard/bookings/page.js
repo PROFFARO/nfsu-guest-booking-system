@@ -150,6 +150,16 @@ export default function MyBookingsPage() {
                                         <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6 ${statusColors[booking.status]}`}>
                                             Status: {booking.status}
                                         </Badge>
+                                        {booking.checkedInAt && (
+                                            <Badge variant="outline" className="rounded-sm border border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6">
+                                                In: {format(new Date(booking.checkedInAt), 'dd MMM, HH:mm')}
+                                            </Badge>
+                                        )}
+                                        {booking.checkedOutAt && (
+                                            <Badge variant="outline" className="rounded-sm border border-blue-600 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0.5 h-6">
+                                                Out: {format(new Date(booking.checkedOutAt), 'dd MMM, HH:mm')}
+                                            </Badge>
+                                        )}
                                         {['confirmed', 'completed'].includes(booking.status) && (
                                             <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(booking._id)} title="Download Invoice">
                                                 <FileText className="h-3 w-3" />

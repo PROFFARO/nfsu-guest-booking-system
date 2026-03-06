@@ -231,10 +231,101 @@ router.get('/:id/invoice', [
   generateInvoicePDF(booking, res);
 }));
 
+// @route   POST /api/bookings/:id/checkin
+// @desc    Mark guest as checked-in (Staff/Admin only)
+// @access  Private (Admin/Staff)
+router.post('/:id/checkin', [
+  authMiddleware,
+  staffMiddleware,
+  param('id').isMongoId().withMessage('Invalid booking ID')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const booking = await Booking.findById(req.params.id)
+    .populate('room', 'roomNumber type floor block pricePerNight');
+
+  if (!booking) {
+    return res.status(404).json({ status: 'error', message: 'Booking not found' });
+  }
+
+  if (booking.status !== 'confirmed') {
+    return res.status(400).json({ status: 'error', message: 'Only confirmed bookings can be checked in' });
+  }
+
+  if (booking.checkedInAt) {
+    return res.status(400).json({ status: 'error', message: 'Guest is already checked in' });
+  }
+
+  booking.checkedInAt = new Date();
+  booking.checkedInBy = req.user._id;
+  await booking.save();
+
+  // Ensure room is marked as booked
+  await Room.findByIdAndUpdate(booking.room._id || booking.room, { status: 'booked', holdBy: null, holdUntil: null });
+
+  try { getIO().emit('bookingUpdated', { bookingId: booking._id, checkedIn: true }); } catch { }
+  try { getIO().emit('roomStatusUpdated', { roomId: booking.room._id || booking.room, status: 'booked' }); } catch { }
+
+  res.json({
+    status: 'success',
+    message: 'Guest checked in successfully',
+    data: { booking }
+  });
+}));
+
 // @route   POST /api/bookings/:id/checkout
-// @desc    Create Stripe PaymentIntent for a booking
-// @access  Private
-// Checkout route removed for now (Stripe)
+// @desc    Mark guest as checked-out and complete booking (Staff/Admin only)
+// @access  Private (Admin/Staff)
+router.post('/:id/checkout', [
+  authMiddleware,
+  staffMiddleware,
+  param('id').isMongoId().withMessage('Invalid booking ID')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const booking = await Booking.findById(req.params.id)
+    .populate('room', 'roomNumber type floor block pricePerNight');
+
+  if (!booking) {
+    return res.status(404).json({ status: 'error', message: 'Booking not found' });
+  }
+
+  if (booking.status !== 'confirmed') {
+    return res.status(400).json({ status: 'error', message: 'Only confirmed bookings can be checked out' });
+  }
+
+  if (!booking.checkedInAt) {
+    return res.status(400).json({ status: 'error', message: 'Guest must be checked in before checkout' });
+  }
+
+  if (booking.checkedOutAt) {
+    return res.status(400).json({ status: 'error', message: 'Guest is already checked out' });
+  }
+
+  booking.checkedOutAt = new Date();
+  booking.checkedOutBy = req.user._id;
+  booking.status = 'completed';
+  await booking.save();
+
+  // Release room
+  const roomId = booking.room._id || booking.room;
+  await Room.findByIdAndUpdate(roomId, { status: 'vacant', holdBy: null, holdUntil: null });
+
+  try { getIO().emit('bookingUpdated', { bookingId: booking._id, checkedOut: true, status: 'completed' }); } catch { }
+  try { getIO().emit('roomStatusUpdated', { roomId, status: 'vacant' }); } catch { }
+
+  res.json({
+    status: 'success',
+    message: 'Guest checked out successfully. Booking completed.',
+    data: { booking }
+  });
+}));
 
 // @route   GET /api/bookings
 // @desc    Get user's bookings or all bookings (admin/staff)

@@ -67,6 +67,8 @@ export const api = {
         update: (id, body) => request(`/rooms/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
         delete: (id) => request(`/rooms/${id}`, { method: 'DELETE' }),
         updateStatus: (id, status) => request(`/rooms/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+        scheduleMaintenance: (id, body) => request(`/rooms/${id}/maintenance`, { method: 'POST', body: JSON.stringify(body) }),
+        clearMaintenance: (id) => request(`/rooms/${id}/maintenance`, { method: 'DELETE' }),
     },
 
     bookings: {
@@ -98,6 +100,8 @@ export const api = {
             link.remove();
             window.URL.revokeObjectURL(url);
         },
+        checkin: (id) => request(`/bookings/${id}/checkin`, { method: 'POST' }),
+        checkout: (id) => request(`/bookings/${id}/checkout`, { method: 'POST' }),
     },
 
     users: {

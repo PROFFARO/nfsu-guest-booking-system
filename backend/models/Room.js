@@ -53,7 +53,7 @@ const roomSchema = new mongoose.Schema({
   images: [{
     type: String,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^https?:\/\/.+/.test(v);
       },
       message: 'Please provide valid image URLs'
@@ -77,6 +77,13 @@ const roomSchema = new mongoose.Schema({
   notes: {
     type: String,
     maxlength: [1000, 'Notes cannot exceed 1000 characters']
+  },
+  // Maintenance scheduling
+  maintenanceSchedule: {
+    startDate: { type: Date, default: null },
+    endDate: { type: Date, default: null },
+    reason: { type: String, maxlength: [500, 'Maintenance reason cannot exceed 500 characters'], default: '' },
+    scheduledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
   }
 }, {
   timestamps: true
@@ -90,26 +97,26 @@ roomSchema.index({ pricePerNight: 1 });
 roomSchema.index({ holdUntil: 1 });
 
 // Virtual for room availability
-roomSchema.virtual('isAvailable').get(function() {
+roomSchema.virtual('isAvailable').get(function () {
   if (this.status === 'vacant') return true;
   if (this.status === 'held' && this.holdUntil && this.holdUntil < new Date()) return true;
   return false;
 });
 
 // Virtual for room identifier
-roomSchema.virtual('roomIdentifier').get(function() {
+roomSchema.virtual('roomIdentifier').get(function () {
   return `${this.block}-${this.roomNumber}`;
 });
 
 // Method to check if room can be booked
-roomSchema.methods.canBeBooked = function() {
+roomSchema.methods.canBeBooked = function () {
   const now = new Date();
   const notEffectivelyHeld = this.status !== 'held' || (this.holdUntil && this.holdUntil < now);
   return this.isActive && (this.status === 'vacant' || (this.status === 'held' && notEffectivelyHeld));
 };
 
 // Method to update room status
-roomSchema.methods.updateStatus = function(newStatus) {
+roomSchema.methods.updateStatus = function (newStatus) {
   if (['vacant', 'booked', 'held', 'maintenance'].includes(newStatus)) {
     this.status = newStatus;
     if (newStatus !== 'held') {
@@ -122,7 +129,7 @@ roomSchema.methods.updateStatus = function(newStatus) {
 };
 
 // Atomically acquire a temporary hold on a room if available
-roomSchema.statics.acquireHold = function(roomId, userId, ttlSeconds = 600) {
+roomSchema.statics.acquireHold = function (roomId, userId, ttlSeconds = 600) {
   const now = new Date();
   const expires = new Date(now.getTime() + ttlSeconds * 1000);
   return this.findOneAndUpdate(
@@ -132,7 +139,7 @@ roomSchema.statics.acquireHold = function(roomId, userId, ttlSeconds = 600) {
       // Only acquire if vacant OR held but expired, and not booked/maintenance
       $or: [
         { status: 'vacant' },
-        { status: 'held', $or: [ { holdUntil: null }, { holdUntil: { $lt: now } } ] }
+        { status: 'held', $or: [{ holdUntil: null }, { holdUntil: { $lt: now } }] }
       ]
     },
     { $set: { status: 'held', holdBy: userId, holdUntil: expires } },
@@ -141,7 +148,7 @@ roomSchema.statics.acquireHold = function(roomId, userId, ttlSeconds = 600) {
 };
 
 // Release hold if held by the user or force if admin path uses direct call
-roomSchema.statics.releaseHold = function(roomId, userId = null) {
+roomSchema.statics.releaseHold = function (roomId, userId = null) {
   const filter = { _id: roomId, status: 'held' };
   if (userId) {
     filter.holdBy = userId;
@@ -154,13 +161,13 @@ roomSchema.statics.releaseHold = function(roomId, userId = null) {
 };
 
 // Static method to get available rooms
-roomSchema.statics.getAvailableRooms = function(filters = {}) {
+roomSchema.statics.getAvailableRooms = function (filters = {}) {
   const query = { status: 'vacant', isActive: true, ...filters };
   return this.find(query);
 };
 
 // Static method to get room statistics
-roomSchema.statics.getRoomStats = function() {
+roomSchema.statics.getRoomStats = function () {
   return this.aggregate([
     {
       $group: {

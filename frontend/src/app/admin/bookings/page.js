@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -73,6 +73,26 @@ export default function BookingManagementPage() {
             fetchBookings();
         } catch (err) {
             toast.error(err.message || 'Failed to update financial status');
+        }
+    };
+
+    const handleCheckin = async (bookingId) => {
+        try {
+            await api.bookings.checkin(bookingId);
+            toast.success('Guest checked in successfully');
+            fetchBookings();
+        } catch (err) {
+            toast.error(err.message || 'Check-in failed');
+        }
+    };
+
+    const handleCheckout = async (bookingId) => {
+        try {
+            await api.bookings.checkout(bookingId);
+            toast.success('Guest checked out. Booking completed.');
+            fetchBookings();
+        } catch (err) {
+            toast.error(err.message || 'Check-out failed');
         }
     };
 
@@ -198,6 +218,24 @@ export default function BookingManagementPage() {
                                                             <Button variant="outline" size="sm" className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(b._id)}>
                                                                 <FileText className="h-3 w-3 mr-1" /> Invoice
                                                             </Button>
+                                                        )}
+
+                                                        {/* Check-in / Check-out */}
+                                                        {b.status === 'confirmed' && !b.checkedInAt && (
+                                                            <Button variant="outline" size="sm" className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-600 hover:text-white" onClick={() => handleCheckin(b._id)}>
+                                                                <LogIn className="h-3 w-3 mr-1" /> Check In
+                                                            </Button>
+                                                        )}
+                                                        {b.status === 'confirmed' && b.checkedInAt && !b.checkedOutAt && (
+                                                            <Button variant="outline" size="sm" className="w-[130px] h-7 text-[9px] font-noto-bold uppercase tracking-widest rounded-sm border-2 border-orange-600 text-orange-700 dark:text-orange-400 hover:bg-orange-600 hover:text-white" onClick={() => handleCheckout(b._id)}>
+                                                                <LogOut className="h-3 w-3 mr-1" /> Check Out
+                                                            </Button>
+                                                        )}
+                                                        {b.checkedInAt && (
+                                                            <div className="text-[8px] font-noto-medium text-muted-foreground text-center w-[130px]">
+                                                                IN: {format(new Date(b.checkedInAt), 'dd MMM, HH:mm')}
+                                                                {b.checkedOutAt && <><br />OUT: {format(new Date(b.checkedOutAt), 'dd MMM, HH:mm')}</>}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </TableCell>

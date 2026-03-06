@@ -16,7 +16,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
-import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusColors = {
@@ -57,6 +57,10 @@ export default function RoomManagementPage() {
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState({});
 
+    // Maintenance dialog state
+    const [maintOpen, setMaintOpen] = useState(false);
+    const [maintForm, setMaintForm] = useState({ startDate: '', endDate: '', reason: '' });
+
     const fetchRooms = async () => {
         setLoading(true);
         try {
@@ -93,6 +97,32 @@ export default function RoomManagementPage() {
             fetchRooms();
         } catch (err) {
             toast.error(err.message || 'Failed to update');
+        }
+    };
+
+    const handleScheduleMaintenance = async () => {
+        if (!maintForm.startDate || !maintForm.endDate) {
+            toast.error('Start and end dates are required');
+            return;
+        }
+        setSaving(true);
+        try {
+            await api.rooms.scheduleMaintenance(selectedRoom._id, maintForm);
+            toast.success(`Maintenance scheduled for Room ${selectedRoom.roomNumber}`);
+            setMaintOpen(false);
+            fetchRooms();
+        } catch (err) {
+            toast.error(err.message || 'Failed to schedule maintenance');
+        } finally { setSaving(false); }
+    };
+
+    const handleClearMaintenance = async (roomId) => {
+        try {
+            await api.rooms.clearMaintenance(roomId);
+            toast.success('Maintenance cleared. Room restored.');
+            fetchRooms();
+        } catch (err) {
+            toast.error(err.message || 'Failed to clear maintenance');
         }
     };
 
@@ -411,9 +441,20 @@ export default function RoomManagementPage() {
                                                         <Pencil className="h-3 w-3" /> Edit
                                                     </Button>
                                                     {isAdmin && (
-                                                        <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
-                                                            <Trash2 className="h-3 w-3" /> Delete
-                                                        </Button>
+                                                        <>
+                                                            {room.maintenanceSchedule?.startDate ? (
+                                                                <Button variant="outline" size="sm" onClick={() => handleClearMaintenance(room._id)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-orange-500 text-orange-600 hover:bg-orange-600 hover:text-white">
+                                                                    <Wrench className="h-3 w-3" /> Clear Maint.
+                                                                </Button>
+                                                            ) : (
+                                                                <Button variant="outline" size="sm" onClick={() => { setSelectedRoom(room); setMaintForm({ startDate: '', endDate: '', reason: '' }); setMaintOpen(true); }} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-slate-500 text-slate-600 dark:text-slate-400 hover:bg-slate-600 hover:text-white">
+                                                                    <Wrench className="h-3 w-3" /> Maint.
+                                                                </Button>
+                                                            )}
+                                                            <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
+                                                                <Trash2 className="h-3 w-3" /> Delete
+                                                            </Button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -489,6 +530,43 @@ export default function RoomManagementPage() {
                             <Button variant="destructive" onClick={handleDelete} disabled={saving}>
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Delete Room
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Maintenance Scheduling Dialog */}
+                <Dialog open={maintOpen} onOpenChange={setMaintOpen}>
+                    <DialogContent className="max-w-sm rounded-sm border-border bg-card shadow-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
+                                <Wrench className="h-5 w-5 text-slate-500" /> Schedule Maintenance
+                            </DialogTitle>
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
+                                Set maintenance window for Room <strong>{selectedRoom?.roomNumber}</strong> (Block {selectedRoom?.block}, Floor {selectedRoom?.floor})
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                            <div>
+                                <Label className="text-xs font-noto-bold uppercase tracking-widest">Start Date *</Label>
+                                <Input type="date" value={maintForm.startDate} onChange={(e) => setMaintForm(p => ({ ...p, startDate: e.target.value }))} className="mt-1 rounded-sm border-2 border-border" />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-noto-bold uppercase tracking-widest">End Date *</Label>
+                                <Input type="date" value={maintForm.endDate} onChange={(e) => setMaintForm(p => ({ ...p, endDate: e.target.value }))} className="mt-1 rounded-sm border-2 border-border" />
+                            </div>
+                            <div>
+                                <Label className="text-xs font-noto-bold uppercase tracking-widest">Reason</Label>
+                                <Textarea value={maintForm.reason} onChange={(e) => setMaintForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g. Plumbing repair, deep cleaning..." className="mt-1 rounded-sm border-2 border-border" />
+                            </div>
+                        </div>
+                        <DialogFooter className="gap-2 pt-4">
+                            <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button onClick={handleScheduleMaintenance} disabled={saving} className="bg-[#0056b3] hover:bg-[#004494] text-white rounded-sm">
+                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Schedule
                             </Button>
                         </DialogFooter>
                     </DialogContent>
