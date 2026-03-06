@@ -122,7 +122,7 @@ const sampleRooms = [
 const adminUser = {
   name: 'Admin User',
   email: 'admin@campusstay.com',
-  password: 'admin123',
+  password: 'Admin@123',
   phone: '9876543210',
   role: 'admin',
   isActive: true,
@@ -139,7 +139,7 @@ const adminUser = {
 const staffUser = {
   name: 'Staff User',
   email: 'staff@campusstay.com',
-  password: 'staff123',
+  password: 'Staff@123',
   phone: '9876543211',
   role: 'staff',
   isActive: true,
@@ -156,7 +156,7 @@ const staffUser = {
 const regularUser = {
   name: 'Regular User',
   email: 'user@campusstay.com',
-  password: 'user123',
+  password: 'User@123',
   phone: '9876543212',
   role: 'user',
   isActive: true,
@@ -222,7 +222,7 @@ const seedDatabase = async () => {
         numberOfGuests: 1,
         totalAmount: (sb.room.pricePerNight || 1500) * Math.ceil((sb.checkOut - sb.checkIn) / (1000*60*60*24)),
         status: 'confirmed',
-        paymentStatus: 'pending',
+        paymentStatus: 'unpaid',
         paymentMethod: 'cash'
       });
       await Room.findByIdAndUpdate(sb.room._id, { status: 'booked' });
