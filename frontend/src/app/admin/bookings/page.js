@@ -116,7 +116,7 @@ export default function BookingManagementPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
+        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 {/* Header */}
                 <div className="mb-8 border-b-2 border-border pb-5">

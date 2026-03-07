@@ -19,8 +19,8 @@ import { cn } from '@/lib/utils';
 const adminLinks = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
-    { href: '/admin/bookings', label: 'Bookings Management', icon: BookOpen },
-    { href: '/admin/users', label: 'Users Management', icon: Users, adminOnly: true },
+    { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+    { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
     { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
 ];
 
