@@ -8,10 +8,13 @@ function getToken() {
 async function request(endpoint, options = {}) {
     const token = getToken();
     const headers = {
-        'Content-Type': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
     };
+
+    if (options.body && typeof options.body === 'string' && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
@@ -65,8 +68,14 @@ export const api = {
             const qs = new URLSearchParams(params).toString();
             return request(`/rooms/availability${qs ? `?${qs}` : ''}`);
         },
-        create: (body) => request('/rooms', { method: 'POST', body: JSON.stringify(body) }),
-        update: (id, body) => request(`/rooms/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+        create: (data) => {
+            const isFormData = data instanceof FormData;
+            return request('/rooms', { method: 'POST', body: isFormData ? data : JSON.stringify(data) });
+        },
+        update: (id, data) => {
+            const isFormData = data instanceof FormData;
+            return request(`/rooms/${id}`, { method: 'PUT', body: isFormData ? data : JSON.stringify(data) });
+        },
         delete: (id) => request(`/rooms/${id}`, { method: 'DELETE' }),
         updateStatus: (id, status) => request(`/rooms/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
         scheduleMaintenance: (id, body) => request(`/rooms/${id}/maintenance`, { method: 'POST', body: JSON.stringify(body) }),

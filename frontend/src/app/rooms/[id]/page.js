@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
+import { ImageSlider } from '@/components/ui/ImageSlider';
 import {
     BedDouble,
     MapPin,
@@ -25,6 +26,8 @@ import {
     Info,
     Star,
     MessageSquare,
+    AlertCircle,
+    Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -114,6 +117,13 @@ export default function RoomDetailPage({ params }) {
                             </Badge>
                         </div>
 
+                        {/* Room Images Slider */}
+                        {room?.images?.length > 0 && (
+                            <div className="rounded-sm overflow-hidden border-2 border-border shadow-sm h-[300px] sm:h-[400px]">
+                                <ImageSlider images={room.images} autoPlay className="w-full h-full" />
+                            </div>
+                        )}
+
                         <Card className="rounded-sm border-2 border-border bg-card shadow-sm overflow-hidden">
                             <CardHeader className="p-4 border-b border-border bg-muted/10">
                                 <CardTitle className="text-base font-noto-bold text-foreground tracking-wide uppercase">Official Accommodation Details</CardTitle>
@@ -186,6 +196,68 @@ export default function RoomDetailPage({ params }) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Maintenance Schedule Section */}
+                        {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                            >
+                                <Card className="rounded-sm border-2 border-amber-600/30 bg-amber-50 dark:bg-amber-950/20 shadow-sm overflow-hidden">
+                                    <CardHeader className="p-4 border-b border-amber-600/30 bg-amber-100/30 dark:bg-amber-950/40">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="h-5 w-5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
+                                            <CardTitle className="text-base font-noto-bold text-amber-900 dark:text-amber-300 tracking-wide uppercase">Maintenance Schedule</CardTitle>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-5 space-y-4">
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="flex items-start gap-3 p-3 border border-amber-600/20 rounded-sm bg-background/50">
+                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 flex-shrink-0" />
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">Start Date</p>
+                                                    <p className="text-sm font-noto-bold text-foreground">
+                                                        {new Date(room.maintenanceSchedule.startDate).toLocaleDateString('en-IN', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 p-3 border border-amber-600/20 rounded-sm bg-background/50">
+                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 flex-shrink-0" />
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">End Date</p>
+                                                    <p className="text-sm font-noto-bold text-foreground">
+                                                        {new Date(room.maintenanceSchedule.endDate).toLocaleDateString('en-IN', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {room.maintenanceSchedule.reason && (
+                                            <div className="p-3 border border-amber-600/20 rounded-sm bg-background/50">
+                                                <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1.5">Maintenance Reason</p>
+                                                <p className="text-sm font-noto-medium text-foreground">{room.maintenanceSchedule.reason}</p>
+                                            </div>
+                                        )}
+                                        <div className="rounded-sm bg-amber-100/30 dark:bg-amber-950/40 border border-amber-600/20 p-3">
+                                            <p className="text-xs font-noto-medium text-amber-900 dark:text-amber-300 text-center">
+                                                This room is currently under maintenance and is not available for booking during the scheduled period.
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        )}
 
                         {/* Reviews Section */}
                         <div className="mt-8">

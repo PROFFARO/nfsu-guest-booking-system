@@ -1,9 +1,16 @@
 import express from 'express';
 import { query, param, body, validationResult } from 'express-validator';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Room from '../models/Room.js';
 import { getIO } from '../realtime/socket.js';
 import { authMiddleware, adminMiddleware, staffMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import upload from '../middleware/upload.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
@@ -48,8 +55,8 @@ router.get('/', [
     checkOut
   } = req.query;
 
-  // Build filter object
-  const filters = { isActive: true };
+  // Build filter object - accommodate older seeded rooms missing this field
+  const filters = { isActive: { $ne: false } };
 
   if (type) filters.type = type;
   if (status) filters.status = status;
@@ -416,6 +423,7 @@ router.get('/:id', [
 router.post('/', [
   authMiddleware,
   staffMiddleware,
+  upload.array('images', 5),
   body('roomNumber').notEmpty().withMessage('Room number is required'),
   body('type').isIn(['single', 'double']).withMessage('Invalid room type'),
   body('floor').isIn(['1', '2', '3', '4', '5', '6']).withMessage('Invalid floor'),
@@ -425,6 +433,12 @@ router.post('/', [
   // Check for validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    // Clean up uploaded files if validation fails
+    if (req.files) {
+      req.files.forEach(file => {
+        try { fs.unlinkSync(file.path); } catch (e) {}
+      });
+    }
     return res.status(400).json({
       status: 'error',
       message: 'Validation failed',
@@ -433,10 +447,27 @@ router.post('/', [
   }
 
   const roomData = req.body;
+  if (roomData.facilities && typeof roomData.facilities === 'string') {
+    try { roomData.facilities = JSON.parse(roomData.facilities); } catch(e) {}
+  }
+
+  // Handle uploaded images
+  if (req.files && req.files.length > 0) {
+    roomData.images = req.files.map((file, index) => ({
+      url: `/uploads/rooms/${file.filename}`,
+      filename: file.filename,
+      isPrimary: index === 0 // Make the first one primary by default
+    }));
+  }
 
   // Check if room number already exists
   const existingRoom = await Room.findOne({ roomNumber: roomData.roomNumber });
   if (existingRoom) {
+    if (req.files) {
+      req.files.forEach(file => {
+        try { fs.unlinkSync(file.path); } catch (e) {}
+      });
+    }
     return res.status(400).json({
       status: 'error',
       message: 'Room with this number already exists'
@@ -445,7 +476,7 @@ router.post('/', [
 
   const room = new Room(roomData);
   await room.save();
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+  try { getIO().of('/').of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.status(201).json({
     status: 'success',
@@ -462,11 +493,17 @@ router.post('/', [
 router.put('/:id', [
   authMiddleware,
   staffMiddleware,
+  upload.array('images', 5),
   param('id').isMongoId().withMessage('Invalid room ID')
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    if (req.files) {
+      req.files.forEach(file => {
+        try { fs.unlinkSync(file.path); } catch (e) {}
+      });
+    }
     return res.status(400).json({
       status: 'error',
       message: 'Validation failed',
@@ -483,8 +520,47 @@ router.put('/:id', [
     });
   }
 
+  const roomData = req.body;
+  if (roomData.facilities && typeof roomData.facilities === 'string') {
+    try { roomData.facilities = JSON.parse(roomData.facilities); } catch(e) {}
+  }
+
+  let existingImagesCount = 0;
+  if (roomData.existingImages) {
+    try {
+      const parsed = JSON.parse(roomData.existingImages);
+      roomData.images = parsed;
+      existingImagesCount = parsed.length;
+      
+      // Cleanup removed images from filesystem
+      const oldFilenames = room.images.map(i => i.filename);
+      const newFilenames = parsed.map(i => i.filename);
+      const removedFilenames = oldFilenames.filter(f => !newFilenames.includes(f));
+      
+      removedFilenames.forEach(filename => {
+        try {
+          fs.unlinkSync(path.join(__dirname, '../uploads/rooms', filename));
+        } catch(e) { console.error('Failed to delete old image', e); }
+      });
+    } catch(e) {}
+  } else {
+    // If not provided, keep current ones
+    roomData.images = room.images;
+    existingImagesCount = room.images.length;
+  }
+
+  // Handle newly uploaded images
+  if (req.files && req.files.length > 0) {
+    const newImages = req.files.map((file, index) => ({
+      url: `/uploads/rooms/${file.filename}`,
+      filename: file.filename,
+      isPrimary: existingImagesCount === 0 && index === 0
+    }));
+    roomData.images = [...(roomData.images || []), ...newImages];
+  }
+
   // Update room
-  Object.assign(room, req.body);
+  room.set(roomData);
   await room.save();
 
   res.json({
@@ -513,9 +589,8 @@ router.delete('/:id', [
     });
   }
 
-  // Soft delete - mark as inactive
-  room.isActive = false;
-  await room.save();
+  // Hard delete as requested
+  await room.deleteOne();
 
   res.json({
     status: 'success',
@@ -553,7 +628,7 @@ router.put('/:id/status', [
   }
 
   await room.updateStatus(status);
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.json({
     status: 'success',
@@ -609,7 +684,7 @@ router.post('/:id/maintenance', [
   }
 
   await room.save();
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.json({
     status: 'success',

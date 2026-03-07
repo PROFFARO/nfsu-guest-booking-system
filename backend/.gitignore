@@ -10,6 +10,13 @@
 !.yarn/releases
 !.yarn/versions
 
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+
 # testing
 /coverage
 

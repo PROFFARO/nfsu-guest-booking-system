@@ -107,8 +107,8 @@ router.post('/', [
 
     // Populate and emit events
     await booking.populate('room', 'roomNumber type floor block pricePerNight');
-    try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
-    try { getIO().emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
+    try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
 
     // Fire-and-forget: send confirmation email before returning
     sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
@@ -122,7 +122,7 @@ router.post('/', [
 
   // Otherwise keep room in held state until payment confirmation
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
-  try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
 
   return res.status(201).json({
     status: 'success',
@@ -152,7 +152,7 @@ router.post('/:id/mark-paid', [
   booking.paymentStatus = 'paid';
   booking.paymentMethod = 'cash';
   await booking.save();
-  try { getIO().emit('bookingUpdated', { bookingId: booking._id, paymentStatus: 'paid' }); } catch { }
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, paymentStatus: 'paid' }); } catch { }
 
   res.json({ status: 'success', message: 'Booking marked as paid', data: { booking } });
 }));
@@ -190,7 +190,7 @@ router.put('/:id/payment', [
 
   await booking.save();
 
-  try { getIO().emit('bookingUpdated', { bookingId: booking._id, paymentStatus }); } catch { }
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, paymentStatus }); } catch { }
 
   // Populate room details for response
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
@@ -267,8 +267,8 @@ router.post('/:id/checkin', [
   // Ensure room is marked as booked
   await Room.findByIdAndUpdate(booking.room._id || booking.room, { status: 'booked', holdBy: null, holdUntil: null });
 
-  try { getIO().emit('bookingUpdated', { bookingId: booking._id, checkedIn: true }); } catch { }
-  try { getIO().emit('roomStatusUpdated', { roomId: booking.room._id || booking.room, status: 'booked' }); } catch { }
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, checkedIn: true }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room._id || booking.room, status: 'booked' }); } catch { }
 
   res.json({
     status: 'success',
@@ -318,8 +318,8 @@ router.post('/:id/checkout', [
   const roomId = booking.room._id || booking.room;
   await Room.findByIdAndUpdate(roomId, { status: 'vacant', holdBy: null, holdUntil: null });
 
-  try { getIO().emit('bookingUpdated', { bookingId: booking._id, checkedOut: true, status: 'completed' }); } catch { }
-  try { getIO().emit('roomStatusUpdated', { roomId, status: 'vacant' }); } catch { }
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, checkedOut: true, status: 'completed' }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId, status: 'vacant' }); } catch { }
 
   res.json({
     status: 'success',

@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
+import { ImageSlider } from '@/components/ui/ImageSlider';
 import {
     BedDouble,
     Users,
@@ -27,6 +28,8 @@ import {
     Filter,
     SlidersHorizontal,
     ArrowRight,
+    AlertCircle,
+    Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -207,19 +210,49 @@ export default function RoomBrowsePage() {
                                 transition={{ delay: i * 0.05 }}
                             >
                                 <Link href={`/rooms/${room._id}`}>
-                                    <Card className="group h-full rounded-sm border-2 border-border bg-card shadow-sm hover:border-[#0056b3] dark:hover:border-cyan-500 transition-colors cursor-pointer flex flex-col">
-                                        <CardContent className="p-0 flex-1 flex flex-col">
-                                            <div className="p-4 border-b border-border bg-muted/10 flex items-start justify-between">
+                                    <Card className="group h-full rounded-sm border-2 border-border bg-card shadow-sm hover:border-[#0056b3] dark:hover:border-cyan-500 transition-colors cursor-pointer flex flex-col overflow-hidden">
+                                        <CardContent className="p-0 flex-1 flex flex-col relative">
+                                            {/* Photo Header */}
+                                            <div className="h-48 w-full bg-muted/20 relative">
+                                                {room.images?.length > 0 ? (
+                                                    <ImageSlider images={room.images} autoPlay={false} className="h-full w-full" />
+                                                ) : (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground/40">
+                                                        <BedDouble className="h-10 w-10 mb-2" />
+                                                        <span className="text-[10px] uppercase font-noto-bold tracking-widest">No Image</span>
+                                                    </div>
+                                                )}
+                                                <Badge variant="outline" className={`absolute top-3 right-3 rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 backdrop-blur-md ${statusColors[room.status]}`}>
+                                                    {room.status}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="p-4 border-b border-border flex items-start justify-between">
                                                 <div>
                                                     <h3 className="text-base font-noto-bold tracking-tight text-foreground uppercase">Room {room.roomNumber}</h3>
                                                     <p className="text-xs font-noto-bold text-muted-foreground mt-0.5 uppercase tracking-widest">
                                                         Floor {room.floor} · Block {room.block}
                                                     </p>
                                                 </div>
-                                                <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 ${statusColors[room.status]}`}>
-                                                    {room.status}
-                                                </Badge>
                                             </div>
+
+                                            {/* Maintenance Warning */}
+                                            {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                                                <div className="px-4 pt-3 pb-2 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-600/20">
+                                                    <div className="flex gap-2 text-sm">
+                                                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                                        <div className="flex-1 text-xs font-noto-medium text-amber-800 dark:text-amber-300">
+                                                            <p className="font-noto-bold">Under Maintenance</p>
+                                                            <p className="mt-1">
+                                                                {new Date(room.maintenanceSchedule.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – {new Date(room.maintenanceSchedule.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                                            </p>
+                                                            {room.maintenanceSchedule.reason && (
+                                                                <p className="mt-0.5 text-[11px]">{room.maintenanceSchedule.reason}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="p-4 flex-1">
                                                 <div className="mb-3 flex items-center gap-2 text-sm font-noto-medium text-foreground">

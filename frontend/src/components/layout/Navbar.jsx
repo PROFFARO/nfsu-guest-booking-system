@@ -51,9 +51,10 @@ export default function Navbar() {
             // Admin: manage everything from admin panel
             return [
                 { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-                { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
+                { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
                 { href: '/admin/users', label: 'Users', icon: Shield },
+                { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
             ];
         }
 
@@ -63,6 +64,7 @@ export default function Navbar() {
                 { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
                 { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+                { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
             ];
         }
 

@@ -18,6 +18,7 @@ import {
 import { motion } from 'framer-motion';
 import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageSlider } from '@/components/ui/ImageSlider';
 
 const statusColors = {
     vacant: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
@@ -37,6 +38,7 @@ const emptyRoomForm = {
     description: '',
     facilities: [],
     notes: '',
+    images: [],
 };
 
 export default function RoomManagementPage() {
@@ -143,6 +145,7 @@ export default function RoomManagementPage() {
             description: room.description || '',
             facilities: room.facilities || [],
             notes: room.notes || '',
+            images: room.images || [],
         });
         setErrors({});
         setEditOpen(true);
@@ -157,10 +160,22 @@ export default function RoomManagementPage() {
         if (!validate()) return;
         setSaving(true);
         try {
-            await api.rooms.create({
-                ...form,
-                pricePerNight: Number(form.pricePerNight),
+            const formData = new FormData();
+            Object.entries(form).forEach(([key, value]) => {
+                if (key === 'facilities') {
+                    formData.append(key, JSON.stringify(value));
+                } else if (key === 'images') {
+                    value.forEach(file => {
+                        if (file instanceof File) formData.append('images', file);
+                    });
+                } else if (key === 'pricePerNight') {
+                    formData.append(key, Number(value));
+                } else {
+                    formData.append(key, value);
+                }
             });
+
+            await api.rooms.create(formData);
             toast.success('Room created successfully');
             setCreateOpen(false);
             fetchRooms();
@@ -173,10 +188,29 @@ export default function RoomManagementPage() {
         if (!validate()) return;
         setSaving(true);
         try {
-            await api.rooms.update(selectedRoom._id, {
-                ...form,
-                pricePerNight: Number(form.pricePerNight),
+            const formData = new FormData();
+            const existingImages = [];
+            
+            Object.entries(form).forEach(([key, value]) => {
+                if (key === 'facilities') {
+                    formData.append(key, JSON.stringify(value));
+                } else if (key === 'images') {
+                    value.forEach(item => {
+                        if (item instanceof File) {
+                            formData.append('images', item);
+                        } else {
+                            existingImages.push(item);
+                        }
+                    });
+                    formData.append('existingImages', JSON.stringify(existingImages));
+                } else if (key === 'pricePerNight') {
+                    formData.append(key, Number(value));
+                } else {
+                    formData.append(key, value);
+                }
             });
+
+            await api.rooms.update(selectedRoom._id, formData);
             toast.success('Room updated successfully');
             setEditOpen(false);
             fetchRooms();
@@ -208,8 +242,8 @@ export default function RoomManagementPage() {
         }));
     };
 
-    // --- Room Form Component ---
-    const RoomForm = ({ onSubmit, submitLabel }) => (
+    // --- Room Form Renderer ---
+    const renderRoomForm = (onSubmit, submitLabel) => (
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -316,6 +350,56 @@ export default function RoomManagementPage() {
                     className="rounded-sm border-border bg-background"
                 />
                 <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.notes.length}/1000</p>
+            </div>
+            
+            <div className="space-y-3 pt-2">
+                <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Images</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="h-40 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center relative bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer group">
+                        <input 
+                            type="file" 
+                            multiple 
+                            accept="image/jpeg, image/png, image/webp" 
+                            onChange={(e) => {
+                                if (e.target.files) {
+                                    const newFiles = Array.from(e.target.files);
+                                    setForm(prev => ({ ...prev, images: [...(prev.images || []), ...newFiles] }));
+                                }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        <div className="text-center p-4">
+                            <Plus className="h-8 w-8 mx-auto text-muted-foreground/60 mb-2 group-hover:text-primary transition-colors" />
+                            <p className="text-sm font-noto-medium text-foreground">Add Images</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">JPEG, PNG, WEBP allowed</p>
+                        </div>
+                    </div>
+                    <div className="h-40 rounded-sm overflow-hidden bg-muted/10 border border-border">
+                        <ImageSlider images={form.images} autoPlay className="h-full w-full" />
+                    </div>
+                </div>
+                {form.images?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {form.images.map((img, idx) => (
+                            <div key={idx} className="relative group bg-muted rounded-sm px-2 py-1 flex items-center gap-2 border border-border">
+                                <span className="text-[10px] max-w-25 truncate font-noto-medium">
+                                    {img instanceof File ? img.name : img.filename}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
+                                    }}
+                                    className="text-red-500 hover:text-red-700 opacity-50 group-hover:opacity-100 focus:outline-none"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
             <DialogFooter className="gap-2 pt-4 border-t border-border mt-2">
                 <DialogClose asChild>
@@ -483,7 +567,7 @@ export default function RoomManagementPage() {
 
                 {/* Create Room Dialog */}
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogContent className="max-w-lg rounded-sm border-border bg-card shadow-md">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border-border bg-card shadow-md">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
                                 <Plus className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Add New Room
@@ -492,13 +576,13 @@ export default function RoomManagementPage() {
                                 Fill in the details to create a new room. Fields marked * are required.
                             </DialogDescription>
                         </DialogHeader>
-                        <RoomForm onSubmit={handleCreate} submitLabel="Create Room" />
+                        {renderRoomForm(handleCreate, "Create Room")}
                     </DialogContent>
                 </Dialog>
 
                 {/* Edit Room Dialog */}
                 <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogContent className="max-w-lg rounded-sm border-border bg-card shadow-md">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border-border bg-card shadow-md">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
                                 <Pencil className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Edit Room {selectedRoom?.roomNumber}
@@ -507,7 +591,7 @@ export default function RoomManagementPage() {
                                 Update the room information. Fields marked * are required.
                             </DialogDescription>
                         </DialogHeader>
-                        <RoomForm onSubmit={handleUpdate} submitLabel="Save Changes" />
+                        {renderRoomForm(handleUpdate, "Save Changes")}
                     </DialogContent>
                 </Dialog>
 

@@ -91,7 +91,9 @@ app.use((req, res, next) => {
 });
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // Stripe webhook removed
 
@@ -147,6 +149,13 @@ app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 app.use('/api/users', apiLimiter, authMiddleware, userRoutes);
 app.use('/api/reviews', apiLimiter, reviewRoutes);
 
+// Serve static upload files
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsPath));
+
 // Serve static files in production only if dist folder exists
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../dist');
@@ -199,7 +208,7 @@ setInterval(async () => {
       r.holdBy = null;
       r.holdUntil = null;
       await r.save();
-      try { getIO().emit('roomStatusUpdated', { roomId: r._id, status: 'vacant' }); } catch { }
+      try { getIO().of('/').emit('roomStatusUpdated', { roomId: r._id, status: 'vacant' }); } catch { }
     }
   } catch (e) {
     console.error('Error cleaning up expired holds:', e.message);

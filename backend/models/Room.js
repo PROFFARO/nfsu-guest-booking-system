@@ -51,13 +51,9 @@ const roomSchema = new mongoose.Schema({
     maxlength: [500, 'Description cannot exceed 500 characters']
   },
   images: [{
-    type: String,
-    validate: {
-      validator: function (v) {
-        return /^https?:\/\/.+/.test(v);
-      },
-      message: 'Please provide valid image URLs'
-    }
+    url: { type: String, required: true },
+    filename: { type: String, required: true },
+    isPrimary: { type: Boolean, default: false }
   }],
   rating: {
     type: Number,
