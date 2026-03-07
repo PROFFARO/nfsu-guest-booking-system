@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,42 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 
-// React Grid Layout — using base GridLayout (NOT responsive) for fixed 12-col Grafana-style scaling
-import ReactGridLayout from 'react-grid-layout';
+// React Grid Layout Imports
+import { ResponsiveGridLayout as Responsive, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-
-/**
- * Custom hook: continuously tracks container width via ResizeObserver.
- * This fires on every pixel change — including during sidebar drag/transition —
- * so the grid reflows in real-time like Grafana / Splunk.
- */
-function useContainerResize() {
-    const containerRef = useRef(null);
-    const [width, setWidth] = useState(0);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-        const el = containerRef.current;
-        if (!el) return;
-
-        // Initial measurement
-        setWidth(el.offsetWidth);
-
-        const ro = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                const w = entry.contentRect.width;
-                if (w > 0) setWidth(w);
-            }
-        });
-        ro.observe(el);
-
-        return () => ro.disconnect();
-    }, []);
-
-    return { width, containerRef, mounted };
-}
 
 const COLORS = {
     standard: ['#0056b3', '#0f766e', '#b45309', '#be123c', '#4338ca'],
@@ -57,20 +25,17 @@ const COLORS = {
     payment: { paid: '#0f766e', unpaid: '#be123c' }
 };
 
-// Versioned storage key — bump this to invalidate corrupted layouts from prior system
-const LAYOUT_STORAGE_KEY = 'adminDashboardGrid_v2';
-
 const DEFAULT_WIDGETS = [
-    { id: 'metrics', title: 'Key Metrics', visible: true, layout: { i: 'metrics', x: 0, y: 0, w: 12, h: 1, minW: 6, minH: 1 } },
-    { id: 'inventory', title: 'Facility Inventory Distribution', visible: true, layout: { i: 'inventory', x: 0, y: 1, w: 6, h: 4, minW: 3, minH: 3 } },
-    { id: 'status', title: 'Global Status Proportion', visible: true, layout: { i: 'status', x: 6, y: 1, w: 6, h: 4, minW: 3, minH: 3 } },
-    { id: 'revenue', title: '7-Day Revenue Ledger', visible: true, layout: { i: 'revenue', x: 0, y: 5, w: 12, h: 4, minW: 4, minH: 3 } },
-    { id: 'financial', title: 'Financial Clearance Logs', visible: true, layout: { i: 'financial', x: 0, y: 9, w: 6, h: 4, minW: 3, minH: 3 } },
-    { id: 'bookings', title: 'Recent Applications & Directives', visible: true, layout: { i: 'bookings', x: 6, y: 9, w: 6, h: 4, minW: 4, minH: 3 } },
+    { id: 'metrics', title: 'Key Metrics', visible: true, layout: { i: 'metrics', x: 0, y: 0, w: 12, h: 1, minW: 12, minH: 1 } },
+    { id: 'inventory', title: 'Facility Inventory Distribution', visible: true, layout: { i: 'inventory', x: 0, y: 1, w: 6, h: 4, minW: 4, minH: 3 } },
+    { id: 'status', title: 'Global Status Proportion', visible: true, layout: { i: 'status', x: 6, y: 1, w: 6, h: 4, minW: 4, minH: 3 } },
+    { id: 'revenue', title: '7-Day Revenue Ledger', visible: true, layout: { i: 'revenue', x: 0, y: 5, w: 12, h: 4, minW: 6, minH: 3 } },
+    { id: 'financial', title: 'Financial Clearance Logs', visible: true, layout: { i: 'financial', x: 0, y: 9, w: 6, h: 4, minW: 4, minH: 3 } },
+    { id: 'bookings', title: 'Recent Applications & Directives', visible: true, layout: { i: 'bookings', x: 6, y: 9, w: 6, h: 4, minW: 6, minH: 3 } },
 ];
 
 export default function AdminDashboard() {
-    const { width, containerRef, mounted } = useContainerResize();
+    const { width, containerRef, mounted } = useContainerWidth();
     const [roomStats, setRoomStats] = useState(null);
     const [recentBookings, setRecentBookings] = useState([]);
     const [analyticsBookings, setAnalyticsBookings] = useState([]);
@@ -78,15 +43,14 @@ export default function AdminDashboard() {
     const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
 
     useEffect(() => {
-        const savedWidgets = localStorage.getItem(LAYOUT_STORAGE_KEY);
-        // Purge any stale data from the old (non-versioned) key
-        localStorage.removeItem('adminDashboardGrid');
+        const savedWidgets = localStorage.getItem('adminDashboardGrid');
         if (savedWidgets) {
             try {
+                // Merge saved layout with default static widget properties in case of schema updates
                 const parsed = JSON.parse(savedWidgets);
                 const merged = DEFAULT_WIDGETS.map(dw => {
                     const saved = parsed.find(pw => pw.id === dw.id);
-                    return saved ? { ...dw, visible: saved.visible, layout: { ...dw.layout, ...saved.layout } } : dw;
+                    return saved ? { ...dw, visible: saved.visible, layout: saved.layout || dw.layout } : dw;
                 });
                 setWidgets(merged);
             } catch {
@@ -99,18 +63,19 @@ export default function AdminDashboard() {
         const updatedWidgets = widgets.map(widget => {
             const l = newLayout.find(nl => nl.i === widget.id);
             if (l) {
-                return { ...widget, layout: { ...widget.layout, x: l.x, y: l.y, w: l.w, h: l.h } };
+                // Persist the new layout coordinates
+                return { ...widget, layout: l };
             }
             return widget;
         });
         setWidgets(updatedWidgets);
-        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(updatedWidgets));
+        localStorage.setItem('adminDashboardGrid', JSON.stringify(updatedWidgets));
     };
 
     const toggleWidgetVisibility = (id) => {
         const updated = widgets.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
         setWidgets(updated);
-        localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem('adminDashboardGrid', JSON.stringify(updated));
     };
 
     useEffect(() => {
@@ -283,20 +248,19 @@ export default function AdminDashboard() {
 
                 {/* Grafana-style Draggable Dashboard Grid */}
                 <div ref={containerRef} className="w-full">
-                    {mounted && width > 0 && (
-                        <ReactGridLayout
+                    {mounted && (
+                        <Responsive
                             className="layout"
-                            layout={widgets.filter(w => w.visible).map(w => w.layout)}
-                            cols={12}
-                            rowHeight={80}
-                            draggableHandle=".drag-handle"
-                            onLayoutChange={handleLayoutChange}
-                            compactType="vertical"
-                            isResizable={true}
-                            isBounded={false}
-                            margin={[16, 16]}
-                            width={width}
-                        >
+                        layouts={{ lg: widgets.map(w => w.layout) }}
+                        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+                        rowHeight={80}
+                        draggableHandle=".drag-handle"
+                        onLayoutChange={handleLayoutChange}
+                        isBounded={false}
+                        margin={[16, 16]}
+                        width={width}
+                    >
                     {widgets.filter(w => w.visible).map((widget) => (
                         <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden">
                             {/* Widget Header - Dynamic Drag Handle */}
@@ -478,7 +442,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     ))}
-                    </ReactGridLayout>
+                    </Responsive>
                 )}
                 </div>
             </motion.div>

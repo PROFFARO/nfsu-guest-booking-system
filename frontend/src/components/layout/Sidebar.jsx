@@ -83,8 +83,8 @@ export default function Sidebar() {
             ref={sidebarRef}
             style={{ width: `${currentWidth}px` }}
             className={cn(
-                "relative hidden shrink-0 border-r border-border bg-background lg:block shadow-sm z-10",
-                isResizing ? "transition-none" : "transition-[width] duration-300 ease-in-out"
+                "relative hidden shrink-0 border-r border-border bg-background lg:block shadow-sm z-10 transition-[width] duration-300 ease-in-out",
+                isResizing && "transition-none"
             )}
         >
             <div className="flex h-full flex-col p-4 pt-6 overflow-hidden">
