@@ -9,7 +9,6 @@ import {
     BedDouble,
     BookOpen,
     Users,
-    GripVertical,
     ChevronLeft,
     ChevronRight,
     Star
@@ -28,9 +27,6 @@ export default function Sidebar() {
     const pathname = usePathname();
     const { user } = useAuth();
 
-    // Resizing State
-    const [width, setWidth] = useState(256); // Default 256px
-    const [isResizing, setIsResizing] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const sidebarRef = useRef(null);
 
@@ -43,48 +39,18 @@ export default function Sidebar() {
         return pathname.startsWith(href);
     };
 
-    // Resizing logic
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isResizing || isCollapsed) return;
-            // Set limits: min 200px, max 450px
-            const newWidth = e.clientX;
-            if (newWidth >= 200 && newWidth <= 450) {
-                setWidth(newWidth);
-            }
-        };
-
-        const handleMouseUp = () => {
-            setIsResizing(false);
-            document.body.style.cursor = 'default';
-        };
-
-        if (isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-        }
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'default';
-        };
-    }, [isResizing, isCollapsed]);
-
     const toggleCollapse = () => {
         setIsCollapsed(!isCollapsed);
     };
 
-    const currentWidth = isCollapsed ? 64 : width;
+    const currentWidth = isCollapsed ? 64 : 200;
 
     return (
         <aside
             ref={sidebarRef}
             style={{ width: `${currentWidth}px` }}
             className={cn(
-                "relative hidden shrink-0 border-r border-border bg-background lg:block shadow-sm z-10 transition-[width] duration-300 ease-in-out",
-                isResizing && "transition-none"
+                "relative hidden shrink-0 border-r border-border bg-background lg:block shadow-sm z-10 transition-[width] duration-300 ease-in-out"
             )}
         >
             <div className="flex h-full flex-col p-4 pt-6 overflow-hidden">
@@ -127,21 +93,6 @@ export default function Sidebar() {
             >
                 {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </button>
-
-            {/* Drag Handle */}
-            {!isCollapsed && (
-                <div
-                    className="absolute top-0 right-0 h-full w-2 cursor-col-resize hover:bg-[#0056b3]/10 flex items-center justify-center -mr-1 transition-colors z-10"
-                    onMouseDown={(e) => {
-                        e.preventDefault();
-                        setIsResizing(true);
-                    }}
-                >
-                    <div className={`h-8 w-1.5 rounded-full flex items-center justify-center transition-colors ${isResizing ? 'bg-[#0056b3] text-white' : 'bg-border text-muted-foreground hover:bg-[#0056b3]/50'}`}>
-                        <GripVertical className="h-3 w-3" />
-                    </div>
-                </div>
-            )}
         </aside>
     );
 }
