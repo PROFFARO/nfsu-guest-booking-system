@@ -54,7 +54,11 @@ export const api = {
         resetPassword: (token, body) => request(`/auth/reset-password/${token}`, { method: 'PUT', body: JSON.stringify(body) }),
         refresh: () => request('/auth/refresh', { method: 'POST' }),
         logout: () => request('/auth/logout', { method: 'POST' }),
+        // two-factor authentication
+        setup2fa: () => request('/auth/2fa/setup', { method: 'POST' }),
+        verify2fa: (body) => request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify(body) }),
     },
+
 
     rooms: {
         list: (params = {}) => {

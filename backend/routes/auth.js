@@ -79,7 +79,9 @@ router.post('/register', [
         name: user.name,
         email: user.email,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+        twoFactorMethod: user.twoFactorMethod
       },
       token
     }
@@ -108,12 +110,12 @@ router.post('/login', [
     });
   }
 
-  const { email, password } = req.body;
+  const { email, password, twoFactorCode } = req.body;
   const MAX_LOGIN_ATTEMPTS = 5;
   const LOCK_DURATION = 30 * 60 * 1000; // 30 minutes
 
   // Find user by email and include password + lockout fields
-  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil +twoFactorEnabled +twoFactorSecret');
 
   if (!user) {
     return res.status(401).json({
@@ -159,6 +161,28 @@ router.post('/login', [
     });
   }
 
+  // If 2FA is enabled, check code
+  if (user.twoFactorEnabled) {
+    if (!twoFactorCode) {
+      // instruct client to ask for code
+      return res.status(200).json({
+        status: 'success',
+        twoFactorRequired: true,
+        message: 'Two-factor authentication code required'
+      });
+    }
+    const speakeasy = await import('speakeasy');
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: twoFactorCode,
+      window: 1
+    });
+    if (!verified) {
+      return res.status(401).json({ status: 'error', message: 'Invalid two-factor authentication code' });
+    }
+  }
+
   // Successful login — reset lockout counters
   if (user.loginAttempts > 0 || user.lockUntil) {
     await User.updateOne({ _id: user._id }, {
@@ -169,6 +193,7 @@ router.post('/login', [
   // Generate JWT token
   const token = user.generateAuthToken();
 
+  // Include two-factor settings so client can remember the state
   res.json({
     status: 'success',
     message: 'Login successful',
@@ -178,7 +203,9 @@ router.post('/login', [
         name: user.name,
         email: user.email,
         phone: user.phone,
-        role: user.role
+        role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+        twoFactorMethod: user.twoFactorMethod
       },
       token
     }
@@ -261,7 +288,7 @@ router.put('/change-password', authMiddleware, [
     .matches(/\d/)
     .withMessage('Password must contain at least one number')
     .matches(/[!@#$%^&*()_+\-={}|;':",./<>?]/)
-    .withMessage('Password must contain at least one special character')
+    .withMessage('Password must contain at least one special character'),
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
@@ -295,6 +322,80 @@ router.put('/change-password', authMiddleware, [
     status: 'success',
     message: 'Password changed successfully'
   });
+}));
+
+// ========================
+// Two-Factor Authentication
+// ========================
+
+// @route   POST /api/auth/2fa/setup
+// @desc    Begin 2FA setup (generate temp secret and QR code)
+// @access  Private
+router.post('/2fa/setup', authMiddleware, asyncHandler(async (req, res) => {
+  const speakeasy = await import('speakeasy');
+  const QRCode = await import('qrcode');
+
+  const user = await User.findById(req.user._id).select('+twoFactorSecret +twoFactorTempSecret');
+
+  // generate temp secret
+  const secret = speakeasy.generateSecret({ length: 20, name: `NFSU:${user.email}` });
+  user.twoFactorTempSecret = secret.base32;
+  await user.save();
+
+  // produce qr code data url
+  const otpauth = secret.otpauth_url;
+  const qrDataUrl = await QRCode.toDataURL(otpauth);
+
+  res.json({ status: 'success', data: { qrDataUrl, secret: secret.base32 } });
+}));
+
+// @route   POST /api/auth/2fa/verify
+// @desc    Verify 2FA code during setup or to disable
+// @access  Private
+router.post('/2fa/verify', authMiddleware, asyncHandler(async (req, res) => {
+  const { code, action } = req.body; // action: 'enable' or 'disable'
+  const speakeasy = await import('speakeasy');
+
+  const user = await User.findById(req.user._id).select('+twoFactorTempSecret +twoFactorSecret');
+
+  if (action === 'enable') {
+    if (!user.twoFactorTempSecret) {
+      return res.status(400).json({ status: 'error', message: 'No setup in progress' });
+    }
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorTempSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+    if (!verified) {
+      return res.status(400).json({ status: 'error', message: 'Invalid code' });
+    }
+    user.twoFactorSecret = user.twoFactorTempSecret;
+    user.twoFactorTempSecret = undefined;
+    user.twoFactorEnabled = true;
+    await user.save();
+    return res.json({ status: 'success', message: 'Two-factor authentication enabled' });
+  } else if (action === 'disable') {
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+      return res.status(400).json({ status: 'error', message: '2FA not enabled' });
+    }
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+      window: 1
+    });
+    if (!verified) {
+      return res.status(400).json({ status: 'error', message: 'Invalid code' });
+    }
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    await user.save();
+    return res.json({ status: 'success', message: 'Two-factor authentication disabled' });
+  } else {
+    return res.status(400).json({ status: 'error', message: 'Invalid action' });
+  }
 }));
 
 // @route   POST /api/auth/refresh

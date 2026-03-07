@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,12 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
-    const { user, updateProfile } = useAuth();
+    const { user, updateProfile, loadUser } = useAuth();
+
+    // keep local toggle state synced with context user
+    useEffect(() => {
+        setTwoFactorEnabled(user?.twoFactorEnabled || false);
+    }, [user]);
     const [form, setForm] = useState({
         name: user?.name || '',
         phone: user?.phone || '',
@@ -22,6 +27,13 @@ export default function ProfilePage() {
     const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
     const [saving, setSaving] = useState(false);
     const [changingPw, setChangingPw] = useState(false);
+    
+    // two-factor authentication state
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled || false);
+    const [settingUp2fa, setSettingUp2fa] = useState(false);
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [twoFactorCode, setTwoFactorCode] = useState('');
+    const [disableCode, setDisableCode] = useState('');
 
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
@@ -54,6 +66,52 @@ export default function ProfilePage() {
         }
     };
 
+    const start2faSetup = async () => {
+        setSettingUp2fa(true);
+        try {
+            const res = await api.auth.setup2fa();
+            setQrCodeUrl(res.data.qrDataUrl);
+        } catch (err) {
+            toast.error(err.message || 'Failed to start 2FA setup');
+            setSettingUp2fa(false);
+        }
+    };
+
+    const confirm2fa = async () => {
+        try {
+            await api.auth.verify2fa({ code: twoFactorCode, action: 'enable' });
+            toast.success('Two-factor authentication enabled');
+            setTwoFactorEnabled(true);
+            setSettingUp2fa(false);
+            setTwoFactorCode('');
+            await loadUser();
+        } catch (err) {
+            toast.error(err.message || 'Verification failed');
+        }
+    };
+
+    const [disabling2fa, setDisabling2fa] = useState(false);
+
+    const disableTwoFactor = async () => {
+        if (!disableCode) {
+            toast.error('Please enter the authentication code');
+            return;
+        }
+        setDisabling2fa(true);
+        try {
+            const res = await api.auth.verify2fa({ code: disableCode, action: 'disable' });
+            toast.success(res.message || 'Two-factor authentication disabled');
+            setTwoFactorEnabled(false);
+            setDisableCode('');
+            // refresh user from server to update context
+            await loadUser();
+        } catch (err) {
+            toast.error(err.message || 'Verification failed');
+        } finally {
+            setDisabling2fa(false);
+        }
+    };
+
     return (
         <div className="container mx-auto max-w-5xl px-4 py-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -65,7 +123,7 @@ export default function ProfilePage() {
                 {/* Info */}
                 <Card className="rounded-sm border-border bg-card shadow-sm">
                     <CardContent className="flex items-start gap-5 p-6">
-                        <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-sm bg-[#0056b3] dark:bg-cyan-600 text-3xl font-noto-bold text-white shadow-sm mt-0.5">
+                        <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-sm bg-[#0056b3] dark:bg-cyan-600 text-3xl font-noto-bold text-white shadow-sm mt-0.5">
                             {user?.name?.charAt(0)?.toUpperCase()}
                         </div>
                         <div className="flex flex-col">
@@ -129,6 +187,51 @@ export default function ProfilePage() {
                                     Change Password
                                 </Button>
                             </form>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Two-factor authentication */}
+                <div className="mt-6">
+                    <Card className="rounded-sm border-border bg-card shadow-sm">
+                        <div className="px-6 py-4 border-b border-border bg-muted/10">
+                            <h2 className="flex items-center gap-2 font-noto-bold text-lg text-foreground">
+                                <Lock className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Two-Factor Authentication
+                            </h2>
+                        </div>
+                        <CardContent className="p-6 space-y-4">
+                            {twoFactorEnabled ? (
+                                <div className="space-y-4">
+                                    <p className="text-sm text-foreground">Two-factor authentication is currently <strong>enabled</strong> on your account.</p>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="disableCode" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Enter code to disable</Label>
+                                        <Input id="disableCode" value={disableCode} onChange={(e) => setDisableCode(e.target.value)} placeholder="123456" className="rounded-sm border-border bg-background h-10" />
+                                    </div>
+                                    <Button onClick={disableTwoFactor} disabled={disabling2fa} className="rounded-sm bg-red-600 text-white hover:bg-red-700 font-noto-medium h-10 px-6 shadow-sm w-full md:w-auto">
+                                        {disabling2fa ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Disable 2FA
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {settingUp2fa ? (
+                                        <>
+                                            {qrCodeUrl && <img src={qrCodeUrl} alt="Scan QR code" className="mx-auto" />}
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="twoFactorCode" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Enter code from app</Label>
+                                                <Input id="twoFactorCode" value={twoFactorCode} onChange={(e) => setTwoFactorCode(e.target.value)} placeholder="123456" className="rounded-sm border-border bg-background h-10" />
+                                            </div>
+                                            <Button onClick={confirm2fa} className="rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-10 px-6 shadow-sm w-full md:w-auto">
+                                                Confirm & Enable
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Button onClick={start2faSetup} className="rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-10 px-6 shadow-sm w-full md:w-auto">
+                                            Enable Two-Factor Authentication
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

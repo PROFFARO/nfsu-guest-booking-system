@@ -15,6 +15,8 @@ import { motion } from 'framer-motion';
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [twoFactorCode, setTwoFactorCode] = useState('');
+    const [requires2fa, setRequires2fa] = useState(false);
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const { user, login } = useAuth();
@@ -33,9 +35,14 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            const user = await login(email, password);
-            toast.success(`Welcome back, ${user.name}!`);
-            router.push(user.role === 'admin' || user.role === 'staff' ? '/admin' : '/dashboard');
+            const result = await login(email, password, twoFactorCode);
+            if (result && result.twoFactorRequired) {
+                setRequires2fa(true);
+                toast.info('Enter your authentication code');
+            } else {
+                toast.success(`Welcome back, ${result.name}!`);
+                router.push(result.role === 'admin' || result.role === 'staff' ? '/admin' : '/dashboard');
+            }
         } catch (err) {
             toast.error(err.message || 'Login failed');
         } finally {
@@ -101,7 +108,8 @@ export default function LoginPage() {
                                         placeholder="Enter assigned password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        required
+                                        required={!requires2fa}
+                                        disabled={requires2fa}
                                         autoComplete="current-password"
                                         className="rounded-sm border-border bg-background h-10 font-noto-medium pr-10"
                                     />
@@ -113,6 +121,20 @@ export default function LoginPage() {
                                         {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
+                                {requires2fa && (
+                                    <div className="space-y-1.5 mt-4">
+                                        <Label htmlFor="twoFactorCode" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Authentication Code</Label>
+                                        <Input
+                                            id="twoFactorCode"
+                                            type="text"
+                                            placeholder="123456"
+                                            value={twoFactorCode}
+                                            onChange={(e) => setTwoFactorCode(e.target.value)}
+                                            required
+                                            className="rounded-sm border-border bg-background h-10 font-noto-medium"
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <Button
                                 type="submit"

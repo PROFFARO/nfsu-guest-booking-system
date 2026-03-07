@@ -30,17 +30,23 @@ export function AuthProvider({ children }) {
         loadUser();
     }, [loadUser]);
 
-    const login = async (email, password) => {
-        const res = await api.auth.login({ email, password });
+    const login = async (email, password, twoFactorCode) => {
+        const res = await api.auth.login({ email, password, twoFactorCode });
+        // if server indicates 2FA is required before issuing token
+        if (res.twoFactorRequired) {
+            return { twoFactorRequired: true };
+        }
+        // store token and then fetch full profile to guarantee all flags are present
         localStorage.setItem('token', res.data.token);
-        setUser(res.data.user);
+        // res.data.user will now include twoFactorEnabled etc from backend but we still reload to be safe
+        await loadUser();
         return res.data.user;
     };
 
     const register = async (data) => {
         const res = await api.auth.register(data);
         localStorage.setItem('token', res.data.token);
-        setUser(res.data.user);
+        await loadUser();
         return res.data.user;
     };
 
