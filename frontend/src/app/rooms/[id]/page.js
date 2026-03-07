@@ -119,7 +119,7 @@ export default function RoomDetailPage({ params }) {
 
                         {/* Room Images Slider */}
                         {room?.images?.length > 0 && (
-                            <div className="rounded-sm overflow-hidden border-2 border-border shadow-sm h-[300px] sm:h-[400px]">
+                            <div className="rounded-sm overflow-hidden border-2 border-border shadow-sm h-75 sm:h-100">
                                 <ImageSlider images={room.images} autoPlay className="w-full h-full" />
                             </div>
                         )}
@@ -206,14 +206,14 @@ export default function RoomDetailPage({ params }) {
                                 <Card className="rounded-sm border-2 border-amber-600/30 bg-amber-50 dark:bg-amber-950/20 shadow-sm overflow-hidden">
                                     <CardHeader className="p-4 border-b border-amber-600/30 bg-amber-100/30 dark:bg-amber-950/40">
                                         <div className="flex items-center gap-2">
-                                            <AlertCircle className="h-5 w-5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
+                                            <AlertCircle className="h-5 w-5 text-amber-700 dark:text-amber-400 shrink-0" />
                                             <CardTitle className="text-base font-noto-bold text-amber-900 dark:text-amber-300 tracking-wide uppercase">Maintenance Schedule</CardTitle>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-5 space-y-4">
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <div className="flex items-start gap-3 p-3 border border-amber-600/20 rounded-sm bg-background/50">
-                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 flex-shrink-0" />
+                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 shrink-0" />
                                                 <div className="flex-1">
                                                     <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">Start Date</p>
                                                     <p className="text-sm font-noto-bold text-foreground">
@@ -228,7 +228,7 @@ export default function RoomDetailPage({ params }) {
                                                 </div>
                                             </div>
                                             <div className="flex items-start gap-3 p-3 border border-amber-600/20 rounded-sm bg-background/50">
-                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 flex-shrink-0" />
+                                                <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-1 shrink-0" />
                                                 <div className="flex-1">
                                                     <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">End Date</p>
                                                     <p className="text-sm font-noto-bold text-foreground">
@@ -293,7 +293,7 @@ export default function RoomDetailPage({ params }) {
                                                 </div>
                                                 {review.comment && (
                                                     <p className="text-sm font-noto-medium text-muted-foreground mt-3 italic">
-                                                        "{review.comment}"
+                                                        &quot;{review.comment}&quot;
                                                     </p>
                                                 )}
                                             </CardContent>

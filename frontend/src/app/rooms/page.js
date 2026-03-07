@@ -240,7 +240,7 @@ export default function RoomBrowsePage() {
                                             {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
                                                 <div className="px-4 pt-3 pb-2 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-600/20">
                                                     <div className="flex gap-2 text-sm">
-                                                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                                                         <div className="flex-1 text-xs font-noto-medium text-amber-800 dark:text-amber-300">
                                                             <p className="font-noto-bold">Under Maintenance</p>
                                                             <p className="mt-1">
