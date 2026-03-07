@@ -9,6 +9,7 @@ import { getIO } from '../realtime/socket.js';
 import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail } from '../services/emailService.js';
 import { generateInvoicePDF } from '../services/invoiceService.js';
 import { bookingsToCSV, buildExportQuery } from '../services/reportService.js';
+import { logEvent } from '../utils/auditLogger.js';
 
 const router = express.Router();
 
@@ -96,6 +97,13 @@ router.post('/', [
   });
 
   await booking.save();
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'BOOKING_CREATE',
+    details: { bookingId: booking._id, room: roomId, checkIn, checkOut, target: 'creation' },
+    req
+  });
 
   // If user chooses pay later, confirm booking immediately and set room to booked
   if (paymentOption === 'pay_later') {
@@ -531,6 +539,13 @@ router.put('/:id', [
   Object.assign(booking, req.body);
   await booking.save();
 
+  await logEvent({
+    userId: req.user._id,
+    action: 'BOOKING_UPDATE',
+    details: { bookingId: booking._id, updatedFields: Object.keys(req.body) },
+    req
+  });
+
   // Populate room details for response
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
 
@@ -584,6 +599,13 @@ router.put('/:id/status', [
   }
 
   await booking.save();
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'BOOKING_UPDATE',
+    details: { bookingId: booking._id, oldStatus, newStatus: status, adminOverride: true },
+    req
+  });
 
   // Update room status if needed
   if (oldStatus === 'confirmed' && status !== 'confirmed') {
@@ -659,6 +681,13 @@ router.delete('/:id', [
   // Cancel booking
   const oldStatus = booking.status;
   await booking.cancel(reason || 'Cancelled by user', req.user._id);
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'BOOKING_CANCEL',
+    details: { bookingId: booking._id, reason: reason || 'Cancelled by user' },
+    req
+  });
 
   // Update room status if it was confirmed
   if (oldStatus === 'confirmed') {

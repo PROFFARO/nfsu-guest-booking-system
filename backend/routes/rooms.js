@@ -8,6 +8,7 @@ import { getIO } from '../realtime/socket.js';
 import { authMiddleware, adminMiddleware, staffMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import upload from '../middleware/upload.js';
+import { logEvent } from '../utils/auditLogger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -478,6 +479,13 @@ router.post('/', [
   await room.save();
   try { getIO().of('/').of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_CREATE',
+    details: { roomId: room._id, roomNumber: room.roomNumber },
+    req
+  });
+
   res.status(201).json({
     status: 'success',
     message: 'Room created successfully',
@@ -563,6 +571,13 @@ router.put('/:id', [
   room.set(roomData);
   await room.save();
 
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_UPDATE',
+    details: { roomId: room._id, roomNumber: room.roomNumber, updatedFields: Object.keys(roomData) },
+    req
+  });
+
   res.json({
     status: 'success',
     message: 'Room updated successfully',
@@ -591,6 +606,13 @@ router.delete('/:id', [
 
   // Hard delete as requested
   await room.deleteOne();
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_DELETE',
+    details: { roomId: req.params.id, roomNumber: room.roomNumber },
+    req
+  });
 
   res.json({
     status: 'success',
@@ -684,6 +706,13 @@ router.post('/:id/maintenance', [
   await room.save();
   try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
+  await logEvent({
+    userId: req.user._id,
+    action: 'SYSTEM_MAINTENANCE',
+    details: { roomId: room._id, roomNumber: room.roomNumber, action: 'scheduled', reason },
+    req
+  });
+
   res.json({
     status: 'success',
     message: 'Maintenance scheduled successfully',
@@ -716,6 +745,13 @@ router.delete('/:id/maintenance', [
   await room.save();
 
   try { getIO().emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'SYSTEM_MAINTENANCE',
+    details: { roomId: room._id, roomNumber: room.roomNumber, action: 'cleared' },
+    req
+  });
 
   res.json({
     status: 'success',

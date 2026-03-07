@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import AuditLogsViewer from '@/components/profile/AuditLogsViewer';
 import {
     User, Lock, Loader2, Monitor, Smartphone, Tablet,
     Shield, History, LogOut, AlertTriangle, CheckCircle2,
@@ -535,6 +536,13 @@ export default function ProfilePage() {
                             )}
                         </AnimatePresence>
                     </Card>
+                </div>
+
+                {/* ============================================ */}
+                {/* Audit Logs */}
+                {/* ============================================ */}
+                <div className="mt-6">
+                    <AuditLogsViewer />
                 </div>
             </motion.div>
         </div>

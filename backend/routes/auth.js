@@ -7,6 +7,7 @@ import User from '../models/User.js';
 import LoginHistory from '../models/LoginHistory.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { logEvent } from '../utils/auditLogger.js';
 
 // Generate a short fingerprint from a JWT token for session tracking
 function generateTokenFingerprint(token) {
@@ -226,6 +227,14 @@ router.post('/login', [
     expiresAt: decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   }).catch(() => {}); // fire-and-forget
 
+  // Write to personal Audit Log
+  await logEvent({
+    userId: user._id,
+    action: 'LOGIN',
+    details: { message: 'User logged in successfully' },
+    req
+  });
+
   // Include two-factor settings so client can remember the state
   res.json({
     status: 'success',
@@ -296,6 +305,13 @@ router.put('/profile', authMiddleware, [
     { new: true, runValidators: true }
   );
 
+  await logEvent({
+    userId: req.user._id,
+    action: 'PROFILE_UPDATE',
+    details: { updatedFields: Object.keys(updateFields) },
+    req
+  });
+
   res.json({
     status: 'success',
     message: 'Profile updated successfully',
@@ -351,6 +367,13 @@ router.put('/change-password', authMiddleware, [
   // Update password
   user.password = newPassword;
   await user.save();
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'PASSWORD_CHANGE',
+    details: { message: 'User changed their password' },
+    req
+  });
 
   res.json({
     status: 'success',

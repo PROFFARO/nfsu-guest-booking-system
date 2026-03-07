@@ -164,4 +164,15 @@ export const api = {
         getByRoom: (roomId) => request(`/reviews/room/${roomId}`),
         checkStatus: (bookingId) => request(`/reviews/check/${bookingId}`),
     },
+
+    auditLogs: {
+        get: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/audit-logs${qs ? `?${qs}` : ''}`);
+        },
+        getAll: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/audit-logs/all${qs ? `?${qs}` : ''}`);
+        }
+    }
 };

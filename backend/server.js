@@ -23,6 +23,7 @@ import roomRoutes from './routes/rooms.js';
 import bookingRoutes from './routes/bookings.js';
 import userRoutes from './routes/users.js';
 import reviewRoutes from './routes/reviews.js';
+import auditLogRoutes from './routes/auditLogs.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -148,6 +149,7 @@ app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 // Payments routes removed
 app.use('/api/users', apiLimiter, authMiddleware, userRoutes);
 app.use('/api/reviews', apiLimiter, reviewRoutes);
+app.use('/api/audit-logs', apiLimiter, authMiddleware, auditLogRoutes);
 
 // Serve static upload files
 const uploadsPath = path.join(__dirname, 'uploads');

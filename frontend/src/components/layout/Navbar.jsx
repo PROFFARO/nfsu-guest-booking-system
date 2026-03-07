@@ -42,16 +42,13 @@ export default function Navbar() {
 
     const handleLogout = async () => {
         await logout();
-        router.push('/');
+        router.push('/login');
     };
 
     // Role-based nav links — each role sees ONLY their relevant links
     const getNavLinks = () => {
         if (!user) {
-            return [
-                { href: '/', label: 'Home' },
-                { href: '/rooms', label: 'Browse Rooms' },
-            ];
+            return [];
         }
 
         if (user.role === 'admin') {
@@ -61,7 +58,6 @@ export default function Navbar() {
                 { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
                 { href: '/admin/users', label: 'Users', icon: Shield },
-                { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
             ];
         }
 
@@ -71,7 +67,6 @@ export default function Navbar() {
                 { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
                 { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
-                { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
             ];
         }
 
@@ -92,10 +87,10 @@ export default function Navbar() {
         return pathname.startsWith(href);
     };
 
-    // Logo destination: dashboard for logged-in users, home for guests
+    // Logo destination: dashboard for logged-in users, login for guests
     const logoHref = user
         ? (user.role === 'admin' || user.role === 'staff' ? '/admin' : '/dashboard')
-        : '/';
+        : '/login';
 
     const initials = user?.name
         ?.split(' ')
