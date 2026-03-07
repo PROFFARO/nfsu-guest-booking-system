@@ -30,7 +30,7 @@ import { authMiddleware } from './middleware/auth.js';
 import { authLimiter, apiLimiter, bookingCreateLimiter } from './middleware/rateLimiter.js';
 
 // Load environment variables
-dotenv.config({ path: './config.env' });
+dotenv.config({ path: './.env' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -72,7 +72,13 @@ export default function Footer() {
                     </div>
                 </div>
 
-                <div className="mt-12 pt-6 border-t border-border flex flex-col items-center justify-between gap-4 sm:flex-row">
+                <div className="mt-12 pt-8 border-t border-border text-center">
+                    <p className="text-xs font-noto-regular text-muted-foreground leading-relaxed max-w-5xl mx-auto">
+                        <strong className="font-noto-bold text-foreground">Translation Disclaimer:</strong> This portal provides information in multiple languages for user convenience. However, for all official, legal, and administrative purposes, the English version of this portal and its related documents shall be the authoritative version. Translations on this portal are for informational purposes only and may not fully capture the meaning or intent of the original English text. In case of discrepancies between the English version and any translation, the English version shall prevail.
+                    </p>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-border flex flex-col items-center justify-between gap-4 sm:flex-row">
                     <p className="text-xs font-noto-medium text-muted-foreground uppercase tracking-wide">
                         &copy; {new Date().getFullYear()} NFSU Delhi. All rights reserved.
                     </p>

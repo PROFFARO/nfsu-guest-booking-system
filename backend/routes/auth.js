@@ -2,9 +2,16 @@ import express from 'express';
 import { body, validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import LoginHistory from '../models/LoginHistory.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+
+// Generate a short fingerprint from a JWT token for session tracking
+function generateTokenFingerprint(token) {
+  return crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+}
 
 const router = express.Router();
 
@@ -152,6 +159,17 @@ router.post('/login', [
     }
     await User.updateOne({ _id: user._id }, updates);
 
+    // Record failed login attempt
+    const ua = req.headers['user-agent'] || '';
+    const parsed = LoginHistory.parseUserAgent(ua);
+    LoginHistory.create({
+      user: user._id,
+      status: 'failed',
+      ipAddress: req.ip || req.connection?.remoteAddress || 'Unknown',
+      userAgent: ua,
+      ...parsed
+    }).catch(() => {}); // fire-and-forget
+
     const attemptsLeft = MAX_LOGIN_ATTEMPTS - (user.loginAttempts + 1);
     return res.status(401).json({
       status: 'error',
@@ -192,6 +210,21 @@ router.post('/login', [
 
   // Generate JWT token
   const token = user.generateAuthToken();
+  const sessionToken = generateTokenFingerprint(token);
+
+  // Record successful login with session tracking
+  const ua = req.headers['user-agent'] || '';
+  const parsed = LoginHistory.parseUserAgent(ua);
+  const decoded = jwt.decode(token);
+  LoginHistory.create({
+    user: user._id,
+    status: 'success',
+    ipAddress: req.ip || req.connection?.remoteAddress || 'Unknown',
+    userAgent: ua,
+    ...parsed,
+    sessionToken,
+    expiresAt: decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  }).catch(() => {}); // fire-and-forget
 
   // Include two-factor settings so client can remember the state
   res.json({
@@ -207,7 +240,8 @@ router.post('/login', [
         twoFactorEnabled: user.twoFactorEnabled,
         twoFactorMethod: user.twoFactorMethod
       },
-      token
+      token,
+      sessionToken
     }
   });
 }));
@@ -414,17 +448,121 @@ router.post('/refresh', authMiddleware, asyncHandler(async (req, res) => {
   });
 }));
 
-// @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
+// ========================
+// Login History & Sessions
+// ========================
+
+// @route   GET /api/auth/login-history
+// @desc    Get recent login history for the authenticated user
 // @access  Private
-router.post('/logout', authMiddleware, (req, res) => {
+router.get('/login-history', authMiddleware, asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+  const history = await LoginHistory.getHistory(req.user._id, limit);
+
+  res.json({
+    status: 'success',
+    data: {
+      history,
+      total: history.length
+    }
+  });
+}));
+
+// @route   GET /api/auth/sessions
+// @desc    Get active sessions for the authenticated user
+// @access  Private
+router.get('/sessions', authMiddleware, asyncHandler(async (req, res) => {
+  const sessions = await LoginHistory.getActiveSessions(req.user._id);
+
+  res.json({
+    status: 'success',
+    data: {
+      sessions
+    }
+  });
+}));
+
+// @route   DELETE /api/auth/sessions/:id
+// @desc    Revoke a specific session
+// @access  Private
+router.delete('/sessions/:id', authMiddleware, asyncHandler(async (req, res) => {
+  const session = await LoginHistory.findOne({
+    _id: req.params.id,
+    user: req.user._id,
+    status: 'success'
+  });
+
+  if (!session) {
+    return res.status(404).json({
+      status: 'error',
+      message: 'Session not found'
+    });
+  }
+
+  if (session.isRevoked) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Session is already revoked'
+    });
+  }
+
+  session.isRevoked = true;
+  session.revokedAt = new Date();
+  await session.save();
+
+  res.json({
+    status: 'success',
+    message: 'Session revoked successfully'
+  });
+}));
+
+// @route   DELETE /api/auth/sessions
+// @desc    Revoke all sessions except the current one
+// @access  Private
+router.delete('/sessions', authMiddleware, asyncHandler(async (req, res) => {
+  // Get current session token from the auth header
+  const token = req.headers.authorization?.split(' ')[1];
+  const currentFingerprint = token ? generateTokenFingerprint(token) : null;
+
+  const result = await LoginHistory.updateMany(
+    {
+      user: req.user._id,
+      status: 'success',
+      isRevoked: false,
+      expiresAt: { $gt: new Date() },
+      ...(currentFingerprint ? { sessionToken: { $ne: currentFingerprint } } : {})
+    },
+    {
+      $set: { isRevoked: true, revokedAt: new Date() }
+    }
+  );
+
+  res.json({
+    status: 'success',
+    message: `${result.modifiedCount} session(s) revoked successfully`
+  });
+}));
+
+// @route   POST /api/auth/logout
+// @desc    Logout user — revoke current session
+// @access  Private
+router.post('/logout', authMiddleware, asyncHandler(async (req, res) => {
+  // Revoke the current session
+  const token = req.headers.authorization?.split(' ')[1];
+  if (token) {
+    const fingerprint = generateTokenFingerprint(token);
+    await LoginHistory.updateOne(
+      { sessionToken: fingerprint, user: req.user._id, isRevoked: false },
+      { $set: { isRevoked: true, revokedAt: new Date() } }
+    );
+  }
+
   res.json({
     status: 'success',
     message: 'Logout successful'
   });
-});
+}));
 
-import crypto from 'crypto';
 import { sendPasswordResetEmail, sendEmail } from '../services/emailService.js';
 
 // @route   POST /api/auth/forgot-password

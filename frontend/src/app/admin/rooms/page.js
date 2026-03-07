@@ -524,21 +524,20 @@ export default function RoomManagementPage() {
                                                     <Button variant="outline" size="sm" onClick={() => openEdit(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-border bg-background hover:bg-muted/50">
                                                         <Pencil className="h-3 w-3" /> Edit
                                                     </Button>
+                                                    {/* Maintenance buttons for both admin and staff */}
+                                                    {room.maintenanceSchedule?.startDate ? (
+                                                        <Button variant="outline" size="sm" onClick={() => handleClearMaintenance(room._id)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-orange-500 text-orange-600 hover:bg-orange-600 hover:text-white">
+                                                            <Wrench className="h-3 w-3" /> Clear Maint.
+                                                        </Button>
+                                                    ) : (
+                                                        <Button variant="outline" size="sm" onClick={() => { setSelectedRoom(room); setMaintForm({ startDate: '', endDate: '', reason: '' }); setMaintOpen(true); }} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-slate-500 text-slate-600 dark:text-slate-400 hover:bg-slate-600 hover:text-white">
+                                                            <Wrench className="h-3 w-3" /> Maint.
+                                                        </Button>
+                                                    )}
                                                     {isAdmin && (
-                                                        <>
-                                                            {room.maintenanceSchedule?.startDate ? (
-                                                                <Button variant="outline" size="sm" onClick={() => handleClearMaintenance(room._id)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-orange-500 text-orange-600 hover:bg-orange-600 hover:text-white">
-                                                                    <Wrench className="h-3 w-3" /> Clear Maint.
-                                                                </Button>
-                                                            ) : (
-                                                                <Button variant="outline" size="sm" onClick={() => { setSelectedRoom(room); setMaintForm({ startDate: '', endDate: '', reason: '' }); setMaintOpen(true); }} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm border-slate-500 text-slate-600 dark:text-slate-400 hover:bg-slate-600 hover:text-white">
-                                                                    <Wrench className="h-3 w-3" /> Maint.
-                                                                </Button>
-                                                            )}
-                                                            <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
-                                                                <Trash2 className="h-3 w-3" /> Delete
-                                                            </Button>
-                                                        </>
+                                                        <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
+                                                            <Trash2 className="h-3 w-3" /> Delete
+                                                        </Button>
                                                     )}
                                                 </div>
                                             </TableCell>

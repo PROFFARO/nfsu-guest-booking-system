@@ -57,6 +57,11 @@ export const api = {
         // two-factor authentication
         setup2fa: () => request('/auth/2fa/setup', { method: 'POST' }),
         verify2fa: (body) => request('/auth/2fa/verify', { method: 'POST', body: JSON.stringify(body) }),
+        // Login history & sessions
+        loginHistory: (limit = 20) => request(`/auth/login-history?limit=${limit}`),
+        sessions: () => request('/auth/sessions'),
+        revokeSession: (id) => request(`/auth/sessions/${id}`, { method: 'DELETE' }),
+        revokeAllSessions: () => request('/auth/sessions', { method: 'DELETE' }),
     },
 
 

@@ -36,8 +36,11 @@ export function AuthProvider({ children }) {
         if (res.twoFactorRequired) {
             return { twoFactorRequired: true };
         }
-        // store token and then fetch full profile to guarantee all flags are present
+        // store token and session fingerprint
         localStorage.setItem('token', res.data.token);
+        if (res.data.sessionToken) {
+            localStorage.setItem('sessionToken', res.data.sessionToken);
+        }
         // res.data.user will now include twoFactorEnabled etc from backend but we still reload to be safe
         await loadUser();
         return res.data.user;
@@ -53,6 +56,7 @@ export function AuthProvider({ children }) {
     const logout = async () => {
         try { await api.auth.logout(); } catch { }
         localStorage.removeItem('token');
+        localStorage.removeItem('sessionToken');
         setUser(null);
     };
 

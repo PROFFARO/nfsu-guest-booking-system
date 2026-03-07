@@ -641,10 +641,10 @@ router.put('/:id/status', [
 
 // @route   POST /api/rooms/:id/maintenance
 // @desc    Schedule maintenance for a room
-// @access  Private (Admin only)
+// @access  Private (Admin/Staff)
 router.post('/:id/maintenance', [
   authMiddleware,
-  adminMiddleware,
+  staffMiddleware,
   param('id').isMongoId().withMessage('Invalid room ID'),
   body('startDate').isISO8601().withMessage('Valid start date is required'),
   body('endDate').isISO8601().withMessage('Valid end date is required'),
@@ -676,12 +676,10 @@ router.post('/:id/maintenance', [
     scheduledBy: req.user._id
   };
 
-  // If maintenance starts today or has already started, set status to maintenance
-  if (start <= new Date()) {
-    room.status = 'maintenance';
-    room.holdBy = null;
-    room.holdUntil = null;
-  }
+  // Always set status to maintenance when scheduling
+  room.status = 'maintenance';
+  room.holdBy = null;
+  room.holdUntil = null;
 
   await room.save();
   try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
@@ -695,10 +693,10 @@ router.post('/:id/maintenance', [
 
 // @route   DELETE /api/rooms/:id/maintenance
 // @desc    Clear maintenance schedule and restore room
-// @access  Private (Admin only)
+// @access  Private (Admin/Staff)
 router.delete('/:id/maintenance', [
   authMiddleware,
-  adminMiddleware,
+  staffMiddleware,
   param('id').isMongoId().withMessage('Invalid room ID')
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);

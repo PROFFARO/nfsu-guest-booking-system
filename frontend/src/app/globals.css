@@ -345,4 +345,146 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  /* ==========================================================================
+     Accessibility Core Enhancements
+     ========================================================================== */
+  
+  /* Line Height Toggle */
+  .a11y-line-height body,
+  .a11y-line-height p,
+  .a11y-line-height h1,
+  .a11y-line-height h2,
+  .a11y-line-height h3,
+  .a11y-line-height h4,
+  .a11y-line-height div,
+  .a11y-line-height span,
+  .a11y-line-height li,
+  .a11y-line-height td,
+  .a11y-line-height button,
+  .a11y-line-height a {
+    line-height: var(--a11y-line-height, 2) !important;
+  }
+}
+
+/* ==========================================================================
+   High Contrast Mode (GOI Accessibility Guideline)
+   Forces maximum contrast for visually impaired users.
+   ========================================================================== */
+.high-contrast {
+  --background: oklch(0 0 0); /* Pure Black */
+  --foreground: oklch(1 0 0); /* Pure White */
+  --card: oklch(0 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0 0 0);
+  --popover-foreground: oklch(1 0 0);
+  
+  /* Primary becomes pure yellow for maximum visibility against black */
+  --primary: oklch(0.95 0.25 108); 
+  --primary-foreground: oklch(0 0 0);
+  
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.9 0 0);
+  
+  --accent: oklch(0.95 0.25 108);
+  --accent-foreground: oklch(0 0 0);
+  
+  /* Borders become high contrast white */
+  --border: oklch(0.8 0 0);
+  --input: oklch(0.8 0 0);
+  --ring: oklch(0.95 0.25 108);
+}
+
+.high-contrast.light {
+  --background: oklch(1 0 0); /* Pure White */
+  --foreground: oklch(0 0 0); /* Pure Black */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+  
+  /* Primary becomes pure black or dark blue */
+  --primary: oklch(0 0 0); 
+  --primary-foreground: oklch(1 0 0);
+  
+  --secondary: oklch(0.9 0 0);
+  --secondary-foreground: oklch(0 0 0);
+  
+  --muted: oklch(0.9 0 0);
+  --muted-foreground: oklch(0.2 0 0);
+  
+  --accent: oklch(0 0 0);
+  --accent-foreground: oklch(1 0 0);
+  
+  /* Borders become pure black */
+  --border: oklch(0 0 0);
+  --input: oklch(0 0 0);
+  --ring: oklch(0 0 0);
+}
+
+/* Force borders and outlines in high contrast mode */
+.high-contrast * {
+  border-color: var(--border) !important;
+}
+
+.high-contrast button,
+.high-contrast input,
+.high-contrast select,
+.high-contrast textarea,
+.high-contrast a,
+.high-contrast .card {
+  outline: 2px solid var(--border) !important;
+  outline-offset: -2px !important;
+}
+
+/* ==========================================================================
+   Google Translate Overrides
+   Hides the default banner and frame injected by Google Translate
+   ========================================================================== */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* New Google Translate widget classes */
+.VIpgJd-ZVi9od-ORHb,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe {
+  display: none !important;
+}
+
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-tooltip {
+  display: none !important;
+  box-shadow: none !important;
+}
+.goog-tooltip:hover {
+  display: none !important;
+  box-shadow: none !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Override Google Translate inline styles that break Dark Mode */
+font, font * {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
+body.translated-ltr,
+body.translated-rtl {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
 }

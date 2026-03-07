@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import LoginHistory from '../models/LoginHistory.js';
 
 export const authMiddleware = async (req, res, next) => {
   try {
@@ -35,6 +37,16 @@ export const authMiddleware = async (req, res, next) => {
         return res.status(401).json({
           status: 'error',
           message: 'User account is deactivated.'
+        });
+      }
+
+      // Check if this session has been revoked
+      const fingerprint = crypto.createHash('sha256').update(token).digest('hex').substring(0, 32);
+      const isRevoked = await LoginHistory.isSessionRevoked(fingerprint);
+      if (isRevoked) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Session has been revoked. Please log in again.'
         });
       }
 
