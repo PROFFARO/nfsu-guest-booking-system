@@ -24,16 +24,16 @@ export function ChatWidget() {
     if (!user) return null;
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="mb-4 w-[380px] sm:w-[420px] max-h-[85vh] shadow-2xl rounded-sm overflow-hidden border-2 border-border bg-background flex flex-col"
+                        className="mb-4 w-[calc(100vw-32px)] sm:w-[420px] max-h-[75vh] sm:max-h-[85vh] shadow-2xl rounded-sm overflow-hidden border-2 border-border bg-background flex flex-col"
                     >
-                        <CardHeader className="p-4 bg-[#0056b3] dark:bg-cyan-950 text-white flex flex-row items-center justify-between pointer-events-auto">
+                        <CardHeader className="p-3 sm:p-4 bg-[#0056b3] dark:bg-cyan-950 text-white flex flex-row items-center justify-between pointer-events-auto">
                             <div className="flex items-center gap-2">
                                 <div className="p-2 bg-white/10 rounded-sm">
                                     <MessageCircle className="h-5 w-5" />
@@ -87,7 +87,7 @@ export function ChatWidget() {
             <Button
                 size="lg"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`h-14 w-14 rounded-full shadow-xl transition-all duration-300 ${isOpen ? 'bg-red-500 hover:bg-red-600 scale-90' : 'bg-[#0056b3] hover:bg-[#004494] hover:scale-105'
+                className={`h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-xl transition-all duration-300 ${isOpen ? 'bg-red-500 hover:bg-red-600 scale-90' : 'bg-[#0056b3] hover:bg-[#004494] hover:scale-105'
                     }`}
             >
                 {isOpen ? <X className="h-6 w-6 text-white" /> : <MessageCircle className="h-6 w-6 text-white" />}

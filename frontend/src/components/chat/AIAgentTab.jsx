@@ -523,7 +523,7 @@ export function AIAgentTab() {
                                     </>
                                 )}
                             </Avatar>
-                            <div className={`flex flex-col max-w-[85%] ${msg.senderType === 'user' ? 'items-end' : 'items-start'}`}>
+                            <div className={`flex flex-col max-w-[92%] sm:max-w-[85%] ${msg.senderType === 'user' ? 'items-end' : 'items-start'}`}>
                                 <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm transition-all duration-200 ${msg.senderType === 'user'
                                     ? 'bg-[#0056b3] text-white font-noto-regular rounded-tr-none'
                                     : msg.isError
@@ -585,14 +585,14 @@ export function AIAgentTab() {
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </Button>
                         </div>
-                        <div className="px-1 flex items-center justify-between gap-4 opacity-70">
+                        <div className="px-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 opacity-70">
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <AlertCircle className="h-2.5 w-2.5 flex-shrink-0 text-muted-foreground" />
                                 <p className="text-[9px] text-muted-foreground font-noto-medium truncate">
                                     AI may occasionally make mistakes. Verify important details.
                                 </p>
                             </div>
-                            <div className="text-[8px] text-muted-foreground font-noto-bold uppercase tracking-wider flex-shrink-0 whitespace-nowrap">
+                            <div className="hidden sm:block text-[8px] text-muted-foreground font-noto-bold uppercase tracking-wider flex-shrink-0 whitespace-nowrap">
                                 <span className="opacity-50 font-noto-medium mr-1">Shift+Enter for</span> newline
                             </div>
                         </div>

@@ -73,7 +73,7 @@ export default function RoomDetailPage({ params }) {
 
     if (loading) {
         return (
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-6 sm:py-8 mt-4 sm:mt-0">
                 <Skeleton className="mb-4 h-8 w-48" />
                 <Skeleton className="mb-8 h-4 w-72" />
                 <div className="grid gap-8 lg:grid-cols-3">
