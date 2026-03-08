@@ -21,7 +21,7 @@ export function ChatWidget() {
     const [activeTab, setActiveTab] = useState('faq'); // 'faq', 'ai', 'support'
     const { user } = useAuth();
 
-    if (!user) return null;
+    if (!user || user.role === 'admin' || user.role === 'staff') return null;
 
     return (
         <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">

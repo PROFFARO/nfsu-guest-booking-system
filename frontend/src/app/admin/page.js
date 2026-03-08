@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode, RotateCcw } from 'lucide-react';
+import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -134,14 +134,6 @@ export default function AdminDashboard() {
         const updated = widgetsConfig.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
         setWidgetsConfig(updated);
         localStorage.setItem('adminDashboardWidgetsConfig', JSON.stringify(updated));
-    };
-
-    const resetLayout = () => {
-        setLayouts(DEFAULT_LAYOUTS);
-        setWidgetsConfig(DEFAULT_WIDGETS_CONFIG);
-        localStorage.removeItem('adminDashboardLayouts');
-        localStorage.removeItem('adminDashboardWidgetsConfig');
-        toast.success("Dashboard layout has been reset to default.");
     };
 
     useEffect(() => {
@@ -290,9 +282,6 @@ export default function AdminDashboard() {
                                 <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Scan
                             </Button>
                         </Link>
-                        <Button variant="outline" size="sm" onClick={resetLayout} className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
-                            <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Reset
-                        </Button>
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
@@ -334,21 +323,17 @@ export default function AdminDashboard() {
                             draggableHandle=".drag-handle"
                             onLayoutChange={handleLayoutChange}
                             isBounded={true}
-                            isDraggable={true}
-                            isResizable={true}
-                            resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
+                            isDraggable={false}
+                            isResizable={false}
                             margin={[16, 16]}
                             width={width}
                         >
                     {widgetsConfig.filter(w => w.visible).map((widget) => (
                         <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden">
-                            {/* Widget Header - Dynamic Drag Handle */}
+                            {/* Widget Header */}
                             {widget.id !== 'metrics' && (
                                 <div className="bg-muted/30 border-b-2 border-border px-3 py-2 flex items-center justify-between group cursor-default">
                                     <h2 className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest truncate">{widget.title}</h2>
-                                    <div className="drag-handle cursor-move opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded-sm" title="Drag to move">
-                                        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
-                                    </div>
                                 </div>
                             )}
 
@@ -361,9 +346,6 @@ export default function AdminDashboard() {
                                             const Icon = stat.icon;
                                             return (
                                                 <div key={stat.title} className="bg-card border border-border rounded-sm overflow-hidden h-full flex flex-col justify-center relative group">
-                                                    <div className="drag-handle absolute top-1 right-1 cursor-move opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-white/50 dark:bg-black/50 rounded-sm z-10" title="Drag to move entire metrics block">
-                                                        <GripHorizontal className="h-3 w-3 text-muted-foreground" />
-                                                    </div>
                                                     <div className="flex items-center h-full">
                                                         <div className={`flex h-full min-h-16 w-16 shrink-0 items-center justify-center ${stat.color} text-white border-r`}>
                                                             <Icon className="h-6 w-6" />
