@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones } from 'lucide-react';
+import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 import { api } from '@/lib/api';
 
 export function AIAgentTab() {
@@ -540,15 +542,41 @@ export function AIAgentTab() {
                     )}
 
                     {messages.map((msg, idx) => (
-                        <div key={idx} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-md text-[13px] leading-relaxed shadow-xs ${msg.senderType === 'user'
-                                ? 'bg-[#0056b3] text-white font-noto-regular'
-                                : msg.isError ? 'bg-red-50 text-red-700 border border-red-200 font-noto-regular' : 'bg-muted/30 text-foreground border border-border font-noto-regular'
-                                }`}>
-                                {msg.content}
-                                {renderMetadata(msg)}
-                                <div className={`text-[9px] mt-1 opacity-50 font-noto-medium ${msg.senderType === 'user' ? 'text-right' : 'text-left'}`}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <div key={idx} className={`flex gap-3 ${msg.senderType === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <Avatar className="h-8 w-8 flex-shrink-0 border border-border mt-1">
+                                {msg.senderType === 'user' ? (
+                                    <>
+                                        <AvatarFallback className="bg-[#0056b3] text-white"><User className="h-4 w-4" /></AvatarFallback>
+                                    </>
+                                ) : (
+                                    <>
+                                        <AvatarFallback className="bg-muted text-foreground"><Bot className="h-4 w-4" /></AvatarFallback>
+                                    </>
+                                )}
+                            </Avatar>
+                            <div className={`flex flex-col max-w-[85%] ${msg.senderType === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className={`p-4 rounded-2xl text-[13px] leading-relaxed shadow-sm transition-all duration-200 ${msg.senderType === 'user'
+                                    ? 'bg-[#0056b3] text-white font-noto-regular rounded-tr-none'
+                                    : msg.isError
+                                        ? 'bg-red-50 text-red-700 border border-red-200 font-noto-regular rounded-tl-none'
+                                        : 'bg-card text-foreground border border-border font-noto-regular rounded-tl-none shadow-xs'
+                                    }`}>
+                                    {msg.senderType === 'user' ? (
+                                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                                    ) : (
+                                        <div className="prose prose-sm dark:prose-invert max-w-none 
+                                            prose-p:leading-relaxed prose-p:mb-3 last:prose-p:mb-0
+                                            prose-strong:font-noto-bold prose-strong:text-[#0056b3] dark:prose-strong:text-cyan-400
+                                            prose-ul:list-disc prose-ul:pl-4 prose-li:mb-1">
+                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                        </div>
+                                    )}
+                                    {renderMetadata(msg)}
+                                </div>
+                                <div className={`text-[9px] mt-1.5 px-1 opacity-40 font-noto-medium flex items-center gap-1.5 uppercase tracking-tighter`}>
+                                    <span>{msg.senderType === 'user' ? 'You' : 'Assistant'}</span>
+                                    <span>•</span>
+                                    <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
                             </div>
                         </div>

@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import GoogleTranslateFix from "@/components/layout/GoogleTranslateFix";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }) {
                 <TooltipProvider>
                   <Navbar />
                   <main className="flex-1">{children}</main>
+                  <ChatWidget />
                   <Footer />
                   <Toaster richColors position="top-right" />
                 </TooltipProvider>

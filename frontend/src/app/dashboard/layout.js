@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChatWidget } from '@/components/chat/ChatWidget';
 
 export default function DashboardLayout({ children }) {
     const { user, loading } = useAuth();
@@ -37,7 +36,6 @@ export default function DashboardLayout({ children }) {
     return (
         <>
             {children}
-            <ChatWidget />
         </>
     );
 }
