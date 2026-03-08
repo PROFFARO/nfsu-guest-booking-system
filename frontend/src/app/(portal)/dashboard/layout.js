@@ -11,12 +11,12 @@ export default function DashboardLayout({ children }) {
     const pathname = usePathname();
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/login');
-        }
-        // Block admin/staff from accessing user dashboard content, EXCEPT the profile settings page
-        if (!loading && user && (user.role === 'admin' || user.role === 'staff') && pathname !== '/dashboard/profile') {
-            router.push('/admin');
+        if (loading) return;
+
+        if (!user) {
+            router.replace('/login');
+        } else if ((user.role === 'admin' || user.role === 'staff') && pathname !== '/dashboard/profile') {
+            router.replace('/admin');
         }
     }, [user, loading, router, pathname]);
 

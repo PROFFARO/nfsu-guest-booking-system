@@ -109,8 +109,8 @@ const tools = [
           block: { type: "string", enum: ["A", "B", "C", "D", "E", "F"], description: "Block letter" },
           minPrice: { type: "number", description: "Minimum price per night" },
           maxPrice: { type: "number", description: "Maximum price per night (budget)" },
-          facilities: { 
-            type: "array", 
+          facilities: {
+            type: "array",
             items: { type: "string", enum: ["Gym", "WiFi", "AC", "TV", "Refrigerator", "Balcony", "Parking"] },
             description: "List of required facilities"
           },
@@ -124,8 +124,8 @@ const tools = [
     function: {
       name: "get_my_bookings",
       description: "Get the current user's bookings with optional filtering",
-      parameters: { 
-        type: "object", 
+      parameters: {
+        type: "object",
         properties: {
           status: { type: "string", enum: ["pending", "confirmed", "cancelled", "checked-in", "checked-out"], description: "Filter by booking status" },
           upcoming: { type: "boolean", description: "If true, only returns future or current bookings (not cancelled/checked-out)" }
@@ -161,6 +161,25 @@ const tools = [
           comment: { type: "string", description: "Feedback comment" }
         },
         required: ["bookingId", "rating"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_multiple_bookings",
+      description: "Cancel multiple bookings at once by their IDs",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingIds: {
+            type: "array",
+            items: { type: "string" },
+            description: "List of booking IDs to cancel"
+          },
+          reason: { type: "string", description: "Common reason for these cancellations (optional)" }
+        },
+        required: ["bookingIds"]
       }
     }
   }
@@ -227,8 +246,8 @@ const toolImplementations = {
     await logEvent({
       userId,
       action: 'BOOKING_UPDATE',
-      details: { 
-        bookingId: booking._id, 
+      details: {
+        bookingId: booking._id,
         action: 'AI_MODIFICATION',
         oldDates: { in: oldIn, out: oldOut },
         newDates: { in: newIn, out: newOut },
@@ -272,10 +291,10 @@ const toolImplementations = {
   report_room_issue: async (args, userId) => {
     const room = await Room.findOne({ roomNumber: args.roomNumber });
     if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
-    
+
     const timestamp = new Date().toLocaleString();
     const issueEntry = `\n[ISSUE REPORTED ${timestamp}]: ${args.issueDescription}`;
-    
+
     room.notes = (room.notes || "") + issueEntry;
     await room.save();
 
@@ -285,8 +304,8 @@ const toolImplementations = {
       details: { roomNumber: args.roomNumber, issue: args.issueDescription, source: 'ai_assistant' }
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: `Issue for Room ${args.roomNumber} has been logged and reported to the maintenance staff.`,
       data: { roomNumber: args.roomNumber, timestamp }
     };
@@ -294,7 +313,7 @@ const toolImplementations = {
   get_room_details: async (args) => {
     const room = await Room.findOne({ roomNumber: args.roomNumber });
     if (!room) return { error: "Room not found" };
-    
+
     return {
       roomNumber: room.roomNumber,
       type: room.type,
@@ -335,7 +354,7 @@ const toolImplementations = {
     if (args.facilities && args.facilities.length > 0) {
       query.facilities = { $all: args.facilities };
     }
-    
+
     // Handle price range
     if (args.minPrice || args.maxPrice) {
       query.pricePerNight = {};
@@ -382,7 +401,7 @@ const toolImplementations = {
   cancel_booking: async (args, userId) => {
     const booking = await Booking.findById(args.bookingId);
     if (!booking) throw new Error("Booking not found.");
-    
+
     // Authorization
     if (booking.user.toString() !== userId.toString()) {
       throw new Error("You do not have permission to cancel this booking.");
@@ -399,7 +418,7 @@ const toolImplementations = {
 
     const oldStatus = booking.status;
     const reason = args.reason || 'Cancelled via Campus AI';
-    
+
     // Save previous state for logic
     await booking.cancel(reason, userId);
 
@@ -421,8 +440,8 @@ const toolImplementations = {
       details: { bookingId: booking._id, reason, source: 'ai_assistant' }
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       message: "Booking cancelled successfully. A confirmation email has been sent to your registered address.",
       data: {
         id: booking._id,
@@ -437,7 +456,7 @@ const toolImplementations = {
     }
     const booking = await Booking.findOne({ _id: args.bookingId, user: userId });
     if (!booking) return { error: "Booking not found" };
-    
+
     let review = await Review.findOne({ booking: args.bookingId });
     if (review) {
       review.rating = args.rating;
@@ -453,6 +472,51 @@ const toolImplementations = {
       });
     }
     return { success: true, message: "Feedback submitted successfully" };
+  },
+  cancel_multiple_bookings: async (args, userId) => {
+    const results = [];
+    const errors = [];
+
+    for (const id of args.bookingIds) {
+      try {
+        const booking = await Booking.findById(id);
+        if (!booking) throw new Error(`Booking ${id} not found.`);
+        if (booking.user.toString() !== userId.toString()) throw new Error(`Permission denied for ${id}.`);
+        if (['cancelled', 'completed'].includes(booking.status)) throw new Error(`Booking ${id} is already ${booking.status}.`);
+        if (booking.checkedInAt) throw new Error(`Booking ${id} is already checked-in.`);
+
+        const oldStatus = booking.status;
+        const reason = args.reason || 'Bulk Cancellation via Campus AI';
+
+        await booking.cancel(reason, userId);
+
+        if (oldStatus === 'confirmed') {
+          await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+        }
+
+        await booking.populate('room', 'roomNumber');
+        sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
+
+        await logEvent({
+          userId,
+          action: 'BOOKING_CANCEL_BULK',
+          details: { bookingId: booking._id, reason, source: 'ai_assistant' }
+        });
+
+        results.push({ id: booking._id, room: booking.room?.roomNumber, success: true });
+      } catch (err) {
+        errors.push({ id: id, error: err.message });
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      totalProcessed: args.bookingIds.length,
+      successCount: results.length,
+      errorCount: errors.length,
+      results,
+      errors
+    };
   }
 };
 
@@ -469,7 +533,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, or hospital facilities. If a user asks for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, or hospital facilities. If a user asks for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

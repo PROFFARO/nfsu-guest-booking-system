@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode, Download } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode, Download, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -99,7 +99,7 @@ export default function MyBookingsPage() {
 
     const handleReviewSubmit = async () => {
         if (!reviewBookingId) return;
-        
+
         const booking = bookings.find(b => b._id === reviewBookingId);
         const isUpdate = !!booking?.review;
 
@@ -182,7 +182,14 @@ export default function MyBookingsPage() {
                                                     <Clock className="h-3 w-3" />
                                                     {format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}
                                                 </span>
-                                                <span className="font-noto-bold text-[#0056b3] dark:text-cyan-500 text-xs">₹{booking.totalAmount}</span>
+                                                <span className="flex items-center gap-1.5 bg-[#0056b3]/5 dark:bg-cyan-500/5 px-2 py-0.5 rounded-sm border border-[#0056b3]/20 dark:border-cyan-500/20 group/id relative cursor-pointer hover:bg-[#0056b3]/10 active:scale-95 transition-all" onClick={() => {
+                                                    navigator.clipboard.writeText(booking._id);
+                                                    toast.success('Booking ID Copied');
+                                                }}>
+                                                    <span className="font-mono text-[9px] lowercase opacity-70 tracking-normal">REF: {booking._id}</span>
+                                                    <Copy className="h-2.5 w-2.5 opacity-40 group-hover/id:opacity-100 transition-opacity" />
+                                                </span>
+                                                <span className="font-noto-bold text-[#0056b3] dark:text-cyan-500 text-xs ml-auto">₹{booking.totalAmount}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -230,8 +237,8 @@ export default function MyBookingsPage() {
                                                             <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">Pass Code</p>
                                                             <p className="text-xs font-mono text-foreground font-bold break-all">{booking.checkInToken}</p>
                                                         </div>
-                                                        <Button 
-                                                            variant="outline" 
+                                                        <Button
+                                                            variant="outline"
                                                             className="mt-4 w-full rounded-sm border-emerald-600 text-emerald-600 hover:bg-emerald-50 font-noto-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
                                                             onClick={() => handleDownloadQRCode(booking.qrCode, booking.room?.roomNumber)}
                                                         >
@@ -244,10 +251,10 @@ export default function MyBookingsPage() {
                                         {booking.status === 'completed' && (
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        className="h-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700 text-[10px] font-noto-bold uppercase tracking-widest px-3" 
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700 text-[10px] font-noto-bold uppercase tracking-widest px-3"
                                                         onClick={() => {
                                                             setReviewBookingId(booking._id);
                                                             if (booking.review) {
@@ -268,8 +275,8 @@ export default function MyBookingsPage() {
                                                             {booking.review ? 'Update Stay Feedback' : 'Guest Feedback'}
                                                         </DialogTitle>
                                                         <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
-                                                            {booking.review 
-                                                                ? 'You can adjust your previous rating and comments below.' 
+                                                            {booking.review
+                                                                ? 'You can adjust your previous rating and comments below.'
                                                                 : 'Please rate your stay and leave an official comment to help us maintain government standards.'}
                                                         </DialogDescription>
                                                     </DialogHeader>

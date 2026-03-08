@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot } from 'lucide-react';
+import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot, Copy, Check, Square, CheckSquare, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -368,41 +368,62 @@ export function AIAgentTab() {
         }
 
         if (action === 'get_my_bookings' && Array.isArray(result)) {
+            return <BookingSelector bookings={result} onConfirm={(selectedIds) => {
+                handleSendWithContent(`Please cancel these bookings: ${selectedIds.join(', ')}`);
+            }} />;
+        }
+
+        if (action === 'cancel_multiple_bookings' && result) {
             return (
-                <div className="mt-2 space-y-2">
-                    {result.map((b, i) => (
-                        <div key={i} className="p-2.5 border border-border rounded-md bg-muted/10 text-[10px] space-y-1.5 font-noto-regular relative overflow-hidden">
-                            <div className="flex justify-between">
-                                <span className="font-noto-bold text-xs">Room {b.room}</span>
-                                <div className="flex gap-1.5">
-                                    <span className={`px-1.5 py-0.5 rounded-sm font-noto-bold text-[8px] uppercase ${b.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                        b.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
-                                        }`}>
-                                        {b.status}
-                                    </span>
-                                    <span className={`px-1.5 py-0.5 rounded-sm font-noto-bold text-[8px] uppercase ${b.paymentStatus === 'paid' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
-                                        }`}>
-                                        {b.paymentStatus}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 text-muted-foreground opacity-80">
-                                <span>{new Date(b.checkIn).toLocaleDateString()} - {new Date(b.checkOut).toLocaleDateString()}</span>
-                                <span>•</span>
-                                <span className="font-noto-bold text-foreground opacity-100">₹{b.total}</span>
-                            </div>
-                            {b.status === 'cancelled' && b.cancellationReason && (
-                                <div className="text-[9px] text-red-500/80 bg-red-50/50 p-1.5 rounded-sm mt-1 border-l-2 border-red-200">
-                                    Reason: {b.cancellationReason}
-                                </div>
-                            )}
+                <div className="mt-2 p-3 border border-red-100 rounded-md bg-red-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-red-700">
+                        <div className="bg-red-100 p-1 rounded-full">
+                            <Trash className="h-3 w-3" />
                         </div>
-                    ))}
+                        <span className="font-noto-bold text-xs">Bulk Cancellation Processed</span>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-muted-foreground">Successful: <span className="text-green-600 font-bold">{result.successCount}</span></p>
+                        {result.errorCount > 0 && <p className="text-muted-foreground">Failed: <span className="text-red-600 font-bold">{result.errorCount}</span></p>}
+                    </div>
+                    <div className="pt-2 border-t border-red-100/50">
+                        {result.results.map((r, i) => (
+                            <div key={i} className="flex justify-between items-center text-[9px] py-0.5">
+                                <span className="text-muted-foreground italic">Room {r.room}</span>
+                                <span className="text-green-600 font-bold uppercase tracking-widest">Cancelled</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         }
 
         return null;
+    };
+
+    // Helper to send a message programmatically
+    const handleSendWithContent = async (content) => {
+        if (!content || loading) return;
+        const userMsg = { senderType: 'user', content: content, createdAt: new Date() };
+        setMessages(prev => [...prev, userMsg]);
+        setLoading(true);
+
+        try {
+            const res = await api.chats.aiChat({ content: content, threadId });
+            if (res.status === 'success') {
+                setMessages(prev => [...prev, res.data.aiMessage]);
+                if (!threadId || res.data.threadTitle) {
+                    setThreadId(res.data.threadId);
+                    fetchThreads();
+                }
+            } else {
+                setMessages(prev => [...prev, { senderType: 'ai', content: res.message || "Failed.", createdAt: new Date(), isError: true }]);
+            }
+        } catch (err) {
+            setMessages(prev => [...prev, { senderType: 'ai', content: "Connection error.", createdAt: new Date(), isError: true }]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -599,6 +620,74 @@ export function AIAgentTab() {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function BookingSelector({ bookings, onConfirm }) {
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [confirmed, setConfirmed] = useState(false);
+
+    const activeBookings = bookings.filter(b => ['pending', 'confirmed'].includes(b.status));
+
+    const toggleBooking = (id) => {
+        if (confirmed) return;
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    if (activeBookings.length === 0) {
+        return <div className="mt-2 text-[10px] text-muted-foreground italic">No eligible bookings for cancellation.</div>;
+    }
+
+    return (
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
+            <p className="text-[9px] font-noto-bold text-[#0056b3] uppercase tracking-widest mb-2">Select Bookings to Cancel:</p>
+            <div className="space-y-1.5">
+                {activeBookings.map((b) => (
+                    <div
+                        key={b.id}
+                        onClick={() => toggleBooking(b.id)}
+                        className={`flex items-center gap-3 p-2.5 rounded-sm border cursor-pointer transition-all ${selectedIds.includes(b.id)
+                            ? 'bg-red-50 border-red-200'
+                            : 'bg-muted/10 border-border hover:bg-muted/20'
+                            }`}
+                    >
+                        <div className="shrink-0">
+                            {selectedIds.includes(b.id)
+                                ? <CheckSquare className="h-4 w-4 text-red-500" />
+                                : <Square className="h-4 w-4 text-muted-foreground opacity-30" />
+                            }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                                <span className="text-[11px] font-noto-bold font-mono">Room {b.room}</span>
+                                <span className="text-[9px] font-noto-bold text-[#0056b3]">₹{b.total}</span>
+                            </div>
+                            <div className="text-[9px] text-muted-foreground opacity-80 flex items-center gap-1 mt-0.5">
+                                <Calendar className="h-2.5 w-2.5" />
+                                {new Date(b.checkIn).toLocaleDateString()} - {new Date(b.checkOut).toLocaleDateString()}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <Button
+                disabled={selectedIds.length === 0 || confirmed}
+                onClick={() => {
+                    setConfirmed(true);
+                    onConfirm(selectedIds);
+                }}
+                className={`w-full h-8 mt-2 rounded-sm font-noto-bold uppercase text-[10px] tracking-widest transition-all ${confirmed ? 'bg-emerald-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white shadow-sm'}`}
+            >
+                {confirmed ? (
+                    <span className="flex items-center gap-1.5"><Check className="h-3 w-3" /> Processing...</span>
+                ) : (
+                    <span className="flex items-center gap-1.5"><Trash className="h-3 w-3" /> Cancel Selected ({selectedIds.length})</span>
+                )}
+            </Button>
         </div>
     );
 }

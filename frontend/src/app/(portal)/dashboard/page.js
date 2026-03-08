@@ -9,8 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Calendar, BookOpen, BedDouble, ArrowRight, Clock } from 'lucide-react';
+import { Calendar, BookOpen, BedDouble, ArrowRight, Clock, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 const statusColors = {
     pending: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-600',
@@ -125,9 +126,18 @@ export default function DashboardPage() {
                                                 <p className="text-sm font-noto-bold text-foreground uppercase tracking-tight">
                                                     Room {booking.room?.roomNumber || 'N/A'}
                                                 </p>
-                                                <p className="flex items-center gap-1 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-0.5">
+                                                <p className="flex items-center gap-2 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                                                     <Clock className="h-3 w-3" />
                                                     {format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}
+                                                    <span className="text-border mx-1">•</span>
+                                                    <span className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-sm border border-border group/id relative cursor-pointer active:scale-95 transition-transform" onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigator.clipboard.writeText(booking._id);
+                                                        toast.success('Booking ID Copied');
+                                                    }}>
+                                                        <span className="font-mono text-[9px] lowercase opacity-70 tracking-normal">ID: {booking._id.substring(0, 8)}...</span>
+                                                        <Copy className="h-2.5 w-2.5 opacity-40 group-hover/id:opacity-100 transition-opacity" />
+                                                    </span>
                                                 </p>
                                             </div>
                                         </div>
