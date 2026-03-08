@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, BookOpen, Users, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode } from 'lucide-react';
+import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -16,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 
 // React Grid Layout Imports
-import { ResponsiveGridLayout as Responsive, useContainerWidth } from 'react-grid-layout';
+import { ResponsiveGridLayout as Responsive } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
@@ -26,13 +25,76 @@ const COLORS = {
     payment: { paid: '#0f766e', unpaid: '#be123c' }
 };
 
-const DEFAULT_WIDGETS = [
-    { id: 'metrics', title: 'Key Metrics', visible: true, layout: { i: 'metrics', x: 0, y: 0, w: 12, h: 1, minW: 12, minH: 1 } },
-    { id: 'inventory', title: 'Facility Inventory Distribution', visible: true, layout: { i: 'inventory', x: 0, y: 1, w: 6, h: 4, minW: 4, minH: 3 } },
-    { id: 'status', title: 'Global Status Proportion', visible: true, layout: { i: 'status', x: 6, y: 1, w: 6, h: 4, minW: 4, minH: 3 } },
-    { id: 'revenue', title: '7-Day Revenue Ledger', visible: true, layout: { i: 'revenue', x: 0, y: 5, w: 12, h: 4, minW: 6, minH: 3 } },
-    { id: 'financial', title: 'Financial Clearance Logs', visible: true, layout: { i: 'financial', x: 0, y: 9, w: 6, h: 4, minW: 4, minH: 3 } },
-    { id: 'bookings', title: 'Recent Applications & Directives', visible: true, layout: { i: 'bookings', x: 6, y: 9, w: 6, h: 4, minW: 6, minH: 3 } },
+function useContainerWidth() {
+    const [width, setWidth] = useState(1200);
+    const [mounted, setMounted] = useState(false);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        setMounted(true);
+        if (!containerRef.current) return;
+        const resizeObserver = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                setWidth(entry.contentRect.width);
+            }
+        });
+        resizeObserver.observe(containerRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    return { width, containerRef, mounted };
+}
+
+const DEFAULT_LAYOUTS = {
+    lg: [
+        { i: 'metrics', x: 0, y: 0, w: 12, h: 1 },
+        { i: 'inventory', x: 0, y: 1, w: 6, h: 4 },
+        { i: 'status', x: 6, y: 1, w: 6, h: 4 },
+        { i: 'revenue', x: 0, y: 5, w: 12, h: 4 },
+        { i: 'financial', x: 0, y: 9, w: 6, h: 4 },
+        { i: 'bookings', x: 6, y: 9, w: 6, h: 4 },
+    ],
+    md: [
+        { i: 'metrics', x: 0, y: 0, w: 10, h: 1 },
+        { i: 'inventory', x: 0, y: 1, w: 5, h: 4 },
+        { i: 'status', x: 5, y: 1, w: 5, h: 4 },
+        { i: 'revenue', x: 0, y: 5, w: 10, h: 4 },
+        { i: 'financial', x: 0, y: 9, w: 5, h: 4 },
+        { i: 'bookings', x: 5, y: 9, w: 5, h: 4 },
+    ],
+    sm: [
+        { i: 'metrics', x: 0, y: 0, w: 6, h: 2 },
+        { i: 'inventory', x: 0, y: 2, w: 6, h: 4 },
+        { i: 'status', x: 0, y: 6, w: 6, h: 4 },
+        { i: 'revenue', x: 0, y: 10, w: 6, h: 4 },
+        { i: 'financial', x: 0, y: 14, w: 6, h: 4 },
+        { i: 'bookings', x: 0, y: 18, w: 6, h: 4 },
+    ],
+    xs: [
+        { i: 'metrics', x: 0, y: 0, w: 4, h: 2 },
+        { i: 'inventory', x: 0, y: 2, w: 4, h: 4 },
+        { i: 'status', x: 0, y: 6, w: 4, h: 4 },
+        { i: 'revenue', x: 0, y: 10, w: 4, h: 4 },
+        { i: 'financial', x: 0, y: 14, w: 4, h: 4 },
+        { i: 'bookings', x: 0, y: 18, w: 4, h: 4 },
+    ],
+    xxs: [
+        { i: 'metrics', x: 0, y: 0, w: 2, h: 2 },
+        { i: 'inventory', x: 0, y: 2, w: 2, h: 4 },
+        { i: 'status', x: 0, y: 6, w: 2, h: 4 },
+        { i: 'revenue', x: 0, y: 10, w: 2, h: 4 },
+        { i: 'financial', x: 0, y: 14, w: 2, h: 4 },
+        { i: 'bookings', x: 0, y: 18, w: 2, h: 4 },
+    ]
+};
+
+const DEFAULT_WIDGETS_CONFIG = [
+    { id: 'metrics', title: 'Key Metrics', visible: true },
+    { id: 'inventory', title: 'Facility Inventory Distribution', visible: true },
+    { id: 'status', title: 'Global Status Proportion', visible: true },
+    { id: 'revenue', title: '7-Day Revenue Ledger', visible: true },
+    { id: 'financial', title: 'Financial Clearance Logs', visible: true },
+    { id: 'bookings', title: 'Recent Applications & Directives', visible: true },
 ];
 
 export default function AdminDashboard() {
@@ -41,42 +103,45 @@ export default function AdminDashboard() {
     const [recentBookings, setRecentBookings] = useState([]);
     const [analyticsBookings, setAnalyticsBookings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [widgets, setWidgets] = useState(DEFAULT_WIDGETS);
+    const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
+    const [widgetsConfig, setWidgetsConfig] = useState(DEFAULT_WIDGETS_CONFIG);
 
     useEffect(() => {
-        const savedWidgets = localStorage.getItem('adminDashboardGrid');
-        if (savedWidgets) {
+        const savedLayouts = localStorage.getItem('adminDashboardLayouts');
+        if (savedLayouts) {
+            try { setLayouts(JSON.parse(savedLayouts)); } catch {}
+        }
+
+        const savedConfig = localStorage.getItem('adminDashboardWidgetsConfig');
+        if (savedConfig) {
             try {
-                // Merge saved layout with default static widget properties in case of schema updates
-                const parsed = JSON.parse(savedWidgets);
-                const merged = DEFAULT_WIDGETS.map(dw => {
+                const parsed = JSON.parse(savedConfig);
+                const merged = DEFAULT_WIDGETS_CONFIG.map(dw => {
                     const saved = parsed.find(pw => pw.id === dw.id);
-                    return saved ? { ...dw, visible: saved.visible, layout: saved.layout || dw.layout } : dw;
+                    return saved ? { ...dw, visible: saved.visible } : dw;
                 });
-                setWidgets(merged);
-            } catch {
-                setWidgets(DEFAULT_WIDGETS);
-            }
+                setWidgetsConfig(merged);
+            } catch {}
         }
     }, []);
 
-    const handleLayoutChange = (newLayout) => {
-        const updatedWidgets = widgets.map(widget => {
-            const l = newLayout.find(nl => nl.i === widget.id);
-            if (l) {
-                // Persist the new layout coordinates
-                return { ...widget, layout: l };
-            }
-            return widget;
-        });
-        setWidgets(updatedWidgets);
-        localStorage.setItem('adminDashboardGrid', JSON.stringify(updatedWidgets));
+    const handleLayoutChange = (currentLayout, allLayouts) => {
+        setLayouts(allLayouts);
+        localStorage.setItem('adminDashboardLayouts', JSON.stringify(allLayouts));
     };
 
     const toggleWidgetVisibility = (id) => {
-        const updated = widgets.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
-        setWidgets(updated);
-        localStorage.setItem('adminDashboardGrid', JSON.stringify(updated));
+        const updated = widgetsConfig.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
+        setWidgetsConfig(updated);
+        localStorage.setItem('adminDashboardWidgetsConfig', JSON.stringify(updated));
+    };
+
+    const resetLayout = () => {
+        setLayouts(DEFAULT_LAYOUTS);
+        setWidgetsConfig(DEFAULT_WIDGETS_CONFIG);
+        localStorage.removeItem('adminDashboardLayouts');
+        localStorage.removeItem('adminDashboardWidgetsConfig');
+        toast.success("Dashboard layout has been reset to default.");
     };
 
     useEffect(() => {
@@ -219,12 +284,15 @@ export default function AdminDashboard() {
                             Centralized System Analytics & Facility Oversight
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:gap-3 shrink-0 mt-2 sm:mt-0">
                         <Link href="/admin/gatepass">
                             <Button className="bg-[#0f766e] text-white hover:bg-[#0f766e]/90 border-0 flex items-center gap-1.5 sm:gap-2 uppercase text-[9px] sm:text-[10px] font-noto-bold tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
                                 <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Scan
                             </Button>
                         </Link>
+                        <Button variant="outline" size="sm" onClick={resetLayout} className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
+                            <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Reset
+                        </Button>
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
@@ -238,7 +306,7 @@ export default function AdminDashboard() {
                             <div className="space-y-4">
                                 <p className="text-sm text-muted-foreground">Toggle widgets to show or hide them from your customizable grid.</p>
                                 <div className="space-y-2">
-                                    {widgets.map((widget) => (
+                                    {widgetsConfig.map((widget) => (
                                         <div key={widget.id} className="flex items-center justify-between p-3 border rounded bg-background hover:bg-muted/50 transition-colors">
                                             <span className="text-sm font-medium flex-1 uppercase tracking-widest">{widget.title}</span>
                                             <Switch
@@ -259,17 +327,20 @@ export default function AdminDashboard() {
                     {mounted && (
                         <Responsive
                             className="layout"
-                        layouts={{ lg: widgets.map(w => w.layout) }}
-                        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                        cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-                        rowHeight={80}
-                        draggableHandle=".drag-handle"
-                        onLayoutChange={handleLayoutChange}
-                        isBounded={true}
-                        margin={[16, 16]}
-                        width={width}
-                    >
-                    {widgets.filter(w => w.visible).map((widget) => (
+                            layouts={layouts}
+                            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+                            rowHeight={80}
+                            draggableHandle=".drag-handle"
+                            onLayoutChange={handleLayoutChange}
+                            isBounded={true}
+                            isDraggable={true}
+                            isResizable={true}
+                            resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
+                            margin={[16, 16]}
+                            width={width}
+                        >
+                    {widgetsConfig.filter(w => w.visible).map((widget) => (
                         <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden">
                             {/* Widget Header - Dynamic Drag Handle */}
                             {widget.id !== 'metrics' && (
@@ -450,8 +521,8 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     ))}
-                    </Responsive>
-                )}
+                        </Responsive>
+                    )}
                 </div>
             </motion.div>
         </div>
