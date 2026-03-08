@@ -478,106 +478,108 @@ export const processAIChat = async (userId, message, history = []) => {
     { role: "user", content: message }
   ];
 
-  const mainModel = "google/gemini-2.0-flash-lite-001"; // Pin to a reliable free tool-use model
+  const models = [
+    "google/gemini-2.0-flash-lite-001",
+    "google/gemini-2.0-flash-exp:free",
+    "meta-llama/llama-3.3-70b-instruct",
+    "qwen/qwen-2.5-72b-instruct"
+  ];
 
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/proffaro/nfsu-guest-booking-system",
-        "X-Title": "NFSU Guest Booking System"
-      },
-      body: JSON.stringify({
-        model: mainModel, 
-        messages,
-        tools,
-        tool_choice: "auto"
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-        console.error("OpenRouter Error Details:", JSON.stringify(data, null, 2));
-        if (response.status === 429) {
-          throw new Error("The AI model is currently at capacity or rate-limited. Please try again in 1 minute.");
-        }
-        throw new Error(data.error?.message || `OpenRouter API error: ${response.status}`);
+  const callOpenRouter = async (currentMessages, currentTools = null, modelIndex = 0) => {
+    if (modelIndex >= models.length) {
+      throw new Error("All AI models are currently unavailable. Please try again in a few moments.");
     }
 
+    const model = models[modelIndex];
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://github.com/proffaro/nfsu-guest-booking-system",
+          "X-Title": "NFSU Guest Booking System"
+        },
+        body: JSON.stringify({
+          model,
+          messages: currentMessages,
+          ...(currentTools ? { tools: currentTools, tool_choice: "auto" } : {})
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.warn(`Model ${model} failed (${response.status}). Trying next fallback...`);
+        return callOpenRouter(currentMessages, currentTools, modelIndex + 1);
+      }
+      return { data, model };
+    } catch (err) {
+      console.warn(`Error with model ${model}. Trying next fallback...`, err.message);
+      return callOpenRouter(currentMessages, currentTools, modelIndex + 1);
+    }
+  };
+
+  try {
+    const { data, model: activeModel } = await callOpenRouter(messages, tools);
     let aiMessage = data.choices[0].message;
     let content = aiMessage.content || "";
 
     // FALLBACK: Handle XML-style tool calls
     if (!aiMessage.tool_calls && content.includes("<tool_call>")) {
-        try {
-            const toolMatch = content.match(/<tool_call>(.*?)\s+(?:<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>\s*)*<\/tool_call>/is);
-            if (toolMatch) {
-                const name = toolMatch[1].trim();
-                const args = {};
-                
-                const argRegex = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>/g;
-                let argMatch;
-                while ((argMatch = argRegex.exec(content)) !== null) {
-                    let val = argMatch[2];
-                    if (val.toLowerCase() === 'true') val = true;
-                    else if (val.toLowerCase() === 'false') val = false;
-                    else if (!isNaN(val)) val = Number(val);
-                    args[argMatch[1]] = val;
-                }
+      try {
+        const toolMatch = content.match(/<tool_call>(.*?)\s+(?:<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>\s*)*<\/tool_call>/is);
+        if (toolMatch) {
+          const name = toolMatch[1].trim();
+          const args = {};
 
-                const toolFn = toolImplementations[name];
-                if (toolFn) {
-                    let toolResult;
-                    try {
-                        toolResult = await toolFn(args, userId);
-                    } catch (tErr) {
-                        toolResult = { error: tErr.message };
-                    }
-                    
-                    messages.push({ role: "assistant", content: content });
-                    messages.push({
-                      role: "tool",
-                      tool_call_id: "manual_" + Date.now(),
-                      name: name,
-                      content: JSON.stringify(toolResult)
-                    });
+          const argRegex = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>/g;
+          let argMatch;
+          while ((argMatch = argRegex.exec(content)) !== null) {
+            let val = argMatch[2];
+            if (val.toLowerCase() === 'true') val = true;
+            else if (val.toLowerCase() === 'false') val = false;
+            else if (!isNaN(val)) val = Number(val);
+            args[argMatch[1]] = val;
+          }
 
-                    const finalResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                        method: "POST",
-                        headers: {
-                          "Authorization": `Bearer ${apiKey}`,
-                          "Content-Type": "application/json",
-                          "HTTP-Referer": "https://github.com/proffaro/nfsu-guest-booking-system",
-                          "X-Title": "NFSU Guest Booking System"
-                        },
-                        body: JSON.stringify({
-                          model: mainModel,
-                          messages
-                        })
-                    });
-
-                    const finalData = await finalResponse.json();
-                    
-                    if (!finalResponse.ok || !finalData.choices?.[0]) {
-                        return {
-                            text: finalData.error?.message || `Success, but follow-up failed.`,
-                            action: name,
-                            result: toolResult
-                        };
-                    }
-
-                    return {
-                        text: finalData.choices[0].message.content,
-                        action: name,
-                        result: toolResult
-                    };
-                }
+          const toolFn = toolImplementations[name];
+          if (toolFn) {
+            let toolResult;
+            try {
+              toolResult = await toolFn(args, userId);
+            } catch (tErr) {
+              toolResult = { error: tErr.message };
             }
-        } catch (err) {
-            console.error("Manual tool call parsing failed:", err);
+
+            messages.push({ role: "assistant", content: content });
+            messages.push({
+              role: "tool",
+              tool_call_id: "manual_" + Date.now(),
+              name: name,
+              content: JSON.stringify(toolResult)
+            });
+
+            // Follow-up with fallback support
+            const { data: finalData } = await callOpenRouter(messages);
+
+            if (!finalData.choices?.[0]) {
+              return {
+                text: `Success with ${name}, but follow-up failed.`,
+                action: name,
+                result: toolResult
+              };
+            }
+
+            return {
+              text: finalData.choices[0].message.content,
+              action: name,
+              result: toolResult
+            };
+          }
         }
+      } catch (err) {
+        console.error("Manual tool call parsing failed:", err);
+      }
     }
 
     // Handle Native Tool Calls (OpenAI Format)
@@ -586,22 +588,22 @@ export const processAIChat = async (userId, message, history = []) => {
       const { name, arguments: argsString } = toolCall.function;
       let args = {};
       try {
-          let sanitized = argsString.replace(/```json/g, "").replace(/```/g, "").trim();
-          sanitized = sanitized.replace(/,(\s*[\]}])/g, "$1");
-          args = JSON.parse(sanitized);
+        let sanitized = argsString.replace(/```json/g, "").replace(/```/g, "").trim();
+        sanitized = sanitized.replace(/,(\s*[\]}])/g, "$1");
+        args = JSON.parse(sanitized);
       } catch (parseError) {
-          throw new Error("Formatting error in tool request. Please try again.");
+        throw new Error("Formatting error in tool request. Please try again.");
       }
-      
+
       const toolFn = toolImplementations[name];
       if (toolFn) {
         let toolResult;
         try {
-            toolResult = await toolFn(args, userId);
+          toolResult = await toolFn(args, userId);
         } catch (tErr) {
-            toolResult = { error: tErr.message };
+          toolResult = { error: tErr.message };
         }
-        
+
         messages.push(aiMessage);
         messages.push({
           role: "tool",
@@ -610,25 +612,12 @@ export const processAIChat = async (userId, message, history = []) => {
           content: JSON.stringify(toolResult)
         });
 
-        const finalResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/proffaro/nfsu-guest-booking-system",
-            "X-Title": "NFSU Guest Booking System"
-          },
-          body: JSON.stringify({
-            model: mainModel,
-            messages
-          })
-        });
+        // Follow-up with fallback support
+        const { data: finalData } = await callOpenRouter(messages);
 
-        const finalData = await finalResponse.json();
-        
-        if (!finalResponse.ok || !finalData.choices?.[0]) {
+        if (!finalData.choices?.[0]) {
           return {
-            text: finalData.error?.message || `The action was completed, but I couldn't summarize the result.`,
+            text: `The action was completed, but I couldn't summarize the result.`,
             action: name,
             result: toolResult
           };
