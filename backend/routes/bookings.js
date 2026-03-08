@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
 import express from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import Booking from '../models/Booking.js';
+import Review from '../models/Review.js';
 import Room from '../models/Room.js';
 import { authMiddleware, adminMiddleware, staffMiddleware, userOnlyMiddleware } from '../middleware/auth.js';
 import { bookingCreateLimiter } from '../middleware/rateLimiter.js';
@@ -490,12 +492,20 @@ router.get('/', [
   const skip = (page - 1) * limit;
 
   // Get bookings with pagination
-  const bookings = await Booking.find(query)
+  const rawBookings = await Booking.find(query)
     .populate('room', 'roomNumber type floor block pricePerNight')
     .populate('user', 'name email')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(Number(limit));
+
+  // Efficiently check for reviews for each booking
+  const bookings = await Promise.all(rawBookings.map(async (b) => {
+    const review = await Review.findOne({ booking: b._id }).select('rating comment');
+    const bookingObj = b.toObject();
+    bookingObj.review = review;
+    return bookingObj;
+  }));
 
   // Get total count for pagination
   const total = await Booking.countDocuments(query);
@@ -770,6 +780,14 @@ router.delete('/:id', [
     return res.status(400).json({
       status: 'error',
       message: 'Booking cannot be cancelled'
+    });
+  }
+
+  // Prevent cancellation if guest is already checked in
+  if (booking.checkedInAt) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Booking cannot be cancelled after check-in'
     });
   }
 

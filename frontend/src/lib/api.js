@@ -158,6 +158,7 @@ export const api = {
 
     reviews: {
         create: (body) => request('/reviews', { method: 'POST', body: JSON.stringify(body) }),
+        update: (bookingId, body) => request(`/reviews/${bookingId}`, { method: 'PUT', body: JSON.stringify(body) }),
         getAll: (params = {}) => {
             const qs = new URLSearchParams(params).toString();
             return request(`/reviews${qs ? `?${qs}` : ''}`);

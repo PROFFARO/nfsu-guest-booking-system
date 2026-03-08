@@ -99,19 +99,31 @@ export default function MyBookingsPage() {
 
     const handleReviewSubmit = async () => {
         if (!reviewBookingId) return;
+        
+        const booking = bookings.find(b => b._id === reviewBookingId);
+        const isUpdate = !!booking?.review;
+
         try {
-            await api.reviews.create({
-                booking: reviewBookingId,
-                rating: reviewRating,
-                comment: reviewComment
-            });
-            toast.success('Feedback submitted successfully');
+            if (isUpdate) {
+                await api.reviews.update(reviewBookingId, {
+                    rating: reviewRating,
+                    comment: reviewComment
+                });
+                toast.success('Feedback updated successfully');
+            } else {
+                await api.reviews.create({
+                    booking: reviewBookingId,
+                    rating: reviewRating,
+                    comment: reviewComment
+                });
+                toast.success('Feedback submitted successfully');
+            }
             setReviewBookingId(null);
             setReviewRating(5);
             setReviewComment('');
             fetchBookings();
         } catch (err) {
-            toast.error(err.message || 'Failed to submit feedback');
+            toast.error(err.message || `Failed to ${isUpdate ? 'update' : 'submit'} feedback`);
         }
     };
 
@@ -232,15 +244,33 @@ export default function MyBookingsPage() {
                                         {booking.status === 'completed' && (
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="h-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700 text-[10px] font-noto-bold uppercase tracking-widest px-3" onClick={() => setReviewBookingId(booking._id)}>
-                                                        Rate Stay
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        className="h-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700 text-[10px] font-noto-bold uppercase tracking-widest px-3" 
+                                                        onClick={() => {
+                                                            setReviewBookingId(booking._id);
+                                                            if (booking.review) {
+                                                                setReviewRating(booking.review.rating);
+                                                                setReviewComment(booking.review.comment || '');
+                                                            } else {
+                                                                setReviewRating(5);
+                                                                setReviewComment('');
+                                                            }
+                                                        }}
+                                                    >
+                                                        {booking.review ? 'Update Rating' : 'Rate Stay'}
                                                     </Button>
                                                 </DialogTrigger>
                                                 <DialogContent className="rounded-sm border-2 border-border shadow-md">
                                                     <DialogHeader>
-                                                        <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">Guest Feedback</DialogTitle>
+                                                        <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">
+                                                            {booking.review ? 'Update Stay Feedback' : 'Guest Feedback'}
+                                                        </DialogTitle>
                                                         <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
-                                                            Please rate your stay and leave an official comment to help us maintain government standards.
+                                                            {booking.review 
+                                                                ? 'You can adjust your previous rating and comments below.' 
+                                                                : 'Please rate your stay and leave an official comment to help us maintain government standards.'}
                                                         </DialogDescription>
                                                     </DialogHeader>
                                                     <div className="space-y-4 mt-4">
@@ -281,7 +311,7 @@ export default function MyBookingsPage() {
                                                 </DialogContent>
                                             </Dialog>
                                         )}
-                                        {!['cancelled', 'completed'].includes(booking.status) && (
+                                        {!['cancelled', 'completed'].includes(booking.status) && !booking.checkedInAt && (
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">

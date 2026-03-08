@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { ImageSlider } from '@/components/ui/ImageSlider';
+import { ReviewCarousel } from '@/components/ui/ReviewCarousel';
 import {
     BedDouble,
     MapPin,
@@ -261,46 +262,25 @@ export default function RoomDetailPage({ params }) {
                         )}
 
                         {/* Reviews Section */}
-                        <div className="mt-8">
-                            <h3 className="text-lg font-noto-bold text-foreground uppercase tracking-wide border-b-2 border-border pb-2 mb-4 flex items-center gap-2">
-                                <MessageSquare className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
-                                Guest Feedback
-                            </h3>
+                        <div className="mt-10 overflow-hidden">
+                            <div className="flex items-center justify-between border-b-2 border-border pb-2 mb-2">
+                                <h3 className="text-sm font-noto-bold text-foreground uppercase tracking-widest flex items-center gap-2">
+                                    <MessageSquare className="h-4 w-4 text-[#0056b3] dark:text-cyan-500" />
+                                    Guest Feedback Ledger
+                                </h3>
+                                {reviews.length > 0 && (
+                                    <span className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest bg-muted/30 px-2 py-0.5 rounded-sm border border-border">
+                                        {reviews.length} Verified Records
+                                    </span>
+                                )}
+                            </div>
 
                             {reviews.length === 0 ? (
                                 <div className="p-6 text-center border-2 border-border border-dashed rounded-sm bg-muted/10">
-                                    <p className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">No official feedback has been recorded for this room yet.</p>
+                                    <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest italic">No official feedback has been recorded for this room yet.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
-                                    {reviews.map((review) => (
-                                        <Card key={review._id} className="rounded-sm border-2 border-border bg-card shadow-sm">
-                                            <CardContent className="p-4">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <p className="font-noto-bold text-sm text-foreground">{review.user?.name || 'Guest'}</p>
-                                                        <p className="text-[10px] font-noto-medium text-muted-foreground tracking-widest uppercase">
-                                                            {format(new Date(review.createdAt), 'dd MMM yyyy')}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-0.5">
-                                                        {[1, 2, 3, 4, 5].map((star) => (
-                                                            <Star
-                                                                key={star}
-                                                                className={`h-3.5 w-3.5 ${review.rating >= star ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/30'}`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                {review.comment && (
-                                                    <p className="text-sm font-noto-medium text-muted-foreground mt-3 italic">
-                                                        &quot;{review.comment}&quot;
-                                                    </p>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
+                                <ReviewCarousel reviews={reviews} />
                             )}
                         </div>
                     </div>

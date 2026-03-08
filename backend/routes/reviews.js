@@ -114,6 +114,48 @@ router.get('/room/:roomId', asyncHandler(async (req, res) => {
     });
 }));
 
+// @route   PUT /api/reviews/:bookingId
+// @desc    Update an existing review
+// @access  Private
+router.put('/:bookingId', [
+    authMiddleware,
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5 stars'),
+    body('comment').optional().isLength({ max: 500 }).withMessage('Comment cannot exceed 500 characters')
+], asyncHandler(async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+    }
+
+    const { rating, comment } = req.body;
+    const { bookingId } = req.params;
+
+    // Find the review by bookingId
+    const review = await Review.findOne({ booking: bookingId });
+    if (!review) {
+        return res.status(404).json({ status: 'error', message: 'Review not found' });
+    }
+
+    // Ensure user owns the review
+    if (review.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+        return res.status(403).json({ status: 'error', message: 'Not authorized to update this review' });
+    }
+
+    // Update review fields
+    review.rating = rating;
+    review.comment = comment;
+    await review.save();
+
+    // Trigger average rating recalculation
+    await Review.calculateAverageRating(review.room);
+
+    res.json({
+        status: 'success',
+        message: 'Feedback updated successfully',
+        data: { review }
+    });
+}));
+
 // @route   GET /api/reviews/check/:bookingId
 // @desc    Check if a booking already has a review (so frontend can hide the button)
 // @access  Private
