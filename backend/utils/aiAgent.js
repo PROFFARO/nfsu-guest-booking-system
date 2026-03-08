@@ -41,28 +41,6 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "create_booking",
-      description: "Create a new room booking for the user",
-      parameters: {
-        type: "object",
-        properties: {
-          roomNumber: { type: "string", description: "The room number to book (e.g. 101)" },
-          checkIn: { type: "string", description: "Check-in date (ISO format, e.g. 2024-03-20)" },
-          checkOut: { type: "string", description: "Check-out date (ISO format, e.g. 2024-03-22)" },
-          guestName: { type: "string", description: "Full name of the primary guest" },
-          email: { type: "string", description: "Guest email address" },
-          phone: { type: "string", description: "Guest 10-digit phone number" },
-          numberOfGuests: { type: "integer", minimum: 1, maximum: 4, description: "Number of guests (1-4)" },
-          purpose: { type: "string", enum: ["academic", "business", "personal", "other"], description: "Purpose of stay" },
-          purposeDetails: { type: "string", description: "Optional details about the purpose of stay" }
-        },
-        required: ["roomNumber", "checkIn", "checkOut", "guestName", "email", "phone", "numberOfGuests", "purpose"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
       name: "escalate_to_staff",
       description: "Escalate the conversation to a real human support staff member when AI cannot help",
       parameters: {
@@ -190,93 +168,6 @@ const tools = [
 
 // Tool Implementation Map
 const toolImplementations = {
-  create_booking: async (args, userId) => {
-    const room = await Room.findOne({ roomNumber: args.roomNumber });
-    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
-
-    const checkInDate = new Date(args.checkIn);
-    const checkOutDate = new Date(args.checkOut);
-
-    if (checkInDate >= checkOutDate) {
-      throw new Error("Check-out date must be after check-in date.");
-    }
-
-    if (checkInDate < new Date().setHours(0,0,0,0)) {
-      throw new Error("Check-in date cannot be in the past.");
-    }
-
-    // Check availability
-    const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
-    if (!isAvailable) {
-      throw new Error(`Room ${args.roomNumber} is not available for the selected dates.`);
-    }
-
-    // Acquire hold
-    const heldRoom = await Room.acquireHold(room._id, userId, 10 * 60);
-    if (!heldRoom) {
-      return {
-        success: false,
-        message: "I could not place a temporary hold on this room. This usually means the room is either currently occupied by another guest or in maintenance, even if it's available for your future dates. Please try another room number or contact staff for assistance.",
-        error: "HOLD_FAILED"
-      };
-    }
-
-    // Calculate total amount
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    const totalAmount = nights * room.pricePerNight;
-
-    // Create booking
-    const booking = new Booking({
-      user: userId,
-      room: room._id,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      guestName: args.guestName,
-      email: args.email,
-      phone: args.phone,
-      purpose: args.purpose,
-      purposeDetails: args.purposeDetails,
-      numberOfGuests: args.numberOfGuests,
-      totalAmount,
-      status: 'pending',
-      paymentStatus: 'unpaid'
-    });
-
-    try {
-      await booking.save();
-
-      await logEvent({
-        userId,
-        action: 'BOOKING_CREATE',
-        details: { 
-          bookingId: booking._id, 
-          room: room._id, 
-          checkIn: args.checkIn, 
-          checkOut: args.checkOut, 
-          source: 'ai_assistant' 
-        }
-      });
-
-      return {
-        success: true,
-        message: `Booking created successfully for Room ${args.roomNumber}. Your stay from ${checkInDate.toLocaleDateString()} to ${checkOutDate.toLocaleDateString()} is now pending payment.`,
-        data: {
-          bookingId: booking._id,
-          totalAmount,
-          nights,
-          roomNumber: room.roomNumber,
-          status: booking.status
-        }
-      };
-    } catch (error) {
-      console.error("AI Booking Execution Error:", error);
-      return {
-        success: false,
-        message: `I encountered an issue while finalizing your booking: ${error.message}`,
-        error: "BOOKING_FAILED"
-      };
-    }
-  },
   escalate_to_staff: async (args, userId) => {
     // 1. Create a support thread
     const thread = await ChatThread.create({
@@ -578,7 +469,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a helpful AI specialized in managing room bookings and responding to guest queries. You can check availability, get booking status, cancel bookings, and submit feedback. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant, a helpful AI specialized in responding to guest queries. You can check availability, get booking status, cancel existing bookings, and submit feedback. Be professional, concise, and helpful."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',
