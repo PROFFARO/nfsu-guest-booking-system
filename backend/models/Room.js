@@ -140,9 +140,15 @@ roomSchema.statics.acquireHold = function (roomId, userId, ttlSeconds = 600) {
     {
       _id: roomId,
       isActive: true,
-      // Only acquire if vacant OR held but expired, and not booked/maintenance
+      // Only acquire if:
+      // 1. Vacant
+      // 2. Already held by THIS user (extension/retry)
+      // 3. Held but expired
+      // 4. Booked (someone is in it now, but we're locking it for a future booking)
       $or: [
         { status: 'vacant' },
+        { status: 'booked' },
+        { status: 'held', holdBy: userId }, 
         { status: 'held', $or: [{ holdUntil: null }, { holdUntil: { $lt: now } }] }
       ]
     },
