@@ -141,8 +141,8 @@ export default function Navbar() {
                         </div>
                     </Link>
 
-                    {/* Desktop Nav */}
-                    <nav className="hidden h-full items-center gap-6 md:flex">
+                    {/* Desktop Nav - Hidden as per requirement to use sidebar/mobile menu instead */}
+                    <nav className="hidden h-full items-center gap-6">
                         {navLinks.map((link) => {
                             const active = isActive(link.href);
                             return (

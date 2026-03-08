@@ -185,6 +185,7 @@ export const api = {
         }),
         getAdminInbox: () => request('/chats/admin/inbox'),
         getThreadMessages: (threadId) => request(`/chats/${threadId}/messages`),
+        deleteAdminThread: (id) => request(`/chats/admin/threads/${id}`, { method: 'DELETE' }),
         // AI Specific
         getAIThreads: () => request('/chats/ai/threads'),
         createAIThread: () => request('/chats/ai/threads', { method: 'POST' }),

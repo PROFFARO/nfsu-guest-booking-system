@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2, Search } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -42,6 +42,16 @@ export default function BookingManagementPage() {
         const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    const handleResetFilters = () => {
+        setSearchQuery('');
+        setDebouncedSearch('');
+        setStatusFilter('');
+        setDateRange({ startDate: '', endDate: '' });
+        setPage(1);
+        // Explicitly fetch to jump-start the reset
+        setTimeout(fetchBookings, 0);
+    };
 
     const handleDownloadInvoice = async (bookingId) => {
         try {
@@ -137,49 +147,70 @@ export default function BookingManagementPage() {
                 </div>
 
                 {/* Filters & Actions */}
-                <div className="mb-6 flex flex-col gap-4">
-                    {/* Top Row: Search & Export */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-                        <div className="relative w-full sm:max-w-md flex-1">
+                <div className="mb-6 flex flex-col gap-4 bg-muted/5 p-3 rounded-sm border border-border/50 sm:bg-transparent sm:p-0 sm:border-0">
+                    {/* Top Row: Search, Filter, Reset */}
+                    <div className="flex flex-col md:flex-row gap-3 w-full">
+                        <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Search by name, email, or room..." 
-                                className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full"
+                                className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full focus-visible:ring-0 focus-visible:border-[#0056b3]"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                             />
                         </div>
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
-                            <div className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 py-2 bg-muted/30 rounded-sm h-10 flex items-center shrink-0">
-                                Records: {pagination?.totalBookings || 0}
-                            </div>
-                            <Button onClick={handleExport} disabled={exporting} className="h-10 px-4 rounded-sm font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white gap-2 flex-1 sm:flex-none" title="Download filtered report as CSV">
-                                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                Export CSV
+                        <div className="flex gap-2 w-full md:w-auto">
+                            <Button 
+                                onClick={fetchBookings}
+                                className="h-10 flex-1 md:flex-none px-4 rounded-sm font-noto-bold text-[10px] uppercase tracking-widest bg-[#0056b3] hover:bg-[#004494] text-white gap-2 shadow-sm"
+                            >
+                                <Filter className="h-3.5 w-3.5" />
+                                Filter
                             </Button>
+                            {(searchQuery || statusFilter || dateRange.startDate || dateRange.endDate) && (
+                                <Button 
+                                    variant="outline" 
+                                    onClick={handleResetFilters}
+                                    className="h-10 flex-1 md:flex-none px-3 rounded-sm border-2 border-border font-noto-bold text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground gap-2 flex items-center justify-center"
+                                >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    Reset
+                                </Button>
+                            )}
                         </div>
                     </div>
 
-                    {/* Bottom Row: Status & Dates */}
-                    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full">
+                    {/* Middle Row: Status & Dates */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-3 w-full">
                         <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                            <SelectTrigger className="w-full lg:w-[150px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] uppercase tracking-widest">
                                 <SelectValue placeholder="STATUS" />
                             </SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
-                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Records</SelectItem>
-                                <SelectItem value="pending" className="font-noto-bold text-xs uppercase tracking-widest">Pending</SelectItem>
-                                <SelectItem value="confirmed" className="font-noto-bold text-xs uppercase tracking-widest">Confirmed</SelectItem>
-                                <SelectItem value="cancelled" className="font-noto-bold text-xs uppercase tracking-widest">Cancelled</SelectItem>
-                                <SelectItem value="completed" className="font-noto-bold text-xs uppercase tracking-widest">Completed</SelectItem>
-                                <SelectItem value="no-show" className="font-noto-bold text-xs uppercase tracking-widest">No Show</SelectItem>
+                                <SelectItem value="all" className="font-noto-bold text-[10px] uppercase tracking-widest">All Records</SelectItem>
+                                <SelectItem value="pending" className="font-noto-bold text-[10px] uppercase tracking-widest">Pending</SelectItem>
+                                <SelectItem value="confirmed" className="font-noto-bold text-[10px] uppercase tracking-widest">Confirmed</SelectItem>
+                                <SelectItem value="cancelled" className="font-noto-bold text-[10px] uppercase tracking-widest">Cancelled</SelectItem>
+                                <SelectItem value="completed" className="font-noto-bold text-[10px] uppercase tracking-widest">Completed</SelectItem>
+                                <SelectItem value="no-show" className="font-noto-bold text-[10px] uppercase tracking-widest">No Show</SelectItem>
                             </SelectContent>
                         </Select>
 
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <Input type="date" className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border text-[10px] sm:text-xs font-noto-medium uppercase tracking-widest" value={dateRange.startDate} onChange={(e) => { setDateRange(p => ({ ...p, startDate: e.target.value })); setPage(1); }} title="Start Date" />
+                        <div className="flex items-center gap-2">
+                            <Input type="date" className="w-full h-10 rounded-sm border-2 border-border text-[10px] font-noto-medium uppercase tracking-widest bg-background" value={dateRange.startDate} onChange={(e) => { setDateRange(p => ({ ...p, startDate: e.target.value })); setPage(1); }} title="Start Date" />
                             <span className="text-muted-foreground font-noto-bold shrink-0">—</span>
-                            <Input type="date" className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border text-[10px] sm:text-xs font-noto-medium uppercase tracking-widest" value={dateRange.endDate} onChange={(e) => { setDateRange(p => ({ ...p, endDate: e.target.value })); setPage(1); }} title="End Date" />
+                            <Input type="date" className="w-full h-10 rounded-sm border-2 border-border text-[10px] font-noto-medium uppercase tracking-widest bg-background" value={dateRange.endDate} onChange={(e) => { setDateRange(p => ({ ...p, endDate: e.target.value })); setPage(1); }} title="End Date" />
+                        </div>
+
+                        {/* Export & Stats (Right aligned on larger screens) */}
+                        <div className="flex items-center gap-2 lg:ml-auto w-full sm:col-span-2 lg:w-auto">
+                            <div className="flex-1 lg:flex-none text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 h-10 flex items-center bg-muted/30 rounded-sm">
+                                Records: {pagination?.totalBookings || 0}
+                            </div>
+                            <Button onClick={handleExport} disabled={exporting} className="flex-1 lg:flex-none h-10 px-4 rounded-sm font-noto-bold text-[10px] uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm" title="Download filtered report as CSV">
+                                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                                Export CSV
+                            </Button>
                         </div>
                     </div>
                 </div>

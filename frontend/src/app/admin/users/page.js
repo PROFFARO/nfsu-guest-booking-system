@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -52,6 +52,21 @@ export default function UserManagementPage() {
         e.preventDefault();
         setPage(1);
         fetchUsers();
+    };
+
+    const handleResetSearch = () => {
+        setSearch('');
+        setPage(1);
+        // We use an explicit call or rely on the dependency array if we change roleFilter/page
+        // But for search we need to call it manually as search isn't in fetchUsers dependency
+        setTimeout(() => {
+            setLoading(true);
+            api.users.list({ page: 1, limit: 15 }).then(res => {
+                setUsers(res.data.users);
+                setPagination(res.data.pagination);
+                setLoading(false);
+            });
+        }, 0);
     };
 
     const handleRoleChange = async (userId, newRole) => {
@@ -105,32 +120,47 @@ export default function UserManagementPage() {
                     </p>
                 </div>
 
-                <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-                    <form onSubmit={handleSearch} className="flex gap-3 flex-1 min-w-[300px]">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search identification..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-9 rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none placeholder:uppercase placeholder:font-noto-bold placeholder:text-[10px] placeholder:tracking-widest"
-                            />
-                        </div>
-                        <Button type="submit" className="rounded-sm bg-[#0056b3] hover:bg-[#004494] text-white font-noto-bold uppercase text-xs tracking-wider h-10 px-6">
-                            Execute Query
-                        </Button>
-                    </form>
-                    <Select value={roleFilter || 'all'} onValueChange={(v) => { setRoleFilter(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="w-[180px] rounded-sm border-2 border-border h-10 font-noto-bold text-xs uppercase tracking-wide">
-                            <SelectValue placeholder="Filter By Clearance" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-sm border-2 border-border">
-                            <SelectItem value="all" className="font-noto-medium text-xs uppercase tracking-wide">All Clearances</SelectItem>
-                            <SelectItem value="admin" className="font-noto-medium text-xs uppercase tracking-wide">Administrator</SelectItem>
-                            <SelectItem value="staff" className="font-noto-medium text-xs uppercase tracking-wide">Staff</SelectItem>
-                            <SelectItem value="user" className="font-noto-medium text-xs uppercase tracking-wide">Standard User</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="mb-6 flex flex-col gap-4 bg-muted/5 p-3 rounded-sm border border-border/50 sm:bg-transparent sm:p-0 sm:border-0">
+                    <div className="flex flex-col md:flex-row gap-3 w-full">
+                        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 flex-1">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search identification..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="w-full pl-9 rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none placeholder:uppercase placeholder:font-noto-bold placeholder:text-[10px] placeholder:tracking-widest"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <Button type="submit" className="flex-1 sm:flex-none rounded-sm bg-[#0056b3] hover:bg-[#004494] text-white font-noto-bold uppercase text-[10px] sm:text-xs tracking-wider h-10 px-6">
+                                    Search
+                                </Button>
+                                {search && (
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        onClick={handleResetSearch}
+                                        className="flex-1 sm:flex-none rounded-sm border-2 border-border h-10 px-4 flex items-center justify-center gap-2 font-noto-bold uppercase text-[10px] tracking-widest text-muted-foreground hover:text-foreground whitespace-nowrap"
+                                    >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        <span>Reset</span>
+                                    </Button>
+                                )}
+                            </div>
+                        </form>
+                        <Select value={roleFilter || 'all'} onValueChange={(v) => { setRoleFilter(v === 'all' ? '' : v); setPage(1); }}>
+                            <SelectTrigger className="w-full md:w-[200px] rounded-sm border-2 border-border h-10 font-noto-bold text-[10px] sm:text-xs uppercase tracking-wide bg-background">
+                                <SelectValue placeholder="Clearance Filter" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-sm border-2 border-border">
+                                <SelectItem value="all" className="font-noto-medium text-xs uppercase tracking-wide">All Clearances</SelectItem>
+                                <SelectItem value="admin" className="font-noto-medium text-xs uppercase tracking-wide">Administrator</SelectItem>
+                                <SelectItem value="staff" className="font-noto-medium text-xs uppercase tracking-wide">Staff</SelectItem>
+                                <SelectItem value="user" className="font-noto-medium text-xs uppercase tracking-wide">Standard User</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <div className="border-2 border-border rounded-sm bg-card shadow-sm overflow-hidden">

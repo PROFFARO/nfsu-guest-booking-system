@@ -18,17 +18,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const adminLinks = [
-    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
-    { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
-    { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
-    { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
-    { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
-    { href: '/admin/support', label: 'Support Inbox', icon: Headset },
-    { href: '/admin/faq', label: 'Query Repository', icon: CircleHelp },
-];
-
 export default function Sidebar() {
     const pathname = usePathname();
     const { user } = useAuth();
@@ -36,12 +25,41 @@ export default function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const sidebarRef = useRef(null);
 
-    const links = adminLinks.filter(
-        (link) => !link.adminOnly || user?.role === 'admin'
-    );
+    const getLinks = () => {
+        // Show "Browse Rooms" even for guests (no user)
+        if (!user) {
+            return [
+                { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
+            ];
+        }
+
+        if (user.role === 'admin' || user.role === 'staff') {
+            return [
+                { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+                { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
+                { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+                { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
+                { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
+                { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
+                { href: '/admin/support', label: 'Support Inbox', icon: Headset },
+                { href: '/admin/faq', label: 'Query Repository', icon: CircleHelp },
+            ].filter(link => !link.adminOnly || user.role === 'admin');
+        }
+
+        // User role links
+        return [
+            { href: '/rooms', label: 'Browse Rooms', icon: BedDouble },
+            { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { href: '/dashboard/bookings', label: 'My Bookings', icon: BookOpen },
+        ];
+    };
+
+    const links = getLinks();
 
     const isActive = (href) => {
-        if (href === '/admin') return pathname === '/admin';
+        if (href === '/admin' || href === '/dashboard') {
+            return pathname === href;
+        }
         return pathname.startsWith(href);
     };
 

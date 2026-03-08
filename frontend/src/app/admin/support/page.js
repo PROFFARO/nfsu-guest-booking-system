@@ -6,9 +6,11 @@ import { useSocket } from '@/context/SocketContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Headset, MessageCircle, Send, CircleCheckBig, Clock, Inbox, Loader2, ChevronLeft } from 'lucide-react';
+import { Headset, MessageCircle, Send, CircleCheckBig, Clock, Inbox, Loader2, ChevronLeft, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 
 export default function SupportInbox() {
     const [threads, setThreads] = useState([]);
@@ -16,6 +18,9 @@ export default function SupportInbox() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [threadToDelete, setThreadToDelete] = useState(null);
     const { socket } = useSocket();
     const scrollRef = useRef(null);
 
@@ -76,6 +81,36 @@ export default function SupportInbox() {
         setMessages(res.data.messages);
     };
 
+    const handleDeleteThread = (e, thread) => {
+        e.stopPropagation();
+        setThreadToDelete(thread);
+        setDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!threadToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await api.chats.deleteAdminThread(threadToDelete._id);
+            if (res.status === 'success') {
+                toast.success('Thread deleted successfully');
+                setThreads(prev => prev.filter(t => t._id !== threadToDelete._id));
+                if (activeThread?._id === threadToDelete._id) {
+                    setActiveThread(null);
+                    setMessages([]);
+                }
+                setDeleteModalOpen(false);
+                setThreadToDelete(null);
+            }
+        } catch (err) {
+            console.error("Failed to delete thread", err);
+            toast.error(err.message || 'Failed to delete thread');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     const handleSend = async () => {
         if (!input.trim() || !activeThread) return;
         const content = input;
@@ -113,21 +148,30 @@ export default function SupportInbox() {
                         <div className="p-10 text-center text-xs text-muted-foreground italic">No active support requests.</div>
                     ) : (
                         threads.map(t => (
-                            <button
+                            <div
                                 key={t._id}
                                 onClick={() => selectThread(t)}
-                                className={`w-full p-4 text-left border-b border-border transition-colors hover:bg-muted/30 ${
+                                className={`group relative w-full p-4 text-left border-b border-border transition-colors hover:bg-muted/30 cursor-pointer ${
                                     activeThread?._id === t._id ? 'bg-muted/50 border-l-4 border-l-[#0056b3]' : 'bg-background'
                                 }`}
                             >
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className="text-sm font-noto-semibold text-foreground truncate">{t.user?.name}</span>
-                                    <span className="text-[10px] font-noto-medium text-muted-foreground opacity-70">
-                                        {format(new Date(t.lastMessageAt), 'HH:mm')}
-                                    </span>
+                                    <span className="text-sm font-noto-semibold text-foreground truncate max-w-[140px]">{t.user?.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-noto-medium text-muted-foreground opacity-70">
+                                            {format(new Date(t.lastMessageAt), 'HH:mm')}
+                                        </span>
+                                        <button
+                                            onClick={(e) => handleDeleteThread(e, t)}
+                                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-all rounded-sm hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            title="Delete Thread"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
                                 <p className="text-[11px] font-noto-regular text-muted-foreground/80 truncate truncate-tight">{t.user?.email}</p>
-                            </button>
+                            </div>
                         ))
                     )}
                 </div>
@@ -201,6 +245,17 @@ export default function SupportInbox() {
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal 
+                open={deleteModalOpen}
+                onOpenChange={setDeleteModalOpen}
+                title="Delete Support Thread"
+                description={`Are you sure you want to delete the chat thread with ${threadToDelete?.user?.name}? All messages and history will be permanently removed.`}
+                onConfirm={confirmDelete}
+                confirmText="Delete Chat"
+                variant="destructive"
+                loading={isDeleting}
+            />
         </div>
     );
 }

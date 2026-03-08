@@ -118,6 +118,28 @@ router.delete('/ai/threads/:id', asyncHandler(async (req, res) => {
     res.json({ status: 'success', message: 'Thread deleted successfully' });
 }));
 
+// @route   DELETE /api/chats/admin/threads/:id
+// @desc    Delete a support chat thread and its messages
+// @access  Private (Staff/Admin)
+router.delete('/admin/threads/:id', staffMiddleware, asyncHandler(async (req, res) => {
+    const thread = await ChatThread.findById(req.params.id);
+    
+    if (!thread) {
+        return res.status(404).json({ status: 'error', message: 'Thread not found' });
+    }
+
+    // Since this is staffMiddleware, we don't need to check ownership, 
+    // but we should ensure it's a support thread to avoid accidental AI thread deletion here
+    if (thread.type !== 'support') {
+        return res.status(400).json({ status: 'error', message: 'Only support threads can be deleted through this endpoint' });
+    }
+
+    await ChatMessage.deleteMany({ thread: thread._id });
+    await thread.deleteOne();
+
+    res.json({ status: 'success', message: 'Support thread deleted successfully' });
+}));
+
 // @route   POST /api/chats/ai
 // @desc    Chat with Campus AI Assistant
 // @access  Private
