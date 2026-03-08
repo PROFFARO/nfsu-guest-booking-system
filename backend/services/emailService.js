@@ -164,6 +164,45 @@ export function bookingConfirmationEmail(booking) {
 }
 
 /**
+ * Booking Pending Approval Email
+ */
+export function bookingPendingEmail(booking) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Your room requisition application has been <strong style="color:#b45309;">received</strong> and is currently under review by the NFSU Guest House administration.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-collapse:collapse;">
+      ${detailRow('Application Ref', `<strong>${booking._id}</strong>`)}
+      ${detailRow('Guest Name', booking.guestName)}
+      ${detailRow('Check-In Date', formatDate(booking.checkIn))}
+      ${detailRow('Check-Out Date', formatDate(booking.checkOut))}
+      ${detailRow('Status', '<strong style="color:#b45309;">PENDING APPROVAL</strong>')}
+    </table>
+
+    <div style="background:#fffbeb;border:1px solid #fde68a;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Next Steps
+      </p>
+      <p style="margin:8px 0 0;color:#374151;font-size:12px;line-height:1.6;">
+        Our staff will verify your request and the availability of the room. You will receive a separate <strong>Confirmation Email</strong> with your Smart Gatepass and Invoice once the request is approved.
+      </p>
+    </div>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      No action is required from your side at this moment. You can track your application status in the Portal Dashboard.
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Application Received [Ref: ${booking._id}]`,
+    html: emailWrapper('BOOKING APPLICATION RECEIVED — PENDING APPROVAL', body),
+  };
+}
+
+/**
  * Booking Cancellation Email
  */
 export function bookingCancellationEmail(booking) {

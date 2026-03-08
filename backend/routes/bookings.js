@@ -10,7 +10,7 @@ import { authMiddleware, adminMiddleware, staffMiddleware, userOnlyMiddleware } 
 import { bookingCreateLimiter } from '../middleware/rateLimiter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { getIO } from '../realtime/socket.js';
-import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail, gatepassEmail, invoiceEmail } from '../services/emailService.js';
+import { sendEmail, bookingConfirmationEmail, bookingPendingEmail, bookingCancellationEmail, paymentStatusChangeEmail, gatepassEmail, invoiceEmail } from '../services/emailService.js';
 import { generateInvoicePDF, generateInvoicePDFBuffer } from '../services/invoiceService.js';
 import { bookingsToCSV, buildExportQuery } from '../services/reportService.js';
 import { logEvent } from '../utils/auditLogger.js';
@@ -131,48 +131,27 @@ router.post('/', [
     req
   });
 
-  // If user chooses pay later, confirm booking immediately and set room to booked
+  // NEW FLOW: All bookings start as 'pending' and require admin approval
+  booking.status = 'pending';
+
   if (paymentOption === 'pay_later') {
-    booking.status = 'confirmed';
     booking.paymentMethod = 'cash';
     booking.paymentStatus = 'unpaid';
-    await generateGatepass(booking);
-    await booking.save();
-    await Room.findByIdAndUpdate(room._id, { status: 'booked', holdBy: null, holdUntil: null });
-
-    // Populate and emit events
-    await booking.populate('room', 'roomNumber type floor block pricePerNight');
-    try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
-    try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
-
-    // Fire-and-forget: send email notifications before returning
-    sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
-    sendEmail(booking.email, gatepassEmail(booking)).catch(() => { });
-
-    generateInvoicePDFBuffer(booking).then(pdfBuffer => {
-      const invoiceMail = invoiceEmail(booking);
-      invoiceMail.attachments = [{
-        filename: `NFSU_Invoice_${booking._id}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }];
-      sendEmail(booking.email, invoiceMail).catch(() => { });
-    }).catch(err => console.error("Failed to generate invoice buffer:", err));
-
-    return res.status(201).json({
-      status: 'success',
-      message: 'Booking confirmed. Pay at reception to complete payment.',
-      data: { booking }
-    });
   }
 
-  // Otherwise keep room in held state until payment confirmation
+  await booking.save();
   await booking.populate('room', 'roomNumber type floor block pricePerNight');
+
+  // Emit events
   try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'pending' }); } catch { }
+
+  // Fire-and-forget: send "Received/Pending" email notification
+  sendEmail(booking.email, bookingPendingEmail(booking)).catch(() => { });
 
   return res.status(201).json({
     status: 'success',
-    message: 'Booking created and room held. Proceed to payment to confirm.',
+    message: 'Booking application received. Our staff will review and confirm your request shortly.',
     data: { booking }
   });
 }));
@@ -736,9 +715,32 @@ router.put('/:id/status', [
   booking.status = status;
   if (notes) booking.notes = notes;
 
-  // Generate gatepass if status is updated to confirmed
+  // Generate gatepass and send emails if status is updated to confirmed
   if (status === 'confirmed' && oldStatus !== 'confirmed') {
     await generateGatepass(booking);
+
+    // Ensure room is marked as booked
+    await Room.findByIdAndUpdate(booking.room, { status: 'booked', holdBy: null, holdUntil: null });
+
+    // Populate for emails
+    await booking.populate('room', 'roomNumber type floor block pricePerNight');
+
+    // Fire-and-forget: send confirmation and gatepass emails
+    sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
+    sendEmail(booking.email, gatepassEmail(booking)).catch(() => { });
+
+    // Generate and send invoice
+    generateInvoicePDFBuffer(booking).then(pdfBuffer => {
+      const invoiceMail = invoiceEmail(booking);
+      invoiceMail.attachments = [{
+        filename: `NFSU_Invoice_${booking._id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }];
+      sendEmail(booking.email, invoiceMail).catch(() => { });
+    }).catch(err => console.error("Failed to generate invoice buffer:", err));
+
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room._id || booking.room, status: 'booked' }); } catch { }
   }
 
   // If cancelling, add cancellation details
@@ -748,6 +750,8 @@ router.put('/:id/status', [
   }
 
   await booking.save();
+
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: booking.status }); } catch { }
 
   await logEvent({
     userId: req.user._id,
@@ -769,7 +773,7 @@ router.put('/:id/status', [
       await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
     }
   } else if (oldStatus !== 'confirmed' && status === 'confirmed') {
-    await Room.findByIdAndUpdate(booking.room, { status: 'booked', holdBy: null, holdUntil: null });
+    // Already handled in the confirmation flow block above
   }
 
   // Populate room details for response

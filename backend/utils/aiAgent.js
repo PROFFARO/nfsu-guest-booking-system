@@ -5,8 +5,12 @@ import FAQ from "../models/FAQ.js";
 import ChatThread from "../models/ChatThread.js";
 import ChatMessage from "../models/ChatMessage.js";
 import AuditLog from "../models/AuditLog.js";
-import { sendEmail, bookingCancellationEmail, bookingUpdateEmail, maintenanceReportEmail, supplyRequestEmail } from '../services/emailService.js';
+import { sendEmail, bookingCancellationEmail, bookingPendingEmail, bookingUpdateEmail, maintenanceReportEmail, supplyRequestEmail, bookingConfirmationEmail, gatepassEmail, invoiceEmail } from '../services/emailService.js';
+import { generateInvoicePDFBuffer } from '../services/invoiceService.js';
 import { logEvent } from '../utils/auditLogger.js';
+import crypto from 'crypto';
+import QRCode from 'qrcode';
+import { getIO } from '../realtime/socket.js';
 
 // Tool Definitions (OpenAI Specification)
 const tools = [
@@ -108,10 +112,12 @@ const tools = [
     type: "function",
     function: {
       name: "get_available_rooms",
-      description: "Get a list of available rooms based on type, dates, budget, Block, and facilities",
+      description: "Get a list of available rooms based on dates, type, budget, floor, and facilities",
       parameters: {
         type: "object",
         properties: {
+          checkIn: { type: "string", description: "Desired check-in date (YYYY-MM-DD)" },
+          checkOut: { type: "string", description: "Desired check-out date (YYYY-MM-DD)" },
           type: { type: "string", enum: ["single", "double"], description: "Room type" },
           floor: { type: "string", description: "Desired floor number (1-6)" },
           block: { type: "string", enum: ["A", "B", "C", "D", "E", "F"], description: "Block letter" },
@@ -119,11 +125,33 @@ const tools = [
           maxPrice: { type: "number", description: "Maximum price per night (budget)" },
           facilities: {
             type: "array",
-            items: { type: "string", enum: ["Gym", "WiFi", "AC", "TV", "Refrigerator", "Balcony", "Parking"] },
-            description: "List of required facilities"
+            items: { type: "string" },
+            description: "List of required facilities (e.g. Gym, AC, WiFi)"
           },
           minRating: { type: "number", description: "Minimum star rating (0-5)" }
         }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_booking",
+      description: "Create a new confirmed room booking for the user.",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumber: { type: "string", description: "The specific room number to book (e.g. 101, A-205)" },
+          checkIn: { type: "string", description: "Check-in date (YYYY-MM-DD)" },
+          checkOut: { type: "string", description: "Check-out date (YYYY-MM-DD)" },
+          guestName: { type: "string", description: "Name of the guest (leave empty to use account name)" },
+          email: { type: "string", description: "Contact email (leave empty to use account email)" },
+          phone: { type: "string", description: "Contact phone 10-digits (leave empty to use account phone)" },
+          purpose: { type: "string", enum: ["academic", "business", "personal", "other"], description: "Purpose of visit" },
+          numberOfGuests: { type: "number", minimum: 1, maximum: 4, description: "Number of guests staying" },
+          specialRequests: { type: "string", description: "Any special instructions or requests" }
+        },
+        required: ["roomNumber", "checkIn", "checkOut", "purpose", "numberOfGuests"]
       }
     }
   },
@@ -521,24 +549,62 @@ export const toolImplementations = {
     }));
   },
   get_available_rooms: async (args) => {
-    const query = { status: 'vacant', isActive: true };
-    if (args.type) query.type = args.type;
-    if (args.floor) query.floor = String(args.floor);
-    if (args.block) query.block = args.block;
-    if (args.minRating) query.rating = { $gte: args.minRating };
-    if (args.facilities && args.facilities.length > 0) {
-      query.facilities = { $all: args.facilities };
-    }
+    // 1. Base query for active, non-maintenance rooms
+    const query = { isActive: true, status: { $ne: 'maintenance' } };
 
-    // Handle price range
+    if (args.type) query.type = args.type.toLowerCase();
+    if (args.floor) query.floor = String(args.floor);
+    if (args.block) query.block = args.block.toUpperCase();
+    if (args.minRating) query.rating = { $gte: args.minRating };
+
+    // Price filtering
     if (args.minPrice || args.maxPrice) {
       query.pricePerNight = {};
       if (args.minPrice) query.pricePerNight.$gte = args.minPrice;
       if (args.maxPrice) query.pricePerNight.$lte = args.maxPrice;
     }
 
-    const rooms = await Room.find(query).sort({ rating: -1, pricePerNight: 1 }).limit(10);
-    return rooms.map(r => ({
+    let rooms = await Room.find(query).sort({ rating: -1, pricePerNight: 1 });
+
+    // 2. Fuzzy facility filtering (Case-insensitive)
+    if (args.facilities && args.facilities.length > 0) {
+      rooms = rooms.filter(room => {
+        const roomFacs = (room.facilities || []).map(f => f.toLowerCase());
+        return args.facilities.every(reqFac =>
+          roomFacs.some(f => f.includes(reqFac.toLowerCase()))
+        );
+      });
+    }
+
+    // 3. Filter by Date Availability if provided
+    if (args.checkIn && args.checkOut) {
+      const checkInDate = new Date(args.checkIn);
+      const checkOutDate = new Date(args.checkOut);
+
+      if (!isNaN(checkInDate.getTime()) && !isNaN(checkOutDate.getTime())) {
+        const availableRooms = [];
+        for (const room of rooms) {
+          // Check if there are ANY conflicting bookings for this specific room
+          const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
+
+          if (isAvailable && room.status !== 'held') {
+            availableRooms.push(room);
+          } else if (isAvailable && room.status === 'held') {
+            // If it's held but the hold has expired
+            if (room.holdUntil && new Date() > room.holdUntil) {
+              availableRooms.push(room);
+            }
+          }
+        }
+        rooms = availableRooms;
+      }
+    } else {
+      // If no dates provided, only return fully vacant currently
+      rooms = rooms.filter(r => r.status === 'vacant');
+    }
+
+    const maxResults = rooms.slice(0, 10);
+    return maxResults.map(r => ({
       roomNumber: r.roomNumber,
       type: r.type,
       price: r.pricePerNight,
@@ -547,6 +613,79 @@ export const toolImplementations = {
       facilities: r.facilities,
       rating: r.rating
     }));
+  },
+  create_booking: async (args, userId) => {
+    const { default: User } = await import('../models/User.js');
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User account not found.");
+
+    const room = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
+
+    const checkInDate = new Date(args.checkIn);
+    const checkOutDate = new Date(args.checkOut);
+
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      throw new Error("Invalid check-in or check-out date formats. Please use YYYY-MM-DD.");
+    }
+
+    const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
+    if (!isAvailable) {
+      throw new Error(`Room ${room.roomNumber} is generally not available for the selected dates. Please check availability again.`);
+    }
+
+    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+    if (nights <= 0) throw new Error("Check-out date must be after check-in date.");
+
+    const totalAmount = nights * room.pricePerNight;
+
+    const booking = new Booking({
+      user: userId,
+      room: room._id,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guestName: args.guestName || user.name,
+      email: args.email || user.email,
+      phone: args.phone ? String(args.phone) : user.phone,
+      purpose: args.purpose,
+      numberOfGuests: args.numberOfGuests,
+      specialRequests: args.specialRequests,
+      totalAmount: totalAmount,
+      status: 'pending',
+      paymentMethod: 'cash',
+      paymentStatus: 'unpaid'
+    });
+
+    await booking.save();
+    // In AI flow, we keep room status as is (will be considered booked/unavailable via overlap check)
+    // or we could mark as 'held' to be safe visually.
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
+
+    // Emitting real-time updates
+    try {
+      getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'pending' });
+    } catch (e) { }
+
+    await logEvent({
+      userId,
+      action: 'BOOKING_CREATE',
+      details: { bookingId: booking._id, roomNumber: room.roomNumber, checkIn: args.checkIn, checkOut: args.checkOut, source: 'ai_assistant' }
+    });
+
+    // Send Pending Email
+    await booking.populate('room', 'roomNumber type floor block pricePerNight');
+    sendEmail(booking.email, bookingPendingEmail(booking)).catch(() => { });
+
+    return {
+      success: true,
+      message: `Booking request received for Room ${room.roomNumber} from ${args.checkIn} to ${args.checkOut}. Total amount: ₹${totalAmount}. Your application is now PENDING staff approval. You will receive a confirmation email once approved.`,
+      data: {
+        bookingId: booking._id,
+        roomNumber: room.roomNumber,
+        totalAmount,
+        status: 'pending'
+      }
+    };
   },
   get_my_bookings: async (args, userId) => {
     const query = { user: userId };
@@ -708,7 +847,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, hospital facilities, or room maintenance. If a user reports any problem or issue with their room (e.g., pests, broken furniture, leaks, mosquitoes, wall damage), you MUST invoke 'report_room_issue' immediately. NEVER just say you have reported it without calling the tool. If a user requests extra supplies or room service items (e.g., towels, water bottles, bedding, toiletries, pillows), you MUST invoke 'request_supplies' immediately—ask for their room number and the items they need. If they ask for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant. Use the provided tools. To search for available rooms using 'get_available_rooms' you MUST ask the user for their check-in and check-out dates if they have not provided any, otherwise the search will only return rooms that are completely vacant right now. If a user tries to create a booking, ALWAYS understand their dates and preferences, list options via 'get_available_rooms', ask them to pick a room, and FINALLY call 'create_booking'. If reporting issues, use 'report_room_issue'. For asking supplies, use 'request_supplies'. To cancel, use 'get_my_bookings' then 'cancel_booking'. Be concise."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',
@@ -718,11 +857,47 @@ export const processAIChat = async (userId, message, history = []) => {
   ];
 
   const models = [
+
     "google/gemini-2.0-flash-lite-001",
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct",
     "qwen/qwen-2.5-72b-instruct",
-    "openrouter/free"
+    "openrouter/free",
+
+    // Tier 3: Massive Context Providers (Best for analyzing huge documents)
+    "qwen/qwen3-coder:free", // 262,000
+    "stepfun/step-3.5-flash:free", // 256,000
+    "nvidia/nemotron-3-nano-30b-a3b:free", // 256,000
+    "openrouter/free", // 200,000 (Router)
+
+    // Tier 4: Heavyweight & Flagship Models
+    "qwen/qwen3-next-80b-a3b-instruct:free", // 262,144 (Often rate limited)
+    "nousresearch/hermes-3-llama-3.1-405b:free", // 131,072 (Slowest but smartest)
+    "openai/gpt-oss-120b:free", // 131,072
+    "arcee-ai/trinity-large-preview:free", // 131,000
+
+    // Tier 2: The "Sweet Spot" (Balance of Intelligence & Speed)
+    "google/gemma-3-27b-it:free", // 131,072
+    "meta-llama/llama-3.2-3b-instruct:free", // 131,072
+    "meta-llama/llama-3.3-70b-instruct:free", // 128,000
+    "z-ai/glm-4.5-air:free", // 131,072
+    "openai/gpt-oss-20b:free", // 131,072
+    "arcee-ai/trinity-mini:free", // 131,072
+    "nvidia/nemotron-nano-12b-v2-vl:free", // 128,000
+    "nvidia/nemotron-nano-9b-v2:free", // 128,000
+    "mistralai/mistral-small-3.1-24b-instruct:free", // 128,000
+    "qwen/qwen3-vl-30b-a3b-thinking:free", // 131,072
+    "qwen/qwen3-vl-235b-a22b-thinking:free", // 131,072
+
+    // Tier 1: Fastest Response Times
+    "qwen/qwen3-4b:free", // 40,960
+    "liquid/lfm-2.5-1.2b-thinking:free", // 32,768
+    "liquid/lfm-2.5-1.2b-instruct:free", // 32,768
+    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", // 32,768
+    "google/gemma-3-12b-it:free", // 32,768
+    "google/gemma-3-4b-it:free", // 32,768
+    "google/gemma-3n-e4b-it:free", // 8,192
+    "google/gemma-3n-e2b-it:free" // 8,192
   ];
 
   const callOpenRouter = async (currentMessages, currentTools = null, modelIndex = 0) => {
