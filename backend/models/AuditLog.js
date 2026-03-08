@@ -23,7 +23,10 @@ const auditLogSchema = new mongoose.Schema({
       'ROOM_DELETE',
       'USER_UPDATE',
       'USER_DELETE',
-      'SYSTEM_MAINTENANCE'
+      'SYSTEM_MAINTENANCE',
+      'MAINTENANCE_REPORT',
+      'SUPPORT_ESCALATE',
+      'BOOKING_CANCEL_BULK'
     ],
     required: true,
     index: true

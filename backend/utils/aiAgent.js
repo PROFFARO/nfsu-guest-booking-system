@@ -4,6 +4,7 @@ import Review from "../models/Review.js";
 import FAQ from "../models/FAQ.js";
 import ChatThread from "../models/ChatThread.js";
 import ChatMessage from "../models/ChatMessage.js";
+import AuditLog from "../models/AuditLog.js";
 import { sendEmail, bookingCancellationEmail } from '../services/emailService.js';
 import { logEvent } from '../utils/auditLogger.js';
 
@@ -193,7 +194,7 @@ const tools = [
 ];
 
 // Tool Implementation Map
-const toolImplementations = {
+export const toolImplementations = {
   escalate_to_staff: async (args, userId) => {
     // 1. Create a support thread
     const thread = await ChatThread.create({
@@ -317,19 +318,64 @@ const toolImplementations = {
   },
   report_room_issue: async (args, userId) => {
     const room = await Room.findOne({ roomNumber: args.roomNumber });
-    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
-
     const timestamp = new Date().toLocaleString();
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60000);
+
+    // 1. Prevent exact duplicate reports within 5 minutes (same room, same issue)
+    const existingLog = await AuditLog.findOne({
+      user: userId,
+      action: 'MAINTENANCE_REPORT',
+      'details.roomNumber': args.roomNumber,
+      'details.issue': args.issueDescription,
+      createdAt: { $gte: fiveMinutesAgo }
+    });
+
+    if (existingLog) {
+      return {
+        success: true,
+        message: `Issue for Room ${args.roomNumber} has already been logged. Maintenance staff is already notified.`,
+        data: { roomNumber: args.roomNumber, timestamp: existingLog.createdAt.toLocaleString(), duplicate: true }
+      };
+    }
     const issueEntry = `\n[ISSUE REPORTED ${timestamp}]: ${args.issueDescription}`;
 
     room.notes = (room.notes || "") + issueEntry;
     await room.save();
 
+    // 1. Log to Audit Log (for Dashboard widget)
     await logEvent({
       userId,
       action: 'MAINTENANCE_REPORT',
       details: { roomNumber: args.roomNumber, issue: args.issueDescription, source: 'ai_assistant' }
     });
+
+    // 2. Create/Update Support Thread to notify staff in Support Inbox
+    try {
+      let thread = await ChatThread.findOne({ user: userId, type: 'support', status: 'open' });
+      if (!thread) {
+        thread = await ChatThread.create({
+          user: userId,
+          type: 'support',
+          status: 'open',
+          lastMessageAt: Date.now(),
+          title: `Room ${args.roomNumber} Issue`
+        });
+      } else {
+        thread.lastMessageAt = Date.now();
+        await thread.save();
+      }
+
+      await ChatMessage.create({
+        thread: thread._id,
+        sender: null, // Sent by System/AI
+        senderType: 'ai',
+        content: `[MAINTENANCE REPORTED VIA AI]\nRoom: ${args.roomNumber}\nIssue: ${args.issueDescription}\nTime: ${timestamp}`,
+        type: 'action',
+        metadata: { action: 'report_room_issue', roomNumber: args.roomNumber, issue: args.issueDescription }
+      });
+    } catch (err) {
+      console.error("Failed to create support thread for maintenance report:", err);
+    }
 
     return {
       success: true,
@@ -560,7 +606,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, or hospital facilities. If a user asks for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, hospital facilities, or room maintenance. If a user reports any problem or issue with their room (e.g., pests, broken furniture, leaks, mosquitoes, wall damage), you MUST invoke 'report_room_issue' immediately. NEVER just say you have reported it without calling the tool. If they ask for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

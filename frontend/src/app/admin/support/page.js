@@ -48,7 +48,7 @@ export default function SupportInbox() {
                 });
             }
             // Update threads list last message hint
-            setThreads(prev => prev.map(t => 
+            setThreads(prev => prev.map(t =>
                 t._id === message.thread ? { ...t, lastMessageAt: message.createdAt } : t
             ));
         };
@@ -151,12 +151,13 @@ export default function SupportInbox() {
                             <div
                                 key={t._id}
                                 onClick={() => selectThread(t)}
-                                className={`group relative w-full p-4 text-left border-b border-border transition-colors hover:bg-muted/30 cursor-pointer ${
-                                    activeThread?._id === t._id ? 'bg-muted/50 border-l-4 border-l-[#0056b3]' : 'bg-background'
-                                }`}
+                                className={`group relative w-full p-4 text-left border-b border-border transition-colors hover:bg-muted/30 cursor-pointer ${activeThread?._id === t._id ? 'bg-muted/50 border-l-4 border-l-[#0056b3]' : 'bg-background'
+                                    }`}
                             >
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className="text-sm font-noto-semibold text-foreground truncate max-w-[140px]">{t.user?.name}</span>
+                                    <span className="text-sm font-noto-semibold text-foreground truncate max-w-[140px]">
+                                        {t.title?.includes('Room') && t.title?.includes('Issue') ? 'AI ASSISTANT' : t.user?.name}
+                                    </span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-noto-medium text-muted-foreground opacity-70">
                                             {format(new Date(t.lastMessageAt), 'HH:mm')}
@@ -182,16 +183,18 @@ export default function SupportInbox() {
                 {activeThread ? (
                     <>
                         <div className="p-4 border-b-2 border-border flex items-center bg-muted/5 gap-3">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 className="md:hidden shrink-0 h-8 w-8"
                                 onClick={() => setActiveThread(null)}
                             >
                                 <ChevronLeft className="h-5 w-5" />
                             </Button>
                             <div>
-                                <h3 className="text-sm font-noto-semibold text-foreground tracking-tight">{activeThread.user?.name}</h3>
+                                <h3 className="text-sm font-noto-semibold text-foreground tracking-tight">
+                                    {activeThread.title?.includes('Room') && activeThread.title?.includes('Issue') ? 'AI ASSISTANT (Maintenance)' : activeThread.user?.name}
+                                </h3>
                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     <Badge variant="outline" className="text-[9px] sm:text-[10px] h-5 rounded-sm border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-noto-medium px-1.5 shrink-0">Connected</Badge>
                                     <span className="text-[10px] sm:text-[11px] text-muted-foreground font-noto-regular truncate max-w-[150px] sm:max-w-none">{activeThread.user?.email}</span>
@@ -202,11 +205,15 @@ export default function SupportInbox() {
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/20" ref={scrollRef}>
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex ${msg.senderType === 'staff' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-md text-[12px] sm:text-[13px] leading-relaxed shadow-xs ${
-                                        msg.senderType === 'staff' 
-                                        ? 'bg-[#0056b3] text-white font-noto-regular' 
-                                        : 'bg-card text-foreground border border-border font-noto-regular'
-                                    }`}>
+                                    <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-md text-[12px] sm:text-[13px] leading-relaxed shadow-xs ${msg.senderType === 'staff'
+                                            ? 'bg-[#0056b3] text-white font-noto-regular'
+                                            : msg.senderType === 'ai'
+                                                ? 'bg-amber-50 text-amber-900 border border-amber-200 font-noto-regular'
+                                                : 'bg-card text-foreground border border-border font-noto-regular'
+                                        }`}>
+                                        {msg.senderType === 'ai' && (
+                                            <div className="text-[9px] font-noto-bold text-amber-600 mb-1 uppercase tracking-wider">Automated Report</div>
+                                        )}
                                         {msg.content}
                                         <div className={`text-[9px] mt-1 opacity-60 font-noto-medium ${msg.senderType === 'staff' ? 'text-right' : 'text-left'}`}>
                                             {format(new Date(msg.createdAt), 'HH:mm')}
@@ -218,14 +225,14 @@ export default function SupportInbox() {
 
                         <div className="p-3 sm:p-4 border-t-2 border-border bg-background">
                             <div className="flex gap-2">
-                                <Input 
+                                <Input
                                     placeholder="Type your official response..."
                                     className="flex-1 text-[11px] sm:text-xs border-2 rounded-sm"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                                 />
-                                <Button 
+                                <Button
                                     size="sm"
                                     className="bg-[#0056b3] hover:bg-[#004494] px-4 sm:px-6 font-noto-semibold shrink-0"
                                     onClick={handleSend}
@@ -246,7 +253,7 @@ export default function SupportInbox() {
                 )}
             </div>
 
-            <ConfirmationModal 
+            <ConfirmationModal
                 open={deleteModalOpen}
                 onOpenChange={setDeleteModalOpen}
                 title="Delete Support Thread"

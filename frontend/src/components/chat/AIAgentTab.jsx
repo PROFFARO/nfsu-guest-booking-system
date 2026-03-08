@@ -17,6 +17,7 @@ export function AIAgentTab() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [copiedMessageId, setCopiedMessageId] = useState(null);
     const [threadId, setThreadId] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('activeAIThreadId');
@@ -97,6 +98,13 @@ export function AIAgentTab() {
         } catch (err) {
             console.error("Failed to delete thread:", err);
         }
+    };
+
+    const handleCopy = (text, id) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopiedMessageId(id);
+        setTimeout(() => setCopiedMessageId(null), 2000);
     };
 
     const handleSend = async () => {
@@ -627,10 +635,24 @@ export function AIAgentTab() {
                                     )}
                                     {renderMetadata(msg)}
                                 </div>
-                                <div className={`text-[9px] mt-1.5 px-1 opacity-40 font-noto-medium flex items-center gap-1.5 uppercase tracking-tighter`}>
+                                <div className={`text-[9px] mt-1.5 px-1 opacity-40 hover:opacity-100 transition-all font-noto-medium flex items-center gap-1.5 uppercase tracking-tighter`}>
                                     <span>{msg.senderType === 'user' ? 'You' : 'Assistant'}</span>
                                     <span>•</span>
                                     <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <button
+                                        onClick={() => handleCopy(msg.content, msg._id || idx)}
+                                        className="ml-1 flex items-center gap-1 cursor-pointer hover:text-[#0056b3] transition-colors"
+                                        title="Copy message"
+                                    >
+                                        {copiedMessageId === (msg._id || idx) ? (
+                                            <>
+                                                <Check className="h-2.5 w-2.5 text-emerald-600" />
+                                                <span className="text-[7px] text-emerald-600 font-noto-bold">Copied</span>
+                                            </>
+                                        ) : (
+                                            <Copy className="h-2.5 w-2.5" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>

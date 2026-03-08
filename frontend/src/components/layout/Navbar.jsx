@@ -114,7 +114,7 @@ export default function Navbar() {
     return (
         <>
             <header className="sticky top-0 z-50 w-full border-b border-border bg-background shadow-sm notranslate">
-                <div className="container mx-auto flex h-16 items-center justify-between px-4">
+                <div className="w-full max-w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     {/* Logo */}
                     <Link href={logoHref} className="flex items-center gap-2 sm:gap-3 transition-opacity hover:opacity-90">
                         <div className="flex items-center justify-center">
