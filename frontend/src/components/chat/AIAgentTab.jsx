@@ -143,12 +143,112 @@ export function AIAgentTab() {
             return (
                 <div className="mt-2 space-y-2">
                     {result.map((room, i) => (
-                        <div key={i} className="p-2 border border-border rounded-sm bg-muted/20 text-[10px] flex justify-between items-center font-noto-regular">
-                            <div>
-                                <span className="font-noto-semibold">Room {room.roomNumber}</span>
-                                <span className="ml-2 text-muted-foreground capitalize">{room.type}</span>
+                        <div key={i} className="p-3 border border-border rounded-md bg-muted/20 text-[10px] space-y-2 font-noto-regular">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                        <span className="font-noto-bold text-sm">Room {room.roomNumber}</span>
+                                        <div className="flex items-center bg-amber-50 text-amber-700 px-1.5 rounded-sm border border-amber-100 scale-90">
+                                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500 mr-1" />
+                                            <span className="text-[9px] font-noto-bold">{room.rating || 'New'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-muted-foreground flex items-center gap-2">
+                                        <span className="capitalize">{room.type}</span>
+                                        <span className="opacity-30">•</span>
+                                        <span>Block {room.block}</span>
+                                        <span className="opacity-30">•</span>
+                                        <span>Floor {room.floor}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="font-noto-bold text-xs text-[#0056b3]">₹{room.price}</span>
+                                    <p className="text-[8px] text-muted-foreground opacity-70">per night</p>
+                                </div>
                             </div>
-                            <span className="font-noto-bold text-[#0056b3]">₹{room.price}</span>
+
+                            {room.facilities && room.facilities.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {room.facilities.slice(0, 4).map((f, idx) => (
+                                        <span key={idx} className="bg-background/80 px-1.5 py-0.5 rounded-sm border border-border text-[8px] text-muted-foreground">
+                                            {f}
+                                        </span>
+                                    ))}
+                                    {room.facilities.length > 4 && (
+                                        <span className="text-[8px] text-muted-foreground opacity-50 px-1">+{room.facilities.length - 4} more</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // Room Details (Deep Dive)
+        if (action === 'get_room_details' && result && !result.error) {
+            return (
+                <div className="mt-2 p-4 border border-border rounded-lg bg-card space-y-3 shadow-sm font-noto-regular">
+                    {result.primaryImage && (
+                        <div className="relative aspect-video rounded-md overflow-hidden border border-border mb-2">
+                            <img
+                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${result.primaryImage}`}
+                                alt={`Room ${result.roomNumber}`}
+                                className="object-cover w-full h-full"
+                            />
+                            <div className="absolute top-2 right-2 bg-background/90 px-2 py-0.5 rounded text-[10px] font-noto-bold border border-border">
+                                {result.status === 'vacant' ? '🟢 Vacant' : '🔴 Occupied'}
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                        <h4 className="font-noto-bold text-base">Room {result.roomNumber}</h4>
+                        <span className="text-[#0056b3] font-noto-bold">₹{result.price}/night</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-relaxed italic">
+                        "{result.description || 'No description available for this room.'}"
+                    </div>
+                    <div className="grid grid-cols-2 gap-y-2 text-[10px]">
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground opacity-60">Type</span>
+                            <span className="capitalize">{result.type}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-muted-foreground opacity-60">Location</span>
+                            <span>Block {result.block}, Floor {result.floor}</span>
+                        </div>
+                    </div>
+                    {result.amenities && result.amenities.length > 0 && (
+                        <div className="pt-2 border-t border-border">
+                            <p className="text-[9px] font-noto-bold mb-1 opacity-60 uppercase">Room Amenities</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {result.amenities.map((a, idx) => (
+                                    <div key={idx} className="flex items-center gap-1 bg-muted/30 px-2 py-0.5 rounded text-[9px]">
+                                        <span className={a.available ? "text-green-600" : "text-red-400 opacity-50"}>•</span>
+                                        <span className={!a.available ? "line-through opacity-50" : ""}>{a.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // FAQ Search Results
+        if (action === 'find_faq' && Array.isArray(result)) {
+            if (result.length === 0) return <div className="text-[10px] text-muted-foreground italic mt-2">No matching FAQs found.</div>;
+            return (
+                <div className="mt-2 space-y-2">
+                    {result.map((faq, i) => (
+                        <div key={i} className="p-3 border border-border rounded-md bg-sky-50/30 text-[10px] space-y-1 font-noto-regular">
+                            <div className="flex items-start gap-2">
+                                <Search className="h-3 w-3 mt-0.5 text-[#0056b3]" />
+                                <span className="font-noto-bold text-[#0056b3]">{faq.question}</span>
+                            </div>
+                            <div className="pl-5 text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                {faq.answer}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -159,14 +259,31 @@ export function AIAgentTab() {
             return (
                 <div className="mt-2 space-y-2">
                     {result.map((b, i) => (
-                        <div key={i} className="p-2 border border-border rounded-sm bg-muted/20 text-[10px] font-noto-regular">
-                            <div className="flex justify-between font-noto-semibold">
-                                <span>Room {b.room}</span>
-                                <span className={`capitalize ${b.status === 'confirmed' ? 'text-emerald-600' : 'text-amber-600'}`}>{b.status}</span>
+                        <div key={i} className="p-2.5 border border-border rounded-md bg-muted/10 text-[10px] space-y-1.5 font-noto-regular relative overflow-hidden">
+                            <div className="flex justify-between">
+                                <span className="font-noto-bold text-xs">Room {b.room}</span>
+                                <div className="flex gap-1.5">
+                                    <span className={`px-1.5 py-0.5 rounded-sm font-noto-bold text-[8px] uppercase ${b.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                            b.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
+                                        }`}>
+                                        {b.status}
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 rounded-sm font-noto-bold text-[8px] uppercase ${b.paymentStatus === 'paid' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                        {b.paymentStatus}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="text-muted-foreground mt-1">
-                                {new Date(b.checkIn).toLocaleDateString()} - {new Date(b.checkOut).toLocaleDateString()}
+                            <div className="flex items-center gap-3 text-muted-foreground opacity-80">
+                                <span>{new Date(b.checkIn).toLocaleDateString()} - {new Date(b.checkOut).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span className="font-noto-bold text-foreground opacity-100">₹{b.total}</span>
                             </div>
+                            {b.status === 'cancelled' && b.cancellationReason && (
+                                <div className="text-[9px] text-red-500/80 bg-red-50/50 p-1.5 rounded-sm mt-1 border-l-2 border-red-200">
+                                    Reason: {b.cancellationReason}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

@@ -1,19 +1,60 @@
 import Room from "../models/Room.js";
 import Booking from "../models/Booking.js";
 import Review from "../models/Review.js";
+import FAQ from "../models/FAQ.js";
+import { sendEmail, bookingCancellationEmail } from '../services/emailService.js';
+import { logEvent } from '../utils/auditLogger.js';
 
 // Tool Definitions (OpenAI Specification)
 const tools = [
   {
     type: "function",
     function: {
+      name: "get_room_details",
+      description: "Get comprehensive details about a specific room including amenities and description",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumber: { type: "string", description: "The room number (e.g. 101, B-205)" }
+        },
+        required: ["roomNumber"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_faq",
+      description: "Search the database for answers to common questions about stay, policy, and facilities",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The keyword or question to search for" },
+          category: { type: "string", enum: ["general", "booking", "check-in", "amenities", "other"], description: "Optional category filter" }
+        },
+        required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "get_available_rooms",
-      description: "Get a list of available rooms based on type and dates",
+      description: "Get a list of available rooms based on type, dates, budget, Block, and facilities",
       parameters: {
         type: "object",
         properties: {
           type: { type: "string", enum: ["single", "double"], description: "Room type" },
-          floor: { type: "number", description: "Desired floor" }
+          floor: { type: "string", description: "Desired floor number (1-6)" },
+          block: { type: "string", enum: ["A", "B", "C", "D", "E", "F"], description: "Block letter" },
+          minPrice: { type: "number", description: "Minimum price per night" },
+          maxPrice: { type: "number", description: "Maximum price per night (budget)" },
+          facilities: { 
+            type: "array", 
+            items: { type: "string", enum: ["Gym", "WiFi", "AC", "TV", "Refrigerator", "Balcony", "Parking"] },
+            description: "List of required facilities"
+          },
+          minRating: { type: "number", description: "Minimum star rating (0-5)" }
         }
       }
     }
@@ -22,8 +63,14 @@ const tools = [
     type: "function",
     function: {
       name: "get_my_bookings",
-      description: "Get the current user's bookings",
-      parameters: { type: "object", properties: {} }
+      description: "Get the current user's bookings with optional filtering",
+      parameters: { 
+        type: "object", 
+        properties: {
+          status: { type: "string", enum: ["pending", "confirmed", "cancelled", "checked-in", "checked-out"], description: "Filter by booking status" },
+          upcoming: { type: "boolean", description: "If true, only returns future or current bookings (not cancelled/checked-out)" }
+        }
+      }
     }
   },
   {
@@ -34,7 +81,8 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The ID of the booking to cancel" }
+          bookingId: { type: "string", description: "The ID of the booking to cancel" },
+          reason: { type: "string", description: "The reason for cancellation (optional)" }
         },
         required: ["bookingId"]
       }
@@ -60,43 +108,150 @@ const tools = [
 
 // Tool Implementation Map
 const toolImplementations = {
+  get_room_details: async (args) => {
+    const room = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!room) return { error: "Room not found" };
+    
+    return {
+      roomNumber: room.roomNumber,
+      type: room.type,
+      price: room.pricePerNight,
+      floor: room.floor,
+      block: room.block,
+      facilities: room.facilities,
+      amenities: room.amenities,
+      rating: room.rating,
+      numReviews: room.numReviews,
+      description: room.description,
+      primaryImage: room.images.find(img => img.isPrimary)?.url || room.images[0]?.url,
+      status: room.status
+    };
+  },
+  find_faq: async (args) => {
+    const query = {
+      $or: [
+        { question: { $regex: args.query, $options: 'i' } },
+        { answer: { $regex: args.query, $options: 'i' } }
+      ]
+    };
+    if (args.category) query.category = args.category;
+
+    const faqs = await FAQ.find(query).limit(5);
+    return faqs.map(f => ({
+      question: f.question,
+      answer: f.answer,
+      category: f.category
+    }));
+  },
   get_available_rooms: async (args) => {
-    const query = { status: 'vacant' };
+    const query = { status: 'vacant', isActive: true };
     if (args.type) query.type = args.type;
-    if (args.floor) query.floor = args.floor;
-    const rooms = await Room.find(query).limit(5);
+    if (args.floor) query.floor = String(args.floor);
+    if (args.block) query.block = args.block;
+    if (args.minRating) query.rating = { $gte: args.minRating };
+    if (args.facilities && args.facilities.length > 0) {
+      query.facilities = { $all: args.facilities };
+    }
+    
+    // Handle price range
+    if (args.minPrice || args.maxPrice) {
+      query.pricePerNight = {};
+      if (args.minPrice) query.pricePerNight.$gte = args.minPrice;
+      if (args.maxPrice) query.pricePerNight.$lte = args.maxPrice;
+    }
+
+    const rooms = await Room.find(query).sort({ rating: -1, pricePerNight: 1 }).limit(10);
     return rooms.map(r => ({
       roomNumber: r.roomNumber,
       type: r.type,
       price: r.pricePerNight,
       floor: r.floor,
-      block: r.block
+      block: r.block,
+      facilities: r.facilities,
+      rating: r.rating
     }));
   },
   get_my_bookings: async (args, userId) => {
-    const bookings = await Booking.find({ user: userId })
+    const query = { user: userId };
+    if (args.status) query.status = args.status;
+    if (args.upcoming) {
+      query.status = { $in: ['pending', 'confirmed', 'checked-in'] };
+      query.checkOut = { $gte: new Date() };
+    }
+
+    const bookings = await Booking.find(query)
       .populate('room', 'roomNumber type')
-      .sort({ createdAt: -1 })
-      .limit(5);
+      .sort({ createdAt: -1 });
+
     return bookings.map(b => ({
       id: b._id,
       room: b.room?.roomNumber,
       checkIn: b.checkIn,
       checkOut: b.checkOut,
       status: b.status,
-      total: b.totalAmount
+      paymentStatus: b.paymentStatus,
+      total: b.totalAmount,
+      checkedInAt: b.checkedInAt,
+      checkedOutAt: b.checkedOutAt,
+      cancellationReason: b.cancellationReason
     }));
   },
   cancel_booking: async (args, userId) => {
-    const booking = await Booking.findOne({ _id: args.bookingId, user: userId });
-    if (!booking) return { error: "Booking not found or not owned by you" };
-    if (booking.checkedInAt) return { error: "Cannot cancel a booking after check-in" };
+    const booking = await Booking.findById(args.bookingId);
+    if (!booking) throw new Error("Booking not found.");
     
-    booking.status = 'cancelled';
-    await booking.save();
-    return { success: true, message: `Booking ${args.bookingId} cancelled successfully` };
+    // Authorization
+    if (booking.user.toString() !== userId.toString()) {
+      throw new Error("You do not have permission to cancel this booking.");
+    }
+
+    // Status checks
+    if (['cancelled', 'completed'].includes(booking.status)) {
+      throw new Error(`Booking cannot be cancelled because it is already ${booking.status}.`);
+    }
+
+    if (booking.checkedInAt) {
+      throw new Error("Booking cannot be cancelled after check-in.");
+    }
+
+    const oldStatus = booking.status;
+    const reason = args.reason || 'Cancelled via Campus AI';
+    
+    // Save previous state for logic
+    await booking.cancel(reason, userId);
+
+    // Update room status if it was confirmed
+    if (oldStatus === 'confirmed') {
+      await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+    }
+
+    // Populate for email
+    await booking.populate('room', 'roomNumber type floor block pricePerNight');
+
+    // Fire-and-forget: send cancellation email
+    sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
+
+    // Log audit event
+    await logEvent({
+      userId,
+      action: 'BOOKING_CANCEL',
+      details: { bookingId: booking._id, reason, source: 'ai_assistant' }
+    });
+
+    return { 
+      success: true, 
+      message: "Booking cancelled successfully. A confirmation email has been sent to your registered address.",
+      data: {
+        id: booking._id,
+        room: booking.room?.roomNumber,
+        status: booking.status
+      }
+    };
   },
   submit_feedback: async (args, userId) => {
+    if (args.rating < 1 || args.rating > 5) {
+      throw new Error("Rating must be between 1 and 5.");
+    }
     const booking = await Booking.findOne({ _id: args.bookingId, user: userId });
     if (!booking) return { error: "Booking not found" };
     
