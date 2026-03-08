@@ -56,7 +56,7 @@ export function AIAgentTab() {
 
     const fetchHistory = async (id) => {
         try {
-            const result = await api.chats.getMessages(id);
+            const result = await api.chats.getThreadMessages(id);
             if (result.status === 'success') {
                 setMessages(result.data.messages);
             }
@@ -181,6 +181,38 @@ export function AIAgentTab() {
                             )}
                         </div>
                     ))}
+                </div>
+            );
+        }
+
+        // Booking Creation Confirmation
+        if (action === 'create_booking' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-blue-100 rounded-md bg-blue-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-blue-700">
+                        <div className="bg-blue-100 p-1 rounded-full">
+                            <BedDouble className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Booking Initiated</span>
+                    </div>
+                    <div className="space-y-1.5 border-l-2 border-blue-200 pl-3 ml-1">
+                        <p className="text-muted-foreground leading-relaxed">
+                            A stay for <span className="font-noto-bold text-foreground">Room {result.data.roomNumber}</span> has been provisionally booked for you.
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                            <div className="flex justify-between max-w-[150px]">
+                                <span className="opacity-60 uppercase text-[8px]">Duration</span>
+                                <span className="font-noto-bold">{result.data.nights} Nights</span>
+                            </div>
+                            <div className="flex justify-between max-w-[150px]">
+                                <span className="opacity-60 uppercase text-[8px]">Total</span>
+                                <span className="font-noto-bold text-[#0056b3]">₹{result.data.totalAmount}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-blue-100/30 p-2 rounded text-[9px] text-blue-800 font-noto-bold text-center border border-blue-200/50">
+                        Stay provisionally held. Please visit the "My Bookings" page to complete your payment and confirm the stay.
+                    </div>
                 </div>
             );
         }
