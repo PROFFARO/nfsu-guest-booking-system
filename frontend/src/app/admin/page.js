@@ -1,12 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, BookOpen, Users, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal } from 'lucide-react';
+import { BedDouble, BookOpen, Users, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -218,13 +219,19 @@ export default function AdminDashboard() {
                             Centralized System Analytics & Facility Oversight
                         </p>
                     </div>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="border-2 border-border gap-2">
-                                <Settings className="h-4 w-4" /> Edit Layout
+                    <div className="flex items-center gap-3">
+                        <Link href="/admin/gatepass">
+                            <Button className="bg-[#0f766e] text-white hover:bg-[#0f766e]/90 border-0 flex items-center gap-2 uppercase text-[10px] font-noto-bold tracking-widest h-9 px-4 rounded-sm">
+                                <QrCode className="h-4 w-4" /> Scan Gatepass
                             </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
+                        </Link>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="border-2 border-border gap-2 text-[10px] font-noto-bold uppercase tracking-widest h-9 px-4 rounded-sm">
+                                    <Settings className="h-4 w-4" /> Edit Layout
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Dashboard Initialization</DialogTitle>
                             </DialogHeader>
@@ -244,6 +251,7 @@ export default function AdminDashboard() {
                             </div>
                         </DialogContent>
                     </Dialog>
+                    </div>
                 </div>
 
                 {/* Grafana-style Draggable Dashboard Grid */}

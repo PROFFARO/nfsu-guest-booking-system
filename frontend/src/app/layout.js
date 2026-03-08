@@ -18,8 +18,8 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata = {
-  title: "CampusStay Suite — NFSU Guest House Booking",
-  description: "Premium guest house booking system for the National Forensic Sciences University. Browse rooms, make reservations, and manage your stay with ease.",
+  title: "NFSU-Guest House Booking Portal",
+  description: "guest house booking system for the National Forensic Sciences University. Browse rooms, make reservations, and manage your stay with ease.",
 };
 
 export default function RootLayout({ children }) {

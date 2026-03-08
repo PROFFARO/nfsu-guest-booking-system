@@ -140,6 +140,7 @@ export const api = {
             link.remove();
             window.URL.revokeObjectURL(url);
         },
+        scanGatepass: (token) => request('/bookings/scan-gatepass', { method: 'POST', body: JSON.stringify({ token }) }),
     },
 
     users: {

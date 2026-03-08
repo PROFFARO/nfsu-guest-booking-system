@@ -30,6 +30,7 @@ import {
     Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const facilityIcons = { WiFi: Wifi, Gym: Dumbbell, AC: Wind, TV: Tv, Parking: Car };
 const statusColors = {

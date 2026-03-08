@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+import QRCode from 'qrcode';
 import express from 'express';
 import { body, param, query, validationResult } from 'express-validator';
 import Booking from '../models/Booking.js';
@@ -12,6 +14,27 @@ import { bookingsToCSV, buildExportQuery } from '../services/reportService.js';
 import { logEvent } from '../utils/auditLogger.js';
 
 const router = express.Router();
+
+/**
+ * Helper to generate QR code and token for confirmed bookings
+ */
+const generateGatepass = async (booking) => {
+  if (booking.checkInToken && booking.qrCode) return; // Already generated
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const qrDataUrl = await QRCode.toDataURL(token, {
+    errorCorrectionLevel: 'H',
+    type: 'image/png',
+    margin: 2,
+    color: {
+      dark: '#0f766e', // Teal color for the QR
+      light: '#ffffff'
+    }
+  });
+
+  booking.checkInToken = token;
+  booking.qrCode = qrDataUrl;
+};
 
 // @route   POST /api/bookings
 // @desc    Create a new booking
@@ -110,6 +133,7 @@ router.post('/', [
     booking.status = 'confirmed';
     booking.paymentMethod = 'cash';
     booking.paymentStatus = 'unpaid';
+    await generateGatepass(booking);
     await booking.save();
     await Room.findByIdAndUpdate(room._id, { status: 'booked', holdBy: null, holdUntil: null });
 
@@ -281,6 +305,65 @@ router.post('/:id/checkin', [
   res.json({
     status: 'success',
     message: 'Guest checked in successfully',
+    data: { booking }
+  });
+}));
+
+// @route   POST /api/bookings/scan-gatepass
+// @desc    Scan QR gatepass to check in guest automatically (Staff/Admin only)
+// @access  Private (Admin/Staff)
+router.post('/scan-gatepass', [
+  authMiddleware,
+  staffMiddleware,
+  body('token').isString().notEmpty().withMessage('Gatepass token is required')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { token } = req.body;
+
+  // Find booking by token
+  const booking = await Booking.findOne({ checkInToken: token })
+    .populate('room', 'roomNumber type floor block pricePerNight');
+
+  if (!booking) {
+    return res.status(404).json({ status: 'error', message: 'Invalid or expired Gatepass QR Code' });
+  }
+
+  if (booking.status !== 'confirmed') {
+    return res.status(400).json({ status: 'error', message: `Cannot check in. Booking status is ${booking.status}` });
+  }
+
+  if (booking.checkedInAt) {
+    return res.status(400).json({ status: 'error', message: 'Guest has already been checked in for this booking' });
+  }
+
+  // Verify check-in date is valid (e.g. they aren't scanning a week early)
+  // Let's allow check-in on the day of or day before, or simply allow it for now if confirmed.
+  // For strict checks, one could verify checkIn date.
+
+  booking.checkedInAt = new Date();
+  booking.checkedInBy = req.user._id;
+  await booking.save();
+
+  // Ensure room is marked as booked (occupied status in reality)
+  await Room.findByIdAndUpdate(booking.room._id || booking.room, { status: 'booked', holdBy: null, holdUntil: null });
+
+  try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, checkedIn: true }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room._id || booking.room, status: 'booked' }); } catch { }
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'BOOKING_UPDATE',
+    details: { bookingId: booking._id, action: 'QR_CHECKIN', token },
+    req
+  });
+
+  res.json({
+    status: 'success',
+    message: 'Smart Gatepass accepted. Guest checked in successfully.',
     data: { booking }
   });
 }));
@@ -591,6 +674,11 @@ router.put('/:id/status', [
   const oldStatus = booking.status;
   booking.status = status;
   if (notes) booking.notes = notes;
+
+  // Generate gatepass if status is updated to confirmed
+  if (status === 'confirmed' && oldStatus !== 'confirmed') {
+    await generateGatepass(booking);
+  }
 
   // If cancelling, add cancellation details
   if (status === 'cancelled' && oldStatus !== 'cancelled') {

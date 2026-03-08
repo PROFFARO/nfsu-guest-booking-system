@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -185,6 +185,32 @@ export default function MyBookingsPage() {
                                             <Button variant="outline" size="icon" className="h-6 w-6 rounded-sm border-[#0056b3] dark:border-cyan-600 text-[#0056b3] dark:text-cyan-500 hover:bg-[#0056b3] hover:text-white dark:hover:bg-cyan-700" onClick={() => handleDownloadInvoice(booking._id)} title="Download Invoice">
                                                 <FileText className="h-3 w-3" />
                                             </Button>
+                                        )}
+                                        {booking.qrCode && booking.status === 'confirmed' && !booking.checkedInAt && (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="h-6 rounded-sm border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-600 text-[10px] font-noto-bold uppercase tracking-widest px-3 flex items-center gap-1">
+                                                        <QrCode className="h-3 w-3" /> Gatepass
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="rounded-sm border-2 border-border shadow-md text-center max-w-sm">
+                                                    <DialogHeader>
+                                                        <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">Smart Gatepass</DialogTitle>
+                                                        <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
+                                                            Show this QR code at the reception or gate for touchless check-in.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="flex flex-col items-center justify-center p-4">
+                                                        <div className="bg-white p-2 rounded-md shadow-sm border-2 border-emerald-100">
+                                                            <img src={booking.qrCode} alt="Check-in QR Code" className="w-48 h-48" />
+                                                        </div>
+                                                        <div className="mt-4 bg-muted/30 px-3 py-2 rounded-sm border border-border w-full">
+                                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">Pass Code</p>
+                                                            <p className="text-xs font-mono text-foreground font-bold break-all">{booking.checkInToken}</p>
+                                                        </div>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
                                         )}
                                         {booking.status === 'completed' && (
                                             <Dialog>

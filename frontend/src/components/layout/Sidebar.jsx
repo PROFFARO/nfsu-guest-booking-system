@@ -11,7 +11,8 @@ import {
     Users,
     ChevronLeft,
     ChevronRight,
-    Star
+    Star,
+    QrCode
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ const adminLinks = [
     { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
     { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
     { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
+    { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
 ];
 
 export default function Sidebar() {

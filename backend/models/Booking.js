@@ -107,6 +107,15 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     maxlength: [1000, 'Notes cannot exceed 1000 characters']
   },
+  // Smart Gatepass
+  checkInToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+  qrCode: {
+    type: String, // Store base64 data URL
+  },
   // Check-in / Check-out tracking
   checkedInAt: {
     type: Date,

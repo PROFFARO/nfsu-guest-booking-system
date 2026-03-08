@@ -48,7 +48,7 @@ export default function AuditLogsViewer() {
             if (endDate) params.endDate = endDate;
 
             const response = await api.auditLogs.get(params);
-            
+
             if (response.success) {
                 setLogs(response.data);
                 setPagination(response.pagination);
@@ -82,7 +82,7 @@ export default function AuditLogsViewer() {
         } else if (action.includes('DELETE') || action.includes('CANCEL')) {
             color = 'bg-orange-100 text-orange-800 dark:bg-orange-500/10 dark:text-orange-400 border-orange-200 dark:border-orange-500/20';
         } else if (action === 'LOGIN' || action === 'LOGOUT') {
-             color = 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
+            color = 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
         }
 
         return (
@@ -183,9 +183,9 @@ export default function AuditLogsViewer() {
                         <p className="text-sm mt-1">Try adjusting your filters or date range.</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[500px] overflow-y-auto relative">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/40 font-noto-bold border-b border-border">
+                            <thead className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/40 font-noto-bold border-b border-border sticky top-0 z-10 backdrop-blur-sm">
                                 <tr>
                                     <th className="px-6 py-4 font-normal">Date & Time</th>
                                     <th className="px-6 py-4 font-normal">Action</th>
@@ -212,10 +212,10 @@ export default function AuditLogsViewer() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-muted-foreground max-w-md truncate">
-                                                {log.details?.message || log.details?.reason || 
-                                                    (log.details?.updatedFields ? `Updated: ${log.details.updatedFields.join(', ')}` : 
-                                                    (log.details?.bookingId ? `Booking ID: ${log.details.bookingId}` : 
-                                                    'System logged action'))}
+                                                {log.details?.message || log.details?.reason ||
+                                                    (log.details?.updatedFields ? `Updated: ${log.details.updatedFields.join(', ')}` :
+                                                        (log.details?.bookingId ? `Booking ID: ${log.details.bookingId}` :
+                                                            'System logged action'))}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-muted-foreground font-mono text-xs">
