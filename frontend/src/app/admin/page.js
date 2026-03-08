@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode } from 'lucide-react';
+import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, Settings, GripHorizontal, QrCode, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -64,27 +64,27 @@ const DEFAULT_LAYOUTS = {
     ],
     sm: [
         { i: 'metrics', x: 0, y: 0, w: 6, h: 2 },
-        { i: 'inventory', x: 0, y: 2, w: 6, h: 4 },
-        { i: 'status', x: 0, y: 6, w: 6, h: 4 },
-        { i: 'revenue', x: 0, y: 10, w: 6, h: 4 },
-        { i: 'financial', x: 0, y: 14, w: 6, h: 4 },
-        { i: 'bookings', x: 0, y: 18, w: 6, h: 4 },
+        { i: 'inventory', x: 0, y: 2, w: 6, h: 2 },
+        { i: 'status', x: 0, y: 4, w: 6, h: 2 },
+        { i: 'revenue', x: 0, y: 6, w: 6, h: 2 },
+        { i: 'financial', x: 0, y: 8, w: 6, h: 2 },
+        { i: 'bookings', x: 0, y: 10, w: 6, h: 2 },
     ],
     xs: [
         { i: 'metrics', x: 0, y: 0, w: 4, h: 2 },
-        { i: 'inventory', x: 0, y: 2, w: 4, h: 4 },
-        { i: 'status', x: 0, y: 6, w: 4, h: 4 },
-        { i: 'revenue', x: 0, y: 10, w: 4, h: 4 },
-        { i: 'financial', x: 0, y: 14, w: 4, h: 4 },
-        { i: 'bookings', x: 0, y: 18, w: 4, h: 4 },
+        { i: 'inventory', x: 0, y: 2, w: 4, h: 2 },
+        { i: 'status', x: 0, y: 4, w: 4, h: 2 },
+        { i: 'revenue', x: 0, y: 6, w: 4, h: 2 },
+        { i: 'financial', x: 0, y: 8, w: 4, h: 2 },
+        { i: 'bookings', x: 0, y: 10, w: 4, h: 2 },
     ],
     xxs: [
         { i: 'metrics', x: 0, y: 0, w: 2, h: 2 },
-        { i: 'inventory', x: 0, y: 2, w: 2, h: 4 },
-        { i: 'status', x: 0, y: 6, w: 2, h: 4 },
-        { i: 'revenue', x: 0, y: 10, w: 2, h: 4 },
-        { i: 'financial', x: 0, y: 14, w: 2, h: 4 },
-        { i: 'bookings', x: 0, y: 18, w: 2, h: 4 },
+        { i: 'inventory', x: 0, y: 2, w: 2, h: 2 },
+        { i: 'status', x: 0, y: 4, w: 2, h: 2 },
+        { i: 'revenue', x: 0, y: 6, w: 2, h: 2 },
+        { i: 'financial', x: 0, y: 8, w: 2, h: 2 },
+        { i: 'bookings', x: 0, y: 10, w: 2, h: 2 },
     ]
 };
 
@@ -134,6 +134,26 @@ export default function AdminDashboard() {
         const updated = widgetsConfig.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
         setWidgetsConfig(updated);
         localStorage.setItem('adminDashboardWidgetsConfig', JSON.stringify(updated));
+    };
+
+    const resetLayout = () => {
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            // Reset only mobile breakpoints
+            const updatedLayouts = {
+                ...layouts,
+                sm: DEFAULT_LAYOUTS.sm,
+                xs: DEFAULT_LAYOUTS.xs,
+                xxs: DEFAULT_LAYOUTS.xxs
+            };
+            setLayouts(updatedLayouts);
+            localStorage.setItem('adminDashboardLayouts', JSON.stringify(updatedLayouts));
+            toast.success("Mobile dashboard layout has been reset to default.");
+        } else {
+            // Optional: reset everything if NOT mobile, or leave desktop alone
+            // User said "ONLY do for mobile", so I'll follow that strictly.
+            toast.info("Layout reset is currently only available for mobile devices.");
+        }
     };
 
     useEffect(() => {
@@ -282,6 +302,9 @@ export default function AdminDashboard() {
                                 <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Scan
                             </Button>
                         </Link>
+                        <Button variant="outline" size="sm" onClick={resetLayout} className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
+                            <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Reset
+                        </Button>
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm" className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
@@ -323,13 +346,14 @@ export default function AdminDashboard() {
                             draggableHandle=".drag-handle"
                             onLayoutChange={handleLayoutChange}
                             isBounded={true}
-                            isDraggable={false}
-                            isResizable={false}
+                            isDraggable={true}
+                            isResizable={true}
+                            resizeHandles={['s', 'se', 'e']}
                             margin={[16, 16]}
                             width={width}
                         >
                     {widgetsConfig.filter(w => w.visible).map((widget) => (
-                        <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden">
+                        <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden mx-auto" style={width <= 768 ? { maxWidth: '339px' } : {}}>
                             {/* Widget Header */}
                             {widget.id !== 'metrics' && (
                                 <div className="bg-muted/30 border-b-2 border-border px-3 py-2 flex items-center justify-between group cursor-default">
