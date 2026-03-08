@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QrCode, CheckCircle2, XCircle, Search, Loader2 } from 'lucide-react';
+import { QrCode, CircleCheckBig, CircleX, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function GatepassScannerPage() {
@@ -229,7 +229,7 @@ export default function GatepassScannerPage() {
                                         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
                                         className="text-center p-6 border-2 border-red-200 bg-red-50 dark:bg-red-950/20 rounded-lg w-full"
                                     >
-                                        <XCircle className="mx-auto h-16 w-16 text-red-500 mb-4" />
+                                        <CircleX className="mx-auto h-16 w-16 text-red-500 mb-4" />
                                         <h3 className="text-lg font-noto-bold text-red-700 dark:text-red-400 uppercase tracking-wide">Access Denied</h3>
                                         <p className="text-sm font-noto-medium text-red-600/80 mt-2">{error}</p>
                                         <Button variant="outline" className="mt-6 border-red-200 text-red-600 hover:bg-red-100" onClick={() => setError(null)}>Clear Error</Button>
@@ -242,7 +242,7 @@ export default function GatepassScannerPage() {
                                     >
                                         <div className="text-center mb-6">
                                             <div className="inline-flex items-center justify-center p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-full mb-3">
-                                                <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+                                                <CircleCheckBig className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
                                             </div>
                                             <h3 className="text-xl font-noto-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Check-in Verified</h3>
                                         </div>

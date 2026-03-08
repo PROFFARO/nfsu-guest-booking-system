@@ -24,6 +24,8 @@ import bookingRoutes from './routes/bookings.js';
 import userRoutes from './routes/users.js';
 import reviewRoutes from './routes/reviews.js';
 import auditLogRoutes from './routes/auditLogs.js';
+import chatRoutes from './routes/chats.js';
+import faqRoutes from './routes/faq.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -150,6 +152,8 @@ app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 app.use('/api/users', apiLimiter, authMiddleware, userRoutes);
 app.use('/api/reviews', apiLimiter, reviewRoutes);
 app.use('/api/audit-logs', apiLimiter, authMiddleware, auditLogRoutes);
+app.use('/api/chats', apiLimiter, authMiddleware, chatRoutes);
+app.use('/api/faq', apiLimiter, faqRoutes);
 
 // Serve static upload files
 const uploadsPath = path.join(__dirname, 'uploads');

@@ -176,5 +176,30 @@ export const api = {
             const qs = new URLSearchParams(params).toString();
             return request(`/audit-logs/all${qs ? `?${qs}` : ''}`);
         }
+    },
+    chats: {
+        getMyThread: () => request('/chats/my-thread'),
+        sendMessage: (data) => request('/chats/message', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        getAdminInbox: () => request('/chats/admin/inbox'),
+        getThreadMessages: (threadId) => request(`/chats/${threadId}/messages`),
+        aiChat: (data) => request('/chats/ai', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+    },
+    faq: {
+        list: () => request('/faq'),
+        create: (data) => request('/faq', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+        update: (id, data) => request(`/faq/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        }),
+        delete: (id) => request(`/faq/${id}`, { method: 'DELETE' }),
     }
 };

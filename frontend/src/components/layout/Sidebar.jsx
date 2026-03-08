@@ -12,7 +12,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Star,
-    QrCode
+    QrCode,
+    CircleHelp,
+    Headset
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +25,8 @@ const adminLinks = [
     { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
     { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
     { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
+    { href: '/admin/support', label: 'Support Inbox', icon: Headset },
+    { href: '/admin/faq', label: 'Query Repository', icon: CircleHelp },
 ];
 
 export default function Sidebar() {

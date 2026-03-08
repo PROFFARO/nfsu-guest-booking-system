@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Loader2, ArrowLeft, CheckCircle2, Building2 } from 'lucide-react';
+import { ShieldAlert, Loader2, ArrowLeft, CircleCheckBig, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
                         {isSuccess ? (
                             <>
                                 <CardTitle className="text-2xl font-noto-bold text-foreground tracking-tight flex items-center justify-center gap-2">
-                                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                                    <CircleCheckBig className="h-6 w-6 text-emerald-500" />
                                     Check Your Email
                                 </CardTitle>
                                 <CardDescription className="text-sm font-noto-medium text-muted-foreground mt-2">

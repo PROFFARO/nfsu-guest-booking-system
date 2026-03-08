@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 export default function DashboardLayout({ children }) {
     const { user, loading } = useAuth();
@@ -33,5 +34,10 @@ export default function DashboardLayout({ children }) {
     // Prevent rendering for admin/staff while redirect is in progress, except on profile page
     if ((user.role === 'admin' || user.role === 'staff') && pathname !== '/dashboard/profile') return null;
 
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            <ChatWidget />
+        </>
+    );
 }

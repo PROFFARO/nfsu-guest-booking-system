@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import AuditLogsViewer from '@/components/profile/AuditLogsViewer';
 import {
     User, Lock, Loader2, Monitor, Smartphone, Tablet,
-    Shield, History, LogOut, AlertTriangle, CheckCircle2,
-    XCircle, Globe, Clock, ChevronDown, ChevronUp
+    Shield, History, LogOut, AlertTriangle, CircleCheckBig,
+    CircleX, Globe, Clock, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -492,9 +492,9 @@ export default function ProfilePage() {
                                                                 : 'border-red-500/30 bg-red-100 dark:bg-red-900/20'
                                                         }`}>
                                                             {entry.status === 'success' ? (
-                                                                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                                <CircleCheckBig className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                                             ) : (
-                                                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                                                <CircleX className="h-4 w-4 text-red-600 dark:text-red-400" />
                                                             )}
                                                         </div>
 
