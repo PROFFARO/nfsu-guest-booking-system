@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode, Download, Copy, Check } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode, Download, Copy, Check, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -142,18 +142,29 @@ export default function MyBookingsPage() {
                             Official Room Reservation Records
                         </p>
                     </div>
-                    <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                        <SelectTrigger className="w-[180px] rounded-sm border-2 border-border h-10 font-noto-bold text-xs uppercase tracking-wide">
-                            <SelectValue placeholder="Filter By Status" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-sm border-2 border-border">
-                            <SelectItem value="all" className="font-noto-medium text-xs uppercase tracking-wide">All Statuses</SelectItem>
-                            <SelectItem value="pending" className="font-noto-medium text-xs uppercase tracking-wide">Pending</SelectItem>
-                            <SelectItem value="confirmed" className="font-noto-medium text-xs uppercase tracking-wide">Confirmed</SelectItem>
-                            <SelectItem value="cancelled" className="font-noto-medium text-xs uppercase tracking-wide">Cancelled</SelectItem>
-                            <SelectItem value="completed" className="font-noto-medium text-xs uppercase tracking-wide">Completed</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={fetchBookings}
+                            disabled={loading}
+                            variant="outline"
+                            className="border-2 border-border flex items-center gap-2 uppercase text-[10px] font-noto-bold tracking-widest h-10 px-4 rounded-sm bg-card hover:bg-muted"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
+                        <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
+                            <SelectTrigger className="w-[180px] rounded-sm border-2 border-border h-10 font-noto-bold text-xs uppercase tracking-wide">
+                                <SelectValue placeholder="Filter By Status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-sm border-2 border-border">
+                                <SelectItem value="all" className="font-noto-medium text-xs uppercase tracking-wide">All Statuses</SelectItem>
+                                <SelectItem value="pending" className="font-noto-medium text-xs uppercase tracking-wide">Pending</SelectItem>
+                                <SelectItem value="confirmed" className="font-noto-medium text-xs uppercase tracking-wide">Confirmed</SelectItem>
+                                <SelectItem value="cancelled" className="font-noto-medium text-xs uppercase tracking-wide">Cancelled</SelectItem>
+                                <SelectItem value="completed" className="font-noto-medium text-xs uppercase tracking-wide">Completed</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {loading ? (

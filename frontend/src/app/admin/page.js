@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, QrCode, Wrench, Clock, Package } from 'lucide-react';
+import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, QrCode, Wrench, Clock, Package, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -26,28 +26,30 @@ export default function AdminDashboard() {
     const [analyticsBookings, setAnalyticsBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [roomRes, bookingRes, auditRes, supplyRes] = await Promise.all([
-                    api.rooms.stats(),
-                    api.bookings.list({ limit: 100 }), // Fetch more for analytics
-                    api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 }),
-                    api.auditLogs.getAll({ action: 'SUPPLY_REQUEST', limit: 10 })
-                ]);
-                setRoomStats(roomRes.data);
-                setMaintenanceReports(auditRes.data || []);
-                setSupplyRequests(supplyRes.data || []);
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [roomRes, bookingRes, auditRes, supplyRes] = await Promise.all([
+                api.rooms.stats(),
+                api.bookings.list({ limit: 100 }), // Fetch more for analytics
+                api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 }),
+                api.auditLogs.getAll({ action: 'SUPPLY_REQUEST', limit: 10 })
+            ]);
+            setRoomStats(roomRes.data);
+            setMaintenanceReports(auditRes.data || []);
+            setSupplyRequests(supplyRes.data || []);
 
-                const allBookings = bookingRes.data.bookings || [];
-                setAnalyticsBookings(allBookings);
-                setRecentBookings(allBookings.slice(0, 5)); // Just the 5 most recent for the table
-            } catch (err) {
-                toast.error('Failed to load analytical data');
-            } finally {
-                setLoading(false);
-            }
-        };
+            const allBookings = bookingRes.data.bookings || [];
+            setAnalyticsBookings(allBookings);
+            setRecentBookings(allBookings.slice(0, 5)); // Just the 5 most recent for the table
+        } catch (err) {
+            toast.error('Failed to load analytical data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
     }, []);
 
@@ -193,6 +195,15 @@ export default function AdminDashboard() {
                                 <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Scan
                             </Button>
                         </Link>
+                        <Button
+                            onClick={fetchData}
+                            disabled={loading}
+                            variant="outline"
+                            className="border-2 border-border flex items-center gap-1.5 sm:gap-2 uppercase text-[9px] sm:text-[10px] font-noto-bold tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm bg-card hover:bg-muted"
+                        >
+                            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
                     </div>
                 </div>
 

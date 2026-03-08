@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound, RotateCcw } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound, RotateCcw, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -136,10 +136,19 @@ export default function UserManagementPage() {
                                 <Button type="submit" className="flex-1 sm:flex-none rounded-sm bg-[#0056b3] hover:bg-[#004494] text-white font-noto-bold uppercase text-[10px] sm:text-xs tracking-wider h-10 px-6">
                                     Search
                                 </Button>
+                                <Button
+                                    type="button"
+                                    onClick={fetchUsers}
+                                    disabled={loading}
+                                    className="flex-1 sm:flex-none rounded-sm border-2 border-border h-10 px-4 flex items-center justify-center gap-2 font-noto-bold uppercase text-[10px] tracking-widest text-muted-foreground hover:text-foreground bg-card"
+                                >
+                                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                    <span>Refresh</span>
+                                </Button>
                                 {search && (
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
+                                    <Button
+                                        type="button"
+                                        variant="outline"
                                         onClick={handleResetSearch}
                                         className="flex-1 sm:flex-none rounded-sm border-2 border-border h-10 px-4 flex items-center justify-center gap-2 font-noto-bold uppercase text-[10px] tracking-widest text-muted-foreground hover:text-foreground whitespace-nowrap"
                                     >

@@ -450,6 +450,7 @@ router.get('/export', [
 // @desc    Get user's bookings or all bookings (admin/staff)
 // @access  Private
 router.get('/', [
+  authMiddleware,
   query('status').optional().isIn(['pending', 'confirmed', 'cancelled', 'completed', 'no-show']),
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),

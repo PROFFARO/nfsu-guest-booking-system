@@ -1,6 +1,6 @@
 import express from 'express';
 import AuditLog from '../models/AuditLog.js';
-import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
+import { authMiddleware, adminMiddleware, staffMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -78,7 +78,7 @@ router.get('/', authMiddleware, async (req, res) => {
  * @query   userId (Filter by specific user ID)
  * @query   ...same pagination/filters as above
  */
-router.get('/all', [authMiddleware, adminMiddleware], async (req, res) => {
+router.get('/all', [authMiddleware, staffMiddleware], async (req, res) => {
     try {
         const { page = 1, limit = 20, startDate, endDate, action, userId } = req.query;
 

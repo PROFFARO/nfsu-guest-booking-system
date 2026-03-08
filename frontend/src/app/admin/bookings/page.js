@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2, Search, Filter, RotateCcw } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2, Search, Filter, RotateCcw, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -152,15 +152,15 @@ export default function BookingManagementPage() {
                     <div className="flex flex-col md:flex-row gap-3 w-full">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder="Search by name, email, or room..." 
+                            <Input
+                                placeholder="Search by name, email, or room..."
                                 className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full focus-visible:ring-0 focus-visible:border-[#0056b3]"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                             />
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                            <Button 
+                            <Button
                                 onClick={fetchBookings}
                                 className="h-10 flex-1 md:flex-none px-4 rounded-sm font-noto-bold text-[10px] uppercase tracking-widest bg-[#0056b3] hover:bg-[#004494] text-white gap-2 shadow-sm"
                             >
@@ -168,8 +168,8 @@ export default function BookingManagementPage() {
                                 Filter
                             </Button>
                             {(searchQuery || statusFilter || dateRange.startDate || dateRange.endDate) && (
-                                <Button 
-                                    variant="outline" 
+                                <Button
+                                    variant="outline"
                                     onClick={handleResetFilters}
                                     className="h-10 flex-1 md:flex-none px-3 rounded-sm border-2 border-border font-noto-bold text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground gap-2 flex items-center justify-center"
                                 >
@@ -219,6 +219,16 @@ export default function BookingManagementPage() {
                 <Card className="border-2 border-border bg-card shadow-none rounded-sm overflow-hidden">
                     <div className="bg-[#0056b3] dark:bg-cyan-900 border-b-2 border-border px-4 py-3 flex justify-between items-center">
                         <h2 className="text-xs font-noto-bold text-white uppercase tracking-widest">Official Directives Ledger</h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={fetchBookings}
+                            disabled={loading}
+                            className="h-8 w-8 text-white hover:bg-white/10 rounded-sm"
+                            title="Refresh Data"
+                        >
+                            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                     <CardContent className="p-0">
                         {loading ? (

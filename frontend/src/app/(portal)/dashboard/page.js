@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { Calendar, BookOpen, BedDouble, ArrowRight, Clock, Copy, Check } from 'lucide-react';
+import { Calendar, BookOpen, BedDouble, ArrowRight, Clock, Copy, Check, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -59,6 +59,15 @@ export default function DashboardPage() {
                             Official Overview for {user?.name}
                         </p>
                     </div>
+                    <Button
+                        onClick={fetchBookings}
+                        disabled={loading}
+                        variant="outline"
+                        className="border-2 border-border flex items-center gap-1.5 sm:gap-2 uppercase text-[10px] font-noto-bold tracking-widest h-9 px-4 rounded-sm bg-card hover:bg-muted ml-auto md:ml-0"
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                 </div>
 
                 {/* Compact Stats */}

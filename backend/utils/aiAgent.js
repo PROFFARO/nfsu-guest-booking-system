@@ -172,6 +172,20 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "get_booking_details",
+      description: "Get full details of a specific booking including payment status, guests, purpose, and administrative notes",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "The ID of the booking to retrieve" }
+        },
+        required: ["bookingId"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "cancel_booking",
       description: "Cancel a specific booking by its ID",
       parameters: {
@@ -702,15 +716,41 @@ export const toolImplementations = {
     return bookings.map(b => ({
       id: b._id,
       room: b.room?.roomNumber,
-      checkIn: b.checkIn,
-      checkOut: b.checkOut,
-      status: b.status,
-      paymentStatus: b.paymentStatus,
-      total: b.totalAmount,
-      checkedInAt: b.checkedInAt,
-      checkedOutAt: b.checkedOutAt,
-      cancellationReason: b.cancellationReason
+      checkIn: b.checkIn.toISOString().split('T')[0],
+      checkOut: b.checkOut.toISOString().split('T')[0],
+      status: b.status
     }));
+  },
+  get_booking_details: async (args, userId) => {
+    const booking = await Booking.findById(args.bookingId)
+      .populate('room', 'roomNumber type floor block pricePerNight');
+
+    if (!booking) throw new Error("Booking not found.");
+
+    // Authorization
+    if (booking.user.toString() !== userId.toString()) {
+      throw new Error("You do not have permission to view this booking.");
+    }
+
+    return {
+      id: booking._id,
+      room: booking.room?.roomNumber,
+      type: booking.room?.type,
+      location: `Floor ${booking.room?.floor || 'N/A'} — Block ${booking.room?.block || 'N/A'}`,
+      checkIn: booking.checkIn.toISOString().split('T')[0],
+      checkOut: booking.checkOut.toISOString().split('T')[0],
+      guestName: booking.guestName,
+      status: booking.status,
+      paymentStatus: booking.paymentStatus,
+      paymentMethod: booking.paymentMethod,
+      total: booking.totalAmount,
+      purpose: booking.purpose,
+      specialRequests: booking.specialRequests,
+      checkedInAt: booking.checkedInAt,
+      checkedOutAt: booking.checkedOutAt,
+      notes: booking.notes,
+      gatepass: booking.checkInToken ? "Available" : "Will be issued upon confirmation"
+    };
   },
   cancel_booking: async (args, userId) => {
     const booking = await Booking.findById(args.bookingId);
@@ -847,7 +887,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant. Use the provided tools. To search for available rooms using 'get_available_rooms' you MUST ask the user for their check-in and check-out dates if they have not provided any, otherwise the search will only return rooms that are completely vacant right now. If a user tries to create a booking, ALWAYS understand their dates and preferences, list options via 'get_available_rooms', ask them to pick a room, and FINALLY call 'create_booking'. If reporting issues, use 'report_room_issue'. For asking supplies, use 'request_supplies'. To cancel, use 'get_my_bookings' then 'cancel_booking'. Be concise."
+      content: "You are the NFSU Campus AI Assistant. Use the provided tools. To search for available rooms using 'get_available_rooms' you MUST ask the user for their check-in and check-out dates if they have not provided any, otherwise the search will only return rooms that are completely vacant right now. If a user tries to create a booking, ALWAYS understand their dates and preferences, list options via 'get_available_rooms', ask them to pick a room, and FINALLY call 'create_booking'. For checking booking status, ALWAYS first call 'get_my_bookings' to show a summary list, then ask the user to select which one they want to see, and finally call 'get_booking_details' to show full status details. If reporting issues, use 'report_room_issue'. For asking supplies, use 'request_supplies'. To cancel, use 'get_my_bookings' then 'cancel_booking'. Be concise."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

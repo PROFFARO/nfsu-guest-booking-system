@@ -16,7 +16,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
-import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search } from 'lucide-react';
+import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageSlider } from '@/components/ui/ImageSlider';
 
@@ -198,7 +198,7 @@ export default function RoomManagementPage() {
         try {
             const formData = new FormData();
             const existingImages = [];
-            
+
             Object.entries(form).forEach(([key, value]) => {
                 if (key === 'facilities') {
                     formData.append(key, JSON.stringify(value));
@@ -359,15 +359,15 @@ export default function RoomManagementPage() {
                 />
                 <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.notes.length}/1000</p>
             </div>
-            
+
             <div className="space-y-3 pt-2">
                 <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Images</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="h-40 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center relative bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer group">
-                        <input 
-                            type="file" 
-                            multiple 
-                            accept="image/jpeg, image/png, image/webp" 
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/jpeg, image/png, image/webp"
                             onChange={(e) => {
                                 if (e.target.files) {
                                     const newFiles = Array.from(e.target.files);
@@ -430,9 +430,20 @@ export default function RoomManagementPage() {
                         <h1 className="text-2xl font-noto-bold text-foreground">Room Management</h1>
                         <p className="text-sm font-noto-medium text-muted-foreground mt-1 tracking-wide">Create, edit, and manage all rooms</p>
                     </div>
-                    <Button onClick={openCreate} className="gap-2 bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium rounded-sm shadow-sm">
-                        <Plus className="mr-2 h-4 w-4" /> Add Room
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={fetchRooms}
+                            disabled={loading}
+                            variant="outline"
+                            className="border-2 border-border flex items-center gap-2 uppercase text-[10px] font-noto-bold tracking-widest h-10 px-4 rounded-sm bg-card hover:bg-muted"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
+                        <Button onClick={openCreate} className="gap-2 bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-10 px-4 rounded-sm shadow-sm">
+                            <Plus className="h-4 w-4" /> Add Room
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -441,8 +452,8 @@ export default function RoomManagementPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
                         <div className="relative w-full sm:max-w-md flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder="Search by room number..." 
+                            <Input
+                                placeholder="Search by room number..."
                                 className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full"
                                 value={searchQuery}
                                 onChange={(e) => { setSearchQuery(e.target.value); updateFilter('page', 1); }}
