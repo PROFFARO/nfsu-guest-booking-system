@@ -353,7 +353,7 @@ export default function AdminDashboard() {
                             width={width}
                         >
                     {widgetsConfig.filter(w => w.visible).map((widget) => (
-                        <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col overflow-hidden mx-auto" style={width <= 768 ? { maxWidth: '339px' } : {}}>
+                        <div key={widget.id} className="bg-card border-2 border-border rounded-sm shadow-sm flex flex-col mx-auto">
                             {/* Widget Header */}
                             {widget.id !== 'metrics' && (
                                 <div className="bg-muted/30 border-b-2 border-border px-3 py-2 flex items-center justify-between group cursor-default">
