@@ -43,9 +43,15 @@ export default function GatepassScannerPage() {
             // Pause scanner immediately to prevent further scans while processing
             if (scannerRef.current) {
                 try {
-                    scannerRef.current.pause(true);
+                    // Only pause if actually scanning to avoid "Cannot pause, scanner is not scanning" error
+                    if (scannerRef.current.getState() === 2) {
+                        scannerRef.current.pause(true);
+                    }
                 } catch (e) {
-                    console.error("Failed to pause scanner", e);
+                    // Silently ignore if already paused/not scanning
+                    if (!e?.message?.includes("not scanning")) {
+                        console.error("Scanner pause error:", e);
+                    }
                 }
             }
 
