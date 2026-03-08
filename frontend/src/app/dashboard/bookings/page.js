@@ -20,7 +20,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode } from 'lucide-react';
+import { BedDouble, Calendar, Clock, X, ChevronLeft, ChevronRight, FileText, Star, QrCode, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -47,6 +47,16 @@ export default function MyBookingsPage() {
     const [reviewBookingId, setReviewBookingId] = useState(null);
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewComment, setReviewComment] = useState('');
+
+    const handleDownloadQRCode = (qrCode, roomNumber) => {
+        const link = document.createElement('a');
+        link.href = qrCode;
+        link.download = `Gatepass_Room_${roomNumber}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('QR Code download started');
+    };
 
     const handleDownloadInvoice = async (bookingId) => {
         try {
@@ -208,6 +218,13 @@ export default function MyBookingsPage() {
                                                             <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mb-1">Pass Code</p>
                                                             <p className="text-xs font-mono text-foreground font-bold break-all">{booking.checkInToken}</p>
                                                         </div>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            className="mt-4 w-full rounded-sm border-emerald-600 text-emerald-600 hover:bg-emerald-50 font-noto-bold uppercase text-[10px] tracking-widest flex items-center justify-center gap-2"
+                                                            onClick={() => handleDownloadQRCode(booking.qrCode, booking.room?.roomNumber)}
+                                                        >
+                                                            <Download className="h-3 w-3" /> Download Pass
+                                                        </Button>
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>
