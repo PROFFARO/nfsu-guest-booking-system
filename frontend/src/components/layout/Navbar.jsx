@@ -211,7 +211,7 @@ export default function Navbar() {
                         <ThemeToggle />
 
                         {user ? (
-                            <DropdownMenu>
+                            <DropdownMenu modal={false}>
                                 <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[#0056b3] focus-visible:ring-offset-2 transition-transform hover:scale-105 active:scale-95 ml-1.5">
                                     <Avatar className="h-9 w-9 border border-border/50 hover:border-[#0056b3]/50 shadow-sm transition-colors">
                                         <AvatarFallback className="bg-[#0056b3] text-white text-xs font-noto-bold">
@@ -219,7 +219,11 @@ export default function Navbar() {
                                         </AvatarFallback>
                                     </Avatar>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56 rounded-sm border-border bg-card shadow-md p-0 overflow-hidden">
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-56 rounded-sm border-border bg-card shadow-md p-0 overflow-hidden"
+                                    onCloseAutoFocus={(e) => e.preventDefault()}
+                                >
                                     <div className="flex flex-col gap-1 px-4 py-3 border-b border-border bg-muted/10">
                                         <div className="flex items-center justify-between">
                                             <p className="text-sm font-noto-bold text-foreground leading-none">{user.name}</p>
