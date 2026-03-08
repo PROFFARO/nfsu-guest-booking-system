@@ -580,6 +580,14 @@ router.post('/logout', authMiddleware, asyncHandler(async (req, res) => {
     );
   }
 
+  // Write to personal Audit Log
+  await logEvent({
+    userId: req.user._id,
+    action: 'LOGOUT',
+    details: { message: 'User logged out successfully' },
+    req
+  });
+
   res.json({
     status: 'success',
     message: 'Logout successful'

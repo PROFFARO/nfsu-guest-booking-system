@@ -21,7 +21,8 @@ const router = express.Router();
 const generateGatepass = async (booking) => {
   if (booking.checkInToken && booking.qrCode) return; // Already generated
 
-  const token = crypto.randomBytes(32).toString('hex');
+  // Generate a shorter, more human-readable token (e.g., 8 character alphanumeric)
+  const token = crypto.randomBytes(4).toString('hex').toUpperCase();
   const qrDataUrl = await QRCode.toDataURL(token, {
     errorCorrectionLevel: 'H',
     type: 'image/png',
@@ -324,8 +325,10 @@ router.post('/scan-gatepass', [
 
   const { token } = req.body;
 
-  // Find booking by token
-  const booking = await Booking.findOne({ checkInToken: token })
+  // Find booking by token (case-insensitive)
+  const booking = await Booking.findOne({ 
+    checkInToken: { $regex: new RegExp(`^${token.trim()}$`, 'i') } 
+  })
     .populate('room', 'roomNumber type floor block pricePerNight');
 
   if (!booking) {
@@ -337,7 +340,11 @@ router.post('/scan-gatepass', [
   }
 
   if (booking.checkedInAt) {
-    return res.status(400).json({ status: 'error', message: 'Guest has already been checked in for this booking' });
+    return res.status(400).json({ 
+      status: 'error', 
+      message: 'Guest has already been checked in for this booking',
+      data: { booking } 
+    });
   }
 
   // Verify check-in date is valid (e.g. they aren't scanning a week early)

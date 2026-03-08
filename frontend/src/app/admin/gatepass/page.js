@@ -17,14 +17,44 @@ export default function GatepassScannerPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const scannerRef = useRef(null);
+    const isProcessingRef = useRef(false); // Ref to strictly block overlapping async calls
+    const lastProcessedTokenRef = useRef({ token: '', time: 0 }); // Block same token rapid scans
+
+    const isScannerInitRef = useRef(false);
 
     useEffect(() => {
-        // Initialize Scanner safely
+        // Prevent double initialization in React 18 StrictMode
+        if (isScannerInitRef.current) return;
+        isScannerInitRef.current = true;
+
         const html5QrcodeScanner = new Html5QrcodeScanner(
             "reader",
             { fps: 10, qrbox: { width: 250, height: 250 } },
             false
         );
+
+        // We must define these functions inside or wrap them in useCallback if they depend on state,
+        // but since we rely on refs for state checking (isProcessingRef), it's safe to define them here to avoid stale closures.
+        
+        function onScanSuccess(decodedText) {
+            if (isProcessingRef.current) return; // STRICTLY Prevent double-scans synchronously
+            isProcessingRef.current = true; // Lock immediately BEFORE async call
+            
+            // Pause scanner immediately to prevent further scans while processing
+            if (scannerRef.current) {
+                try {
+                    scannerRef.current.pause(true);
+                } catch (e) {
+                    console.error("Failed to pause scanner", e);
+                }
+            }
+
+            handleCheckIn(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure, usually better to ignore and keep scanning
+        }
 
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         scannerRef.current = html5QrcodeScanner;
@@ -35,48 +65,97 @@ export default function GatepassScannerPage() {
                      console.error("Failed to clear html5QrcodeScanner. ", error);
                  });
              }
+             isScannerInitRef.current = false;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function onScanSuccess(decodedText, decodedResult) {
-        if (loading || scanResult) return; // Prevent multiple Rapid Scans
-        
-        handleCheckIn(decodedText);
-    }
 
-    function onScanFailure(error) {
-        // handle scan failure, usually better to ignore and keep scanning
-    }
 
     const handleManualSubmit = (e) => {
         e.preventDefault();
-        if (!manualToken.trim()) return;
-        handleCheckIn(manualToken.trim());
+        const token = manualToken.trim().toUpperCase();
+        if (!token || isProcessingRef.current) return;
+        isProcessingRef.current = true;
+        handleCheckIn(token);
     };
 
     const handleCheckIn = async (token) => {
+        // Prevent processing exactly the same token twice within 10 seconds
+        const now = Date.now();
+        const isDuplicate = lastProcessedTokenRef.current.token === token && (now - lastProcessedTokenRef.current.time) < 10000;
+        
+        if (isDuplicate) {
+            isProcessingRef.current = false;
+            return;
+        }
+
         setLoading(true);
         setError(null);
-        setScanResult(null);
+        
+        // Only clear scanResult if scanning a DIFFERENT token to prevent UI flickering
+        if (lastProcessedTokenRef.current.token !== token) {
+            setScanResult(null);
+        }
 
         try {
             const res = await api.bookings.scanGatepass(token);
+            
+            // Success State
             setScanResult(res.data.booking);
+            lastProcessedTokenRef.current = { token, time: now };
             toast.success(res.message || 'Check-in successful!');
             
-            // Optional: Pause scanner briefly on success? 
+            // Pause scanner
             if (scannerRef.current) {
-                scannerRef.current.pause(true);
-                setTimeout(() => {
-                    scannerRef.current.resume();
-                    setScanResult(null); // Clear result to scan next
-                    setManualToken('');
-                }, 5000); // Resume after 5 seconds
+                try { scannerRef.current.pause(true); } catch (e) {}
             }
 
+            // Display result for 10 seconds then reset (Consistency for both cases)
+            setTimeout(() => {
+                if (scannerRef.current) {
+                    try { scannerRef.current.resume(); } catch (e) {}
+                }
+                setScanResult(null); 
+                setManualToken('');
+                isProcessingRef.current = false;
+            }, 10000);
+
         } catch (err) {
-            setError(err.message || 'Invalid or Expired QR Code');
-            toast.error(err.message || 'Failed to check in guest');
+            // Check if backend returned data for an already checked-in guest
+            const bookingData = err.data?.data?.booking;
+            const isAlreadyCheckedIn = err.message?.toLowerCase().includes('already');
+
+            if (bookingData && isAlreadyCheckedIn) {
+                setScanResult(bookingData);
+                setError(null);
+                lastProcessedTokenRef.current = { token, time: now };
+                toast.info('Guest already checked in. Showing info.');
+                
+                if (scannerRef.current) {
+                    try { scannerRef.current.pause(true); } catch (e) {}
+                }
+
+                setTimeout(() => {
+                    if (scannerRef.current) {
+                        try { scannerRef.current.resume(); } catch (e) {}
+                    }
+                    setScanResult(null); 
+                    setManualToken('');
+                    isProcessingRef.current = false;
+                }, 10000);
+            } else {
+                // Hard Error
+                setScanResult(null);
+                setError(err.message || 'Invalid or Expired QR Code');
+                toast.error(err.message || 'Failed to check in guest');
+                
+                if (scannerRef.current) {
+                    try { scannerRef.current.resume(); } catch (e) {}
+                }
+            }
+            
+            isProcessingRef.current = false;
         } finally {
             setLoading(false);
         }
