@@ -26,17 +26,23 @@ export default function DashboardPage() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchBookings = async () => {
+        try {
+            const res = await api.bookings.list({ limit: 5 });
+            setBookings(res.data.bookings);
+        } catch {
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchBookings = async () => {
-            try {
-                const res = await api.bookings.list({ limit: 5 });
-                setBookings(res.data.bookings);
-            } catch {
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchBookings();
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('booking-updated', fetchBookings);
+        return () => window.removeEventListener('booking-updated', fetchBookings);
     }, []);
 
     const upcomingBookings = bookings.filter(

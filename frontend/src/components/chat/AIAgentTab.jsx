@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot, Copy, Check, Square, CheckSquare, Trash } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot, Copy, Check, Square, CheckSquare, Trash, Edit3, User2, Briefcase, Tag, ChevronDown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import ReactMarkdown from 'react-markdown';
 import { api } from '@/lib/api';
 
 export function AIAgentTab() {
+    const router = useRouter();
     const [threads, setThreads] = useState([]);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -115,6 +117,15 @@ export function AIAgentTab() {
                 if (!threadId || result.data.threadTitle) {
                     setThreadId(result.data.threadId);
                     fetchThreads();
+                }
+
+                // Auto-refresh the page if a cancellation or modification was performed
+                const metadata = result.data.aiMessage.metadata;
+                const isCancellation = metadata && metadata.action === 'cancel_multiple_bookings' && (metadata.result?.success || metadata.result?.successCount > 0);
+                const isModification = metadata && metadata.action === 'modify_booking' && metadata.result?.success;
+
+                if (isCancellation || isModification) {
+                    window.dispatchEvent(new CustomEvent('booking-updated'));
                 }
             } else {
                 setMessages(prev => [...prev, {
@@ -368,9 +379,53 @@ export function AIAgentTab() {
         }
 
         if (action === 'get_my_bookings' && Array.isArray(result)) {
-            return <BookingSelector bookings={result} onConfirm={(selectedIds) => {
-                handleSendWithContent(`Please cancel these bookings: ${selectedIds.join(', ')}`);
-            }} />;
+            return (
+                <div className="mt-3 space-y-3">
+                    <p className="text-[10px] font-noto-bold text-[#0056b3] uppercase tracking-widest px-1">Active Bookings:</p>
+                    {result.length === 0 ? (
+                        <div className="text-[10px] text-muted-foreground italic px-1">No active bookings found.</div>
+                    ) : (
+                        result.map((b) => (
+                            <BookingActionCard
+                                key={b.id}
+                                booking={b}
+                                onCancel={() => handleSendWithContent(`Cancel my booking for Room ${b.room} (ID: ${b.id})`)}
+                                onUpdate={(updates) => {
+                                    const updateStr = Object.entries(updates)
+                                        .filter(([_, v]) => v)
+                                        .map(([k, v]) => `${k}: ${v}`)
+                                        .join(', ');
+                                    handleSendWithContent(`Update booking ${b.id}: ${updateStr}`);
+                                }}
+                            />
+                        ))
+                    )}
+                </div>
+            );
+        }
+
+        if (action === 'modify_booking' && result) {
+            return (
+                <div className="mt-2 p-3 border border-emerald-100 rounded-md bg-emerald-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                        <div className="bg-emerald-100 p-1 rounded-full">
+                            <CheckCircle2 className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Update Successful</span>
+                    </div>
+                    <div className="space-y-1 pl-1">
+                        <p className="text-muted-foreground">Modified: <span className="text-[#0056b3] font-bold italic">{result.updatedFields?.join(', ') || 'dates'}</span></p>
+                        {result.priceDiff !== 0 && (
+                            <p className="text-muted-foreground">
+                                Price Adjustment: <span className={result.priceDiff > 0 ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                                    {result.priceDiff > 0 ? '+' : ''}₹{result.priceDiff}
+                                </span>
+                            </p>
+                        )}
+                        <p className="text-muted-foreground font-noto-bold mt-1">New Total: ₹{result.newTotal}</p>
+                    </div>
+                </div>
+            );
         }
 
         if (action === 'cancel_multiple_bookings' && result) {
@@ -415,6 +470,15 @@ export function AIAgentTab() {
                 if (!threadId || res.data.threadTitle) {
                     setThreadId(res.data.threadId);
                     fetchThreads();
+                }
+
+                // Auto-refresh the page if a cancellation or modification was performed
+                const metadata = res.data.aiMessage.metadata;
+                const isCancellation = metadata && metadata.action === 'cancel_multiple_bookings' && (metadata.result?.success || metadata.result?.successCount > 0);
+                const isModification = metadata && metadata.action === 'modify_booking' && metadata.result?.success;
+
+                if (isCancellation || isModification) {
+                    window.dispatchEvent(new CustomEvent('booking-updated'));
                 }
             } else {
                 setMessages(prev => [...prev, { senderType: 'ai', content: res.message || "Failed.", createdAt: new Date(), isError: true }]);
@@ -624,6 +688,183 @@ export function AIAgentTab() {
     );
 }
 
+function BookingActionCard({ booking, onCancel, onUpdate }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    if (isEditing) {
+        return (
+            <div className="border border-[#0056b3]/30 rounded-md overflow-hidden bg-white shadow-sm animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="bg-[#0056b3]/5 px-3 py-2 border-b border-[#0056b3]/10 flex justify-between items-center text-[10px] font-noto-bold text-[#0056b3] uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5"><Edit3 className="h-3 w-3" /> Update Details</div>
+                    <button onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-foreground"><ChevronDown className="h-3.5 w-3.5 rotate-180" /></button>
+                </div>
+                <BookingModifier booking={booking} onCancel={() => setIsEditing(false)} onSave={onUpdate} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="group border border-border rounded-md p-3 bg-muted/5 hover:bg-muted/10 transition-all hover:shadow-sm">
+            <div className="flex justify-between items-start mb-2">
+                <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-noto-bold text-[#0056b3] uppercase">Room {booking.room}</span>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-noto-bold uppercase border ${booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                            {booking.status}
+                        </span>
+                    </div>
+                    <div className="text-[9px] text-muted-foreground flex items-center gap-1">
+                        <CreditCard className="h-2.5 w-2.5" /> ID: <span className="font-mono">{booking.id}</span>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="text-[11px] font-noto-bold text-[#0056b3]">₹{booking.total}</div>
+                    <div className="text-[8px] text-muted-foreground uppercase tracking-widest">Total Amount</div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="space-y-1">
+                    <div className="text-[8px] text-muted-foreground uppercase font-noto-bold flex items-center gap-1"><Calendar className="h-2.5 w-2.5" /> Stay Dates</div>
+                    <div className="text-[10px] font-noto-medium">{new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}</div>
+                </div>
+                <div className="space-y-1">
+                    <div className="text-[8px] text-muted-foreground uppercase font-noto-bold flex items-center gap-1"><History className="h-2.5 w-2.5" /> Payment</div>
+                    <div className="text-[10px] font-noto-bold uppercase text-emerald-600">{booking.paymentStatus}</div>
+                </div>
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-border/50">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="flex-1 h-7 text-[9px] rounded-sm font-noto-bold uppercase tracking-wider gap-1.5 border-[#0056b3]/20 text-[#0056b3] hover:bg-[#0056b3]/5"
+                >
+                    <Edit3 className="h-2.5 w-2.5" /> Update
+                </Button>
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onCancel()}
+                    className="h-7 text-[9px] rounded-sm font-noto-bold uppercase tracking-wider gap-1.5 text-red-600 hover:bg-red-50"
+                >
+                    <Trash className="h-2.5 w-2.5" /> Cancel
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function BookingModifier({ booking, onCancel, onSave }) {
+    const [formData, setFormData] = useState({
+        bookingId: booking.id,
+        newCheckIn: booking.checkIn ? new Date(booking.checkIn).toISOString().split('T')[0] : '',
+        newCheckOut: booking.checkOut ? new Date(booking.checkOut).toISOString().split('T')[0] : '',
+        purpose: booking.purpose || 'personal',
+        purposeDetails: booking.purposeDetails || '',
+        guestName: booking.guestName || '',
+        numberOfGuests: booking.numberOfGuests || 1,
+        specialRequests: booking.specialRequests || ''
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    return (
+        <div className="p-3 space-y-3 font-noto-regular">
+            <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                    <label className="text-[8px] font-noto-bold text-muted-foreground uppercase flex items-center gap-1"><Calendar className="h-2.5 w-2.5 text-[#0056b3]" /> Check-In</label>
+                    <input
+                        type="date"
+                        name="newCheckIn"
+                        value={formData.newCheckIn}
+                        onChange={handleChange}
+                        className="w-full text-[10px] p-1.5 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[8px] font-noto-bold text-muted-foreground uppercase flex items-center gap-1"><Calendar className="h-2.5 w-2.5 text-[#0056b3]" /> Check-Out</label>
+                    <input
+                        type="date"
+                        name="newCheckOut"
+                        value={formData.newCheckOut}
+                        onChange={handleChange}
+                        className="w-full text-[10px] p-1.5 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[8px] font-noto-bold text-muted-foreground uppercase flex items-center gap-1"><User2 className="h-2.5 w-2.5 text-[#0056b3]" /> Guest Name</label>
+                <input
+                    type="text"
+                    name="guestName"
+                    placeholder="Enter guest name"
+                    value={formData.guestName}
+                    onChange={handleChange}
+                    className="w-full text-[10px] p-1.5 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30"
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                    <label className="text-[8px] font-noto-bold text-muted-foreground uppercase flex items-center gap-1"><Briefcase className="h-2.5 w-2.5 text-[#0056b3]" /> Purpose</label>
+                    <select
+                        name="purpose"
+                        value={formData.purpose}
+                        onChange={handleChange}
+                        className="w-full text-[10px] p-1.5 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30"
+                    >
+                        <option value="personal">Personal</option>
+                        <option value="academic">Academic</option>
+                        <option value="business">Business</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[8px] font-noto-bold text-muted-foreground uppercase flex items-center gap-1"><Tag className="h-2.5 w-2.5 text-[#0056b3]" /> Guests</label>
+                    <input
+                        type="number"
+                        name="numberOfGuests"
+                        min="1"
+                        max="4"
+                        value={formData.numberOfGuests}
+                        onChange={handleChange}
+                        className="w-full text-[10px] p-1.5 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[8px] font-noto-bold text-muted-foreground uppercase">Update Purpose Details (Optional)</label>
+                <textarea
+                    name="purposeDetails"
+                    rows="2"
+                    placeholder="Briefly describe the reason for your visit..."
+                    value={formData.purposeDetails}
+                    onChange={handleChange}
+                    className="w-full text-[10px] p-2 border rounded-sm bg-muted/5 focus:outline-none focus:ring-1 focus:ring-[#0056b3]/30 resize-none"
+                />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={() => onSave(formData)} className="flex-1 h-8 rounded-sm text-[9px] font-noto-bold uppercase bg-[#0056b3] hover:bg-[#004a99] text-white">
+                    Apply Updates
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onCancel} className="h-8 rounded-sm text-[9px] font-noto-bold uppercase text-muted-foreground">
+                    Cancel
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 function BookingSelector({ bookings, onConfirm }) {
     const [selectedIds, setSelectedIds] = useState([]);
     const [confirmed, setConfirmed] = useState(false);
@@ -638,25 +879,25 @@ function BookingSelector({ bookings, onConfirm }) {
     };
 
     if (activeBookings.length === 0) {
-        return <div className="mt-2 text-[10px] text-muted-foreground italic">No eligible bookings for cancellation.</div>;
+        return <div className="mt-2 text-[10px] text-muted-foreground italic">No eligible bookings found.</div>;
     }
 
     return (
         <div className="mt-3 space-y-2 border-t border-border pt-3">
-            <p className="text-[9px] font-noto-bold text-[#0056b3] uppercase tracking-widest mb-2">Select Bookings to Cancel:</p>
+            <p className="text-[9px] font-noto-bold text-[#0056b3] uppercase tracking-widest mb-2">Select Bookings to Process:</p>
             <div className="space-y-1.5">
                 {activeBookings.map((b) => (
                     <div
                         key={b.id}
                         onClick={() => toggleBooking(b.id)}
                         className={`flex items-center gap-3 p-2.5 rounded-sm border cursor-pointer transition-all ${selectedIds.includes(b.id)
-                            ? 'bg-red-50 border-red-200'
+                            ? 'bg-blue-50 border-blue-200'
                             : 'bg-muted/10 border-border hover:bg-muted/20'
                             }`}
                     >
                         <div className="shrink-0">
                             {selectedIds.includes(b.id)
-                                ? <CheckSquare className="h-4 w-4 text-red-500" />
+                                ? <CheckSquare className="h-4 w-4 text-[#0056b3]" />
                                 : <Square className="h-4 w-4 text-muted-foreground opacity-30" />
                             }
                         </div>
@@ -680,12 +921,12 @@ function BookingSelector({ bookings, onConfirm }) {
                     setConfirmed(true);
                     onConfirm(selectedIds);
                 }}
-                className={`w-full h-8 mt-2 rounded-sm font-noto-bold uppercase text-[10px] tracking-widest transition-all ${confirmed ? 'bg-emerald-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white shadow-sm'}`}
+                className={`w-full h-8 mt-2 rounded-sm font-noto-bold uppercase text-[10px] tracking-widest transition-all ${confirmed ? 'bg-emerald-600 text-white' : 'bg-[#0056b3] hover:bg-[#004a99] text-white shadow-sm'}`}
             >
                 {confirmed ? (
                     <span className="flex items-center gap-1.5"><Check className="h-3 w-3" /> Processing...</span>
                 ) : (
-                    <span className="flex items-center gap-1.5"><Trash className="h-3 w-3" /> Cancel Selected ({selectedIds.length})</span>
+                    <span className="flex items-center gap-1.5"><Sparkles className="h-3 w-3" /> Confirm Selection ({selectedIds.length})</span>
                 )}
             </Button>
         </div>

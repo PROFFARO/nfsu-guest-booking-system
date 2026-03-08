@@ -56,15 +56,22 @@ const tools = [
     type: "function",
     function: {
       name: "modify_booking",
-      description: "Modify the check-in or check-out dates for an existing booking (Stay extension or shift)",
+      description: "Modify any details of an existing booking (Dates, Guest Name, Purpose, Guests, Special Requests)",
       parameters: {
         type: "object",
         properties: {
           bookingId: { type: "string", description: "The ID of the booking to modify" },
-          newCheckIn: { type: "string", description: "New requested check-in date (ISO format)" },
-          newCheckOut: { type: "string", description: "New requested check-out date (ISO format)" }
+          newCheckIn: { type: "string", description: "New check-in date (ISO format)" },
+          newCheckOut: { type: "string", description: "New check-out date (ISO format)" },
+          guestName: { type: "string", description: "Update guest name" },
+          email: { type: "string", description: "Update contact email" },
+          phone: { type: "string", description: "Update 10-digit phone number" },
+          purpose: { type: "string", enum: ["academic", "business", "personal", "other"], description: "Update category of visit" },
+          purposeDetails: { type: "string", description: "Update specific reason/details for stay" },
+          numberOfGuests: { type: "number", minimum: 1, maximum: 4, description: "Update number of occupants" },
+          specialRequests: { type: "string", description: "Update special instructions" }
         },
-        required: ["bookingId", "newCheckIn", "newCheckOut"]
+        required: ["bookingId"]
       }
     }
   },
@@ -223,24 +230,44 @@ const toolImplementations = {
     if (['cancelled', 'completed'].includes(booking.status)) throw new Error(`Cannot modify a ${booking.status} booking.`);
     if (booking.checkedInAt) throw new Error("Cannot modify booking after check-in. Please contact staff at reception.");
 
-    const newIn = new Date(args.newCheckIn);
-    const newOut = new Date(args.newCheckOut);
+    const oldData = {
+      in: booking.checkIn,
+      out: booking.checkOut,
+      total: booking.totalAmount,
+      purpose: booking.purpose,
+      guestName: booking.guestName
+    };
 
-    // Check availability (excluding this booking)
-    const isAvailable = await Booking.checkRoomAvailability(booking.room._id, newIn, newOut, booking._id);
-    if (!isAvailable) throw new Error("Room is not available for requested new dates.");
+    let priceDiff = 0;
+    let newIn = booking.checkIn;
+    let newOut = booking.checkOut;
 
-    // Calculate new total
-    const nights = Math.ceil((newOut - newIn) / (1000 * 60 * 60 * 24));
-    const newTotal = nights * booking.room.pricePerNight;
-    const priceDiff = newTotal - booking.totalAmount;
+    // Handle Date Changes
+    if (args.newCheckIn || args.newCheckOut) {
+      newIn = args.newCheckIn ? new Date(args.newCheckIn) : booking.checkIn;
+      newOut = args.newCheckOut ? new Date(args.newCheckOut) : booking.checkOut;
 
-    const oldIn = booking.checkIn;
-    const oldOut = booking.checkOut;
+      const isAvailable = await Booking.checkRoomAvailability(booking.room._id, newIn, newOut, booking._id);
+      if (!isAvailable) throw new Error("Room is not available for requested new dates.");
 
-    booking.checkIn = newIn;
-    booking.checkOut = newOut;
-    booking.totalAmount = newTotal;
+      const nights = Math.ceil((newOut - newIn) / (1000 * 60 * 60 * 24));
+      const newTotal = nights * booking.room.pricePerNight;
+      priceDiff = newTotal - booking.totalAmount;
+
+      booking.checkIn = newIn;
+      booking.checkOut = newOut;
+      booking.totalAmount = newTotal;
+    }
+
+    // Handle Other Details
+    if (args.guestName) booking.guestName = args.guestName;
+    if (args.email) booking.email = args.email;
+    if (args.phone) booking.phone = args.phone;
+    if (args.purpose) booking.purpose = args.purpose;
+    if (args.purposeDetails) booking.purposeDetails = args.purposeDetails;
+    if (args.numberOfGuests) booking.numberOfGuests = args.numberOfGuests;
+    if (args.specialRequests) booking.specialRequests = args.specialRequests;
+
     await booking.save();
 
     await logEvent({
@@ -249,20 +276,20 @@ const toolImplementations = {
       details: {
         bookingId: booking._id,
         action: 'AI_MODIFICATION',
-        oldDates: { in: oldIn, out: oldOut },
-        newDates: { in: newIn, out: newOut },
+        updates: args,
         priceDiff
       }
     });
 
     return {
       success: true,
-      message: `Booking modified successfully. New total: ₹${newTotal}.`,
+      message: `Booking details updated successfully.${priceDiff !== 0 ? ` New total: ₹${booking.totalAmount}.` : ''}`,
       data: {
         bookingId: booking._id,
-        newDates: { in: newIn, out: newOut },
+        newDates: { in: booking.checkIn, out: booking.checkOut },
         priceDiff,
-        newTotal
+        newTotal: booking.totalAmount,
+        updatedFields: Object.keys(args).filter(k => k !== 'bookingId')
       }
     };
   },
@@ -533,7 +560,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, or hospital facilities. If a user asks for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, or hospital facilities. If a user asks for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',
@@ -546,7 +573,8 @@ export const processAIChat = async (userId, message, history = []) => {
     "google/gemini-2.0-flash-lite-001",
     "google/gemini-2.0-flash-exp:free",
     "meta-llama/llama-3.3-70b-instruct",
-    "qwen/qwen-2.5-72b-instruct"
+    "qwen/qwen-2.5-72b-instruct",
+    "openrouter/free"
   ];
 
   const callOpenRouter = async (currentMessages, currentTools = null, modelIndex = 0) => {

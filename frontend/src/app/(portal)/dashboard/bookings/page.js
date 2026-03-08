@@ -86,6 +86,11 @@ export default function MyBookingsPage() {
         fetchBookings();
     }, [statusFilter, page]);
 
+    useEffect(() => {
+        window.addEventListener('booking-updated', fetchBookings);
+        return () => window.removeEventListener('booking-updated', fetchBookings);
+    }, []);
+
     const handleCancel = async (bookingId) => {
         try {
             await api.bookings.cancel(bookingId, cancelReason || 'Cancelled by user');
