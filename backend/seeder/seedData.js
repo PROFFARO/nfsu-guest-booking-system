@@ -152,43 +152,18 @@ const staffUser = {
   }
 };
 
-// Sample regular user
-const regularUser = {
-  name: 'Regular User',
-  email: 'user@campusstay.com',
-  password: 'User@123',
-  phone: '9876543212',
-  role: 'user',
-  isActive: true,
-  address: {
-    street: '789 User Street',
-    city: 'User City',
-    state: 'User State',
-    zipCode: '12347',
-    country: 'India'
-  }
-};
-
 const seedDatabase = async () => {
   try {
     console.log('🚀 Starting database seeding...');
-    
+
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB for seeding');
-
-    // Clear existing data
-    console.log('🗑️  Clearing existing data...');
-    await User.deleteMany({});
-    await Room.deleteMany({});
-    await Booking.deleteMany({});
-    console.log('🗑️  Cleared existing data');
 
     // Create users
     console.log('👥 Creating sample users...');
     const admin = await User.create(adminUser);
     const staff = await User.create(staffUser);
-    const user = await User.create(regularUser);
     console.log('👥 Created sample users');
 
     // Create rooms
@@ -197,48 +172,11 @@ const seedDatabase = async () => {
     const rooms = await Room.create(sampleRooms);
     console.log('🏠 Created sample rooms');
 
-    // Seed a few bookings and mark rooms accordingly
-    console.log('🧾 Creating sample bookings...');
-    const now = new Date();
-    const fiveDays = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-    const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const sampleBookings = [
-      { room: rooms[0], user, checkIn: fiveDays, checkOut: sevenDays }, // A-1
-      { room: rooms[12], user, checkIn: fiveDays, checkOut: sevenDays }, // B-11 (first double room)
-      { room: rooms[25], user, checkIn: fiveDays, checkOut: sevenDays }, // C-11 (first double room on 3rd floor)
-    ];
-
-    for (const sb of sampleBookings) {
-      await Booking.create({
-        user: sb.user._id,
-        room: sb.room._id,
-        checkIn: sb.checkIn,
-        checkOut: sb.checkOut,
-        guestName: user.name,
-        email: user.email,
-        phone: user.phone,
-        purpose: 'personal',
-        numberOfGuests: 1,
-        totalAmount: (sb.room.pricePerNight || 1500) * Math.ceil((sb.checkOut - sb.checkIn) / (1000*60*60*24)),
-        status: 'confirmed',
-        paymentStatus: 'unpaid',
-        paymentMethod: 'cash'
-      });
-      await Room.findByIdAndUpdate(sb.room._id, { status: 'booked' });
-    }
-    console.log('🧾 Created sample bookings and marked rooms as booked');
-
     console.log('\n🎉 Database seeded successfully!');
     console.log('\n📋 Sample Users:');
     console.log(`Admin: ${admin.email} / ${adminUser.password}`);
     console.log(`Staff: ${staff.email} / ${staffUser.password}`);
-    console.log(`User: ${user.email} / ${user.password}`);
     console.log(`\n🏠 Total Rooms Created: ${rooms.length}`);
-    console.log(`📊 Room Summary:`);
-    console.log(`   - Single Rooms: 60`);
-    console.log(`   - Double Rooms: 18`);
-    console.log(`   - Total Rooms: 78`);
     console.log(`\n🏢 Floor Layout:`);
     console.log(`   1st Floor (Block A): 10 single rooms + Gym`);
     console.log(`   2nd Floor (Block B): 10 single rooms + 6 double rooms`);
