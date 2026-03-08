@@ -190,6 +190,33 @@ const tools = [
         required: ["bookingIds"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "request_supplies",
+      description: "Request room supplies or hospitality services (e.g. towels, water, toiletries, bedding). Use this when a guest wants extra items delivered to their room.",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumber: { type: "string", description: "The room number for the request" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Name of the item (e.g. Towel, Water Bottle)" },
+                quantity: { type: "number", description: "Number of items requested" }
+              },
+              required: ["name"]
+            },
+            description: "List of items and their quantities"
+          },
+          specialInstructions: { type: "string", description: "Any specific instructions for the housekeeping staff" }
+        },
+        required: ["roomNumber", "items"]
+      }
+    }
   }
 ];
 
@@ -381,6 +408,58 @@ export const toolImplementations = {
       success: true,
       message: `Issue for Room ${args.roomNumber} has been logged and reported to the maintenance staff.`,
       data: { roomNumber: args.roomNumber, timestamp }
+    };
+  },
+  request_supplies: async (args, userId) => {
+    const room = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
+
+    const timestamp = new Date().toLocaleString();
+    const itemsList = args.items.map(i => `${i.quantity || 1}x ${i.name}`).join(", ");
+    const supplyEntry = `\n[SUPPLIES REQUESTED ${timestamp}]: ${itemsList}${args.specialInstructions ? ` (Note: ${args.specialInstructions})` : ''}`;
+
+    room.notes = (room.notes || "") + supplyEntry;
+    await room.save();
+
+    // 1. Log to Audit Log
+    await logEvent({
+      userId,
+      action: 'SUPPLY_REQUEST',
+      details: { roomNumber: args.roomNumber, items: args.items, instructions: args.specialInstructions, source: 'ai_assistant' }
+    });
+
+    // 2. Create/Update Support Thread for Housekeeping
+    try {
+      let thread = await ChatThread.findOne({ user: userId, type: 'support', status: 'open' });
+      if (!thread) {
+        thread = await ChatThread.create({
+          user: userId,
+          type: 'support',
+          status: 'open',
+          lastMessageAt: Date.now(),
+          title: `Room ${args.roomNumber} Service Request`
+        });
+      } else {
+        thread.lastMessageAt = Date.now();
+        await thread.save();
+      }
+
+      await ChatMessage.create({
+        thread: thread._id,
+        sender: null,
+        senderType: 'ai',
+        content: `[SUPPLY REQUEST VIA AI]\nRoom: ${args.roomNumber}\nItems: ${itemsList}\nNote: ${args.specialInstructions || 'None'}\nTime: ${timestamp}`,
+        type: 'action',
+        metadata: { action: 'request_supplies', roomNumber: args.roomNumber, items: args.items }
+      });
+    } catch (err) {
+      console.error("Failed to create support thread for supply request:", err);
+    }
+
+    return {
+      success: true,
+      message: `Your request for ${itemsList} in Room ${args.roomNumber} has been sent to housekeeping.`,
+      data: { roomNumber: args.roomNumber, items: args.items, timestamp }
     };
   },
   get_room_details: async (args) => {
@@ -606,7 +685,7 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, hospital facilities, or room maintenance. If a user reports any problem or issue with their room (e.g., pests, broken furniture, leaks, mosquitoes, wall damage), you MUST invoke 'report_room_issue' immediately. NEVER just say you have reported it without calling the tool. If they ask for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
+      content: "You are the NFSU Campus AI Assistant, a highly capable concierge. You MUST use the provided tools to answer any questions about room availability, booking status, hospital facilities, or room maintenance. If a user reports any problem or issue with their room (e.g., pests, broken furniture, leaks, mosquitoes, wall damage), you MUST invoke 'report_room_issue' immediately. NEVER just say you have reported it without calling the tool. If a user requests extra supplies or room service items (e.g., towels, water bottles, bedding, toiletries, pillows), you MUST invoke 'request_supplies' immediately—ask for their room number and the items they need. If they ask for 'available rooms', invoke get_available_rooms. If they ask about a specific room, use get_room_details. If a user wants to cancel or delete their bookings (even multiple), first use 'get_my_bookings' to list their active/pending reservations and invite them to select the ones they wish to cancel. If a user wants to update or modify any booking details (purpose, dates, guests, etc.), use 'get_my_bookings' to show their options first, then use 'modify_booking'. Always prioritize factual data from tools over general knowledge. Be professional, concise, and helpful."
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

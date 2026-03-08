@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, QrCode, Wrench, Clock } from 'lucide-react';
+import { BedDouble, TrendingUp, Activity, IndianRupee, FileText, QrCode, Wrench, Clock, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from 'recharts';
 import { format, subDays } from 'date-fns';
@@ -22,19 +22,22 @@ export default function AdminDashboard() {
     const [roomStats, setRoomStats] = useState(null);
     const [recentBookings, setRecentBookings] = useState([]);
     const [maintenanceReports, setMaintenanceReports] = useState([]);
+    const [supplyRequests, setSupplyRequests] = useState([]);
     const [analyticsBookings, setAnalyticsBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [roomRes, bookingRes, auditRes] = await Promise.all([
+                const [roomRes, bookingRes, auditRes, supplyRes] = await Promise.all([
                     api.rooms.stats(),
                     api.bookings.list({ limit: 100 }), // Fetch more for analytics
-                    api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 })
+                    api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 }),
+                    api.auditLogs.getAll({ action: 'SUPPLY_REQUEST', limit: 10 })
                 ]);
                 setRoomStats(roomRes.data);
                 setMaintenanceReports(auditRes.data || []);
+                setSupplyRequests(supplyRes.data || []);
 
                 const allBookings = bookingRes.data.bookings || [];
                 setAnalyticsBookings(allBookings);
@@ -330,35 +333,60 @@ export default function AdminDashboard() {
                             </div>
                         </WidgetWrapper>
 
-                        <WidgetWrapper title="AI-Reported Maintenance Issues">
+                        <WidgetWrapper title="AI-Reported Issues & Service Requests">
                             <div className="h-full min-h-0 overflow-auto scrollbar-hide">
                                 <div className="space-y-4">
-                                    {maintenanceReports.length === 0 ? (
+                                    {maintenanceReports.length === 0 && supplyRequests.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-12 text-center">
                                             <Wrench className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">No Active Maintenance Reports</p>
+                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">No Active Reports</p>
                                         </div>
                                     ) : (
-                                        maintenanceReports.map((log) => (
-                                            <div key={log._id} className="p-3 bg-muted/20 border-2 border-border rounded-sm group hover:border-[#0056b3] dark:hover:border-cyan-500 transition-colors">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-7 h-7 rounded-sm bg-[#0056b3]/10 flex items-center justify-center">
-                                                            <Wrench className="h-3.5 w-3.5 text-[#0056b3] dark:text-cyan-500" />
+                                        <>
+                                            {maintenanceReports.map((log) => (
+                                                <div key={log._id} className="p-3 bg-red-50/30 dark:bg-red-950/10 border-2 border-red-200 dark:border-red-800/40 rounded-sm group hover:border-red-400 transition-colors">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-7 h-7 rounded-sm bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                                <Wrench className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                                                            </div>
+                                                            <span className="text-xs font-noto-bold text-foreground uppercase tracking-tight">Room {log.details?.roomNumber}</span>
                                                         </div>
-                                                        <span className="text-xs font-noto-bold text-foreground uppercase tracking-tight">Room {log.details?.roomNumber}</span>
+                                                        <Badge variant="outline" className="text-[9px] font-noto-bold border-red-500 text-red-600 uppercase bg-red-500/5">Maintenance</Badge>
                                                     </div>
-                                                    <Badge variant="outline" className="text-[9px] font-noto-bold border-amber-500 text-amber-600 uppercase bg-amber-500/5">P0 Urgent</Badge>
+                                                    <p className="text-[11px] font-noto-medium text-foreground line-clamp-2 mb-2 leading-relaxed italic">
+                                                        "{log.details?.issue}"
+                                                    </p>
+                                                    <div className="flex items-center justify-between text-[9px] font-noto-bold text-muted-foreground uppercase tracking-widest border-t border-red-200 dark:border-red-800/40 pt-2 mt-auto">
+                                                        <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {format(new Date(log.createdAt), 'MMM dd, HH:mm')}</span>
+                                                        <span className="text-red-600 dark:text-red-400">Via AI Assistant</span>
+                                                    </div>
                                                 </div>
-                                                <p className="text-[11px] font-noto-medium text-foreground line-clamp-2 mb-2 leading-relaxed italic">
-                                                    "{log.details?.issue}"
-                                                </p>
-                                                <div className="flex items-center justify-between text-[9px] font-noto-bold text-muted-foreground uppercase tracking-widest border-t border-border pt-2 mt-auto">
-                                                    <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {format(new Date(log.createdAt), 'MMM dd, HH:mm')}</span>
-                                                    <span className="text-[#0056b3] dark:text-cyan-500">Via AI Assistant</span>
+                                            ))}
+                                            {supplyRequests.map((log) => (
+                                                <div key={log._id} className="p-3 bg-emerald-50/30 dark:bg-emerald-950/10 border-2 border-emerald-200 dark:border-emerald-800/40 rounded-sm group hover:border-emerald-400 transition-colors">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-7 h-7 rounded-sm bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                                <Package className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                            </div>
+                                                            <span className="text-xs font-noto-bold text-foreground uppercase tracking-tight">Room {log.details?.roomNumber}</span>
+                                                        </div>
+                                                        <Badge variant="outline" className="text-[9px] font-noto-bold border-emerald-500 text-emerald-600 uppercase bg-emerald-500/5">Service</Badge>
+                                                    </div>
+                                                    <p className="text-[11px] font-noto-medium text-foreground line-clamp-2 mb-2 leading-relaxed">
+                                                        {Array.isArray(log.details?.items) ? log.details.items.map(i => `${i.quantity || 1}× ${i.name}`).join(', ') : 'Supply request'}
+                                                    </p>
+                                                    {log.details?.instructions && (
+                                                        <p className="text-[10px] text-muted-foreground italic mb-2">Note: {log.details.instructions}</p>
+                                                    )}
+                                                    <div className="flex items-center justify-between text-[9px] font-noto-bold text-muted-foreground uppercase tracking-widest border-t border-emerald-200 dark:border-emerald-800/40 pt-2 mt-auto">
+                                                        <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {format(new Date(log.createdAt), 'MMM dd, HH:mm')}</span>
+                                                        <span className="text-emerald-600 dark:text-emerald-400">Via AI Assistant</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            ))}
+                                        </>
                                     )}
                                 </div>
                             </div>

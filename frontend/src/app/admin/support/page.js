@@ -156,7 +156,7 @@ export default function SupportInbox() {
                             >
                                 <div className="flex justify-between items-start mb-1">
                                     <span className="text-sm font-noto-semibold text-foreground truncate max-w-[140px]">
-                                        {t.title?.includes('Room') && t.title?.includes('Issue') ? 'AI ASSISTANT' : t.user?.name}
+                                        {(t.title?.includes('Room') && (t.title?.includes('Issue') || t.title?.includes('Service Request'))) ? 'AI ASSISTANT' : t.user?.name}
                                     </span>
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-noto-medium text-muted-foreground opacity-70">
@@ -193,7 +193,9 @@ export default function SupportInbox() {
                             </Button>
                             <div>
                                 <h3 className="text-sm font-noto-semibold text-foreground tracking-tight">
-                                    {activeThread.title?.includes('Room') && activeThread.title?.includes('Issue') ? 'AI ASSISTANT (Maintenance)' : activeThread.user?.name}
+                                    {(activeThread.title?.includes('Room') && (activeThread.title?.includes('Issue') || activeThread.title?.includes('Service Request')))
+                                        ? (activeThread.title?.includes('Service Request') ? 'AI ASSISTANT (Housekeeping)' : 'AI ASSISTANT (Maintenance)')
+                                        : activeThread.user?.name}
                                 </h3>
                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     <Badge variant="outline" className="text-[9px] sm:text-[10px] h-5 rounded-sm border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-noto-medium px-1.5 shrink-0">Connected</Badge>
@@ -206,10 +208,10 @@ export default function SupportInbox() {
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex ${msg.senderType === 'staff' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-md text-[12px] sm:text-[13px] leading-relaxed shadow-xs ${msg.senderType === 'staff'
-                                            ? 'bg-[#0056b3] text-white font-noto-regular'
-                                            : msg.senderType === 'ai'
-                                                ? 'bg-amber-50 text-amber-900 border border-amber-200 font-noto-regular'
-                                                : 'bg-card text-foreground border border-border font-noto-regular'
+                                        ? 'bg-[#0056b3] text-white font-noto-regular'
+                                        : msg.senderType === 'ai'
+                                            ? 'bg-amber-50 text-amber-900 border border-amber-200 font-noto-regular'
+                                            : 'bg-card text-foreground border border-border font-noto-regular'
                                         }`}>
                                         {msg.senderType === 'ai' && (
                                             <div className="text-[9px] font-noto-bold text-amber-600 mb-1 uppercase tracking-wider">Automated Report</div>

@@ -26,7 +26,8 @@ const auditLogSchema = new mongoose.Schema({
       'SYSTEM_MAINTENANCE',
       'MAINTENANCE_REPORT',
       'SUPPORT_ESCALATE',
-      'BOOKING_CANCEL_BULK'
+      'BOOKING_CANCEL_BULK',
+      'SUPPLY_REQUEST'
     ],
     required: true,
     index: true

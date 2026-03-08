@@ -316,6 +316,40 @@ export function AIAgentTab() {
             );
         }
 
+        // Supply Request Confirmation
+        if (action === 'request_supplies' && result && result.success) {
+            const items = result.data?.items || [];
+            return (
+                <div className="mt-2 p-3 border border-emerald-200 rounded-md bg-emerald-50/30 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-emerald-700">
+                            <div className="bg-emerald-100 p-1 rounded-full">
+                                <CheckCircle2 className="h-3 w-3" />
+                            </div>
+                            <span className="font-noto-bold text-xs">Service Request Confirmed</span>
+                        </div>
+                        <span className="text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-noto-bold">
+                            Room {result.data.roomNumber}
+                        </span>
+                    </div>
+                    <div className="bg-white/60 rounded-md border border-emerald-100 divide-y divide-emerald-100">
+                        {items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between px-3 py-1.5">
+                                <span className="text-foreground">{item.name}</span>
+                                <span className="font-noto-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-sm text-[9px]">
+                                    ×{item.quantity || 1}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-between items-center pt-1 opacity-60 text-[8px]">
+                        <span>Submitted: {result.data.timestamp}</span>
+                        <span className="bg-emerald-100/50 px-1.5 rounded-sm">Housekeeping Notified</span>
+                    </div>
+                </div>
+            );
+        }
+
         // Room Details (Deep Dive)
         if (action === 'get_room_details' && result && !result.error) {
             return (
