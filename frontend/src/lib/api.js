@@ -184,7 +184,11 @@ export const api = {
             body: JSON.stringify(data),
         }),
         getAdminInbox: () => request('/chats/admin/inbox'),
-        getThreadMessages: (threadId) => request(`/chats/${threadId}/messages`),
+        getMessages: (threadId) => request(`/chats/${threadId}/messages`),
+        // AI Specific
+        getAIThreads: () => request('/chats/ai/threads'),
+        createAIThread: () => request('/chats/ai/threads', { method: 'POST' }),
+        deleteAIThread: (id) => request(`/chats/ai/threads/${id}`, { method: 'DELETE' }),
         aiChat: (data) => request('/chats/ai', {
             method: 'POST',
             body: JSON.stringify(data),

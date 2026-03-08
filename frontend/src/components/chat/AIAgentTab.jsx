@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star } from 'lucide-react';
+import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -9,17 +9,91 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
 
 export function AIAgentTab() {
+    const [threads, setThreads] = useState([]);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [threadId, setThreadId] = useState(null);
+    const [threadId, setThreadId] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('activeAIThreadId');
+        }
+        return null;
+    });
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const scrollRef = useRef(null);
+
+    // Fetch all threads on mount
+    useEffect(() => {
+        fetchThreads();
+    }, []);
+
+    // Fetch history when threadId changes
+    useEffect(() => {
+        if (threadId) {
+            fetchHistory(threadId);
+            localStorage.setItem('activeAIThreadId', threadId);
+        } else {
+            setMessages([]);
+        }
+    }, [threadId]);
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
+
+    const fetchThreads = async () => {
+        try {
+            const result = await api.chats.getAIThreads();
+            if (result.status === 'success') {
+                setThreads(result.data.threads);
+            }
+        } catch (err) {
+            console.error("Failed to fetch threads:", err);
+        }
+    };
+
+    const fetchHistory = async (id) => {
+        try {
+            const result = await api.chats.getMessages(id);
+            if (result.status === 'success') {
+                setMessages(result.data.messages);
+            }
+        } catch (err) {
+            console.error("Failed to fetch history:", err);
+        }
+    };
+
+    const createNewChat = async () => {
+        try {
+            const result = await api.chats.createAIThread();
+            if (result.status === 'success') {
+                setThreads(prev => [result.data.thread, ...prev]);
+                setThreadId(result.data.thread._id);
+                setMessages([]);
+            }
+        } catch (err) {
+            console.error("Failed to create chat:", err);
+        }
+    };
+
+    const deleteThread = async (e, id) => {
+        e.stopPropagation();
+
+        try {
+            const result = await api.chats.deleteAIThread(id);
+            if (result.status === 'success') {
+                setThreads(prev => prev.filter(t => t._id !== id));
+                if (threadId === id) {
+                    setThreadId(null);
+                    localStorage.removeItem('activeAIThreadId');
+                }
+            }
+        } catch (err) {
+            console.error("Failed to delete thread:", err);
+        }
+    };
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -34,7 +108,12 @@ export function AIAgentTab() {
 
             if (result.status === 'success') {
                 setMessages(prev => [...prev, result.data.aiMessage]);
-                setThreadId(result.data.threadId);
+
+                // If this was a new thread, refresh thread list to get the generated title
+                if (!threadId || result.data.threadTitle) {
+                    setThreadId(result.data.threadId);
+                    fetchThreads();
+                }
             } else {
                 setMessages(prev => [...prev, {
                     senderType: 'ai',
@@ -98,78 +177,154 @@ export function AIAgentTab() {
     };
 
     return (
-        <div className="flex-1 flex flex-col p-4 min-h-0">
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar mb-4" ref={scrollRef}>
-                {messages.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                        <div className="p-4 bg-[#0056b3]/5 dark:bg-cyan-500/5 rounded-full mb-6">
-                            <Sparkles className="h-10 w-10 text-[#0056b3] dark:text-cyan-500 animate-pulse" />
+        <div className="flex-1 flex overflow-hidden h-full">
+            {/* Thread Sidebar */}
+            <AnimatePresence mode="wait">
+                {isSidebarOpen && (
+                    <motion.div
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 240, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        className="border-r border-border bg-muted/10 flex flex-col overflow-hidden whitespace-nowrap"
+                    >
+                        <div className="p-4 border-b border-border flex justify-between items-center bg-background/50">
+                            <h3 className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest">Your Chats</h3>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-sm hover:bg-[#0056b3]/10 text-[#0056b3]" onClick={createNewChat}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
                         </div>
-                        <h3 className="text-sm font-noto-bold tracking-tight text-foreground">Campus AI Assistant</h3>
-                        <p className="text-[11px] font-noto-regular leading-relaxed mt-2 text-muted-foreground max-w-[280px]">
-                            "Hello! I am your AI assistant. I can help you find rooms, check bookings, or automate your stay. How can I assist you today?"
-                        </p>
 
-                        <div className="mt-8 w-full max-w-[300px] space-y-2">
-                            <p className="text-[10px] font-noto-semibold text-muted-foreground uppercase tracking-widest text-center mb-4 opacity-70">Suggested Tasks</p>
-                            {[
-                                "Show available double rooms",
-                                "Check my current check-in status",
-                                "How do I cancel my booking?"
-                            ].map((task, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => { setInput(task); }}
-                                    className="w-full p-2.5 text-left text-[11px] font-noto-medium text-foreground bg-muted/20 hover:bg-muted/40 border border-border rounded-sm transition-colors"
-                                >
-                                    {task}
-                                </button>
-                            ))}
+                        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                            {threads.length === 0 ? (
+                                <div className="text-[10px] text-muted-foreground text-center mt-8 px-4 opacity-60 italic">
+                                    No chat history yet.
+                                </div>
+                            ) : (
+                                threads.map(t => (
+                                    <div
+                                        key={t._id}
+                                        onClick={() => setThreadId(t._id)}
+                                        className={`group relative p-2.5 rounded-sm cursor-pointer transition-all flex items-start gap-3 border ${threadId === t._id
+                                            ? 'bg-[#0056b3]/5 border-[#0056b3]/20'
+                                            : 'hover:bg-muted/50 border-transparent'
+                                            }`}
+                                    >
+                                        <MessageSquare className={`h-4 w-4 mt-0.5 shrink-0 ${threadId === t._id ? 'text-[#0056b3]' : 'text-muted-foreground'}`} />
+                                        <div className="flex-1 min-w-0 pr-6">
+                                            <p className={`text-[11px] truncate font-noto-medium ${threadId === t._id ? 'text-[#0056b3]' : 'text-foreground'}`}>
+                                                {t.title || 'New Conversation'}
+                                            </p>
+                                            <p className="text-[9px] text-muted-foreground mt-0.5 opacity-70">
+                                                {new Date(t.lastMessageAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 transition-all rounded-sm scale-90"
+                                            onClick={(e) => deleteThread(e, t._id)}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))
+                            )}
                         </div>
-                    </div>
+                    </motion.div>
                 )}
+            </AnimatePresence>
 
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded-md text-[13px] leading-relaxed shadow-xs ${msg.senderType === 'user'
-                            ? 'bg-[#0056b3] text-white font-noto-regular'
-                            : msg.isError ? 'bg-red-50 text-red-700 border border-red-200 font-noto-regular' : 'bg-muted/30 text-foreground border border-border font-noto-regular'
-                            }`}>
-                            {msg.content}
-                            {renderMetadata(msg)}
-                            <div className={`text-[9px] mt-1 opacity-50 font-noto-medium ${msg.senderType === 'user' ? 'text-right' : 'text-left'}`}>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col relative min-w-0 bg-background">
+                {/* Sidebar Toggle */}
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-2 top-2 z-10 h-7 w-7 rounded-full bg-background border shadow-sm hover:bg-muted"
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                >
+                    {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar mb-4 p-4 pt-12" ref={scrollRef}>
+                    {messages.length === 0 && !loading && (
+                        <div className="h-full flex flex-col items-center justify-center text-center px-6">
+                            <div className="p-4 bg-[#0056b3]/5 rounded-full mb-6">
+                                <Sparkles className="h-10 w-10 text-[#0056b3] animate-pulse" />
+                            </div>
+                            <h3 className="text-sm font-noto-bold text-foreground">Campus AI Assistant</h3>
+                            <p className="text-[11px] font-noto-regular leading-relaxed mt-2 text-muted-foreground max-w-[280px]">
+                                {threadId
+                                    ? "Start by asking something about this conversation."
+                                    : "Hello! I am your AI assistant. I can help you find rooms, check bookings, or automate your stay. How can I assist you today?"
+                                }
+                            </p>
+
+                            {!threadId && (
+                                <div className="mt-8 w-full max-w-[300px] space-y-2">
+                                    <p className="text-[10px] font-noto-semibold text-muted-foreground uppercase tracking-widest text-center mb-4 opacity-70">Suggested Tasks</p>
+                                    {[
+                                        "Show available double rooms",
+                                        "Check my current check-in status",
+                                        "How do I cancel my booking?"
+                                    ].map((task, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => { setInput(task); }}
+                                            className="w-full p-2.5 text-left text-[11px] font-noto-medium text-foreground bg-muted/20 hover:bg-muted/40 border border-border rounded-sm transition-colors"
+                                        >
+                                            {task}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {messages.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-md text-[13px] leading-relaxed shadow-xs ${msg.senderType === 'user'
+                                ? 'bg-[#0056b3] text-white font-noto-regular'
+                                : msg.isError ? 'bg-red-50 text-red-700 border border-red-200 font-noto-regular' : 'bg-muted/30 text-foreground border border-border font-noto-regular'
+                                }`}>
+                                {msg.content}
+                                {renderMetadata(msg)}
+                                <div className={`text-[9px] mt-1 opacity-50 font-noto-medium ${msg.senderType === 'user' ? 'text-right' : 'text-left'}`}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
 
-                {loading && (
-                    <div className="flex justify-start">
-                        <div className="bg-muted/30 p-3 rounded-md border border-border flex items-center gap-3">
-                            <Loader2 className="h-3 w-3 animate-spin text-[#0056b3]" />
-                            <span className="text-[10px] font-noto-semibold tracking-wide text-muted-foreground">AI is processing...</span>
+                    {loading && (
+                        <div className="flex justify-start">
+                            <div className="bg-muted/30 p-3 rounded-md border border-border flex items-center gap-3">
+                                <Loader2 className="h-3 w-3 animate-spin text-[#0056b3]" />
+                                <span className="text-[10px] font-noto-semibold tracking-wide text-muted-foreground">AI is processing...</span>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
 
-            <div className="flex items-center gap-2">
-                <Input
-                    placeholder="Ask AI to automate tasks..."
-                    className="flex-1 text-xs h-11 rounded-sm border-2 font-noto-regular"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                />
-                <Button
-                    size="icon"
-                    className="h-11 w-11 bg-[#0056b3] hover:bg-[#004494] shadow-md flex-shrink-0 transition-all hover:scale-105"
-                    onClick={handleSend}
-                    disabled={loading || !input.trim()}
-                >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                </Button>
+                <div className="p-4 pt-0">
+                    <div className="flex items-center gap-2">
+                        <Input
+                            placeholder={threadId ? "Message AI..." : "Start a new conversation..."}
+                            className="flex-1 text-xs h-11 rounded-sm border-2 font-noto-regular shadow-sm focus-visible:ring-[#0056b3]"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        />
+                        <Button
+                            size="icon"
+                            className="h-11 w-11 bg-[#0056b3] hover:bg-[#004494] shadow-md flex-shrink-0 transition-all active:scale-95"
+                            onClick={handleSend}
+                            disabled={loading || !input.trim()}
+                        >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );
