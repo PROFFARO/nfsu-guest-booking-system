@@ -242,31 +242,40 @@ const toolImplementations = {
       paymentStatus: 'unpaid'
     });
 
-    await booking.save();
+    try {
+      await booking.save();
 
-    await logEvent({
-      userId,
-      action: 'BOOKING_CREATE',
-      details: { 
-        bookingId: booking._id, 
-        room: room._id, 
-        checkIn: args.checkIn, 
-        checkOut: args.checkOut, 
-        source: 'ai_assistant' 
-      }
-    });
+      await logEvent({
+        userId,
+        action: 'BOOKING_CREATE',
+        details: { 
+          bookingId: booking._id, 
+          room: room._id, 
+          checkIn: args.checkIn, 
+          checkOut: args.checkOut, 
+          source: 'ai_assistant' 
+        }
+      });
 
-    return {
-      success: true,
-      message: `Booking created successfully for Room ${args.roomNumber}. Your stay from ${checkInDate.toLocaleDateString()} to ${checkOutDate.toLocaleDateString()} is now pending payment.`,
-      data: {
-        bookingId: booking._id,
-        totalAmount,
-        nights,
-        roomNumber: room.roomNumber,
-        status: booking.status
-      }
-    };
+      return {
+        success: true,
+        message: `Booking created successfully for Room ${args.roomNumber}. Your stay from ${checkInDate.toLocaleDateString()} to ${checkOutDate.toLocaleDateString()} is now pending payment.`,
+        data: {
+          bookingId: booking._id,
+          totalAmount,
+          nights,
+          roomNumber: room.roomNumber,
+          status: booking.status
+        }
+      };
+    } catch (error) {
+      console.error("AI Booking Execution Error:", error);
+      return {
+        success: false,
+        message: `I encountered an issue while finalizing your booking: ${error.message}`,
+        error: "BOOKING_FAILED"
+      };
+    }
   },
   escalate_to_staff: async (args, userId) => {
     // 1. Create a support thread
@@ -657,6 +666,16 @@ export const processAIChat = async (userId, message, history = []) => {
                     });
 
                     const finalData = await finalResponse.json();
+                    
+                    if (!finalResponse.ok || !finalData.choices?.[0]) {
+                        console.error("OpenRouter Follow-up Error:", finalData);
+                        return {
+                            text: `Action '${name}' was successful, but I had trouble generating a follow-up response.`,
+                            action: name,
+                            result: toolResult
+                        };
+                    }
+
                     return {
                         text: finalData.choices[0].message.content,
                         action: name,
@@ -719,6 +738,16 @@ export const processAIChat = async (userId, message, history = []) => {
         });
 
         const finalData = await finalResponse.json();
+        
+        if (!finalResponse.ok || !finalData.choices?.[0]) {
+          console.error("OpenRouter Follow-up Error:", finalData);
+          return {
+            text: `The action '${name}' was completed successfully, but I encountered an error while summarizing the result for you.`,
+            action: name,
+            result: toolResult
+          };
+        }
+
         return {
           text: finalData.choices[0].message.content,
           action: name,

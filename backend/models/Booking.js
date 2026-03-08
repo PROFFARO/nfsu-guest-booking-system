@@ -181,11 +181,11 @@ bookingSchema.pre('save', function (next) {
       return;
     }
 
-    // Check if check-in is at least 1 day in the future
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (this.checkIn < tomorrow) {
-      next(new Error('Check-in date must be at least 1 day in the future'));
+    // Check if check-in is at least today (no past bookings)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (this.checkIn < today) {
+      next(new Error('Check-in date cannot be in the past'));
       return;
     }
   }

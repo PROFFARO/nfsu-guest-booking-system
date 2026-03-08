@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ export function AIAgentTab() {
         }
         return null;
     });
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const scrollRef = useRef(null);
 
     // Fetch all threads on mount
@@ -592,23 +592,41 @@ export function AIAgentTab() {
                     )}
                 </div>
 
-                <div className="p-4 pt-0">
-                    <div className="flex items-center gap-2">
-                        <Input
-                            placeholder={threadId ? "Message AI..." : "Start a new conversation..."}
-                            className="flex-1 text-xs h-11 rounded-sm border-2 font-noto-regular shadow-sm focus-visible:ring-[#0056b3]"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        />
-                        <Button
-                            size="icon"
-                            className="h-11 w-11 bg-[#0056b3] hover:bg-[#004494] shadow-md flex-shrink-0 transition-all active:scale-95"
-                            onClick={handleSend}
-                            disabled={loading || !input.trim()}
-                        >
-                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                        </Button>
+                <div className="px-4 pb-3">
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-end gap-2 bg-background border-2 rounded-lg p-1 focus-within:ring-2 focus-within:ring-[#0056b3] transition-all shadow-sm">
+                            <Textarea
+                                placeholder={threadId ? "Message AI..." : "Start a new conversation..."}
+                                className="flex-1 min-h-[42px] max-h-32 border-none focus-visible:ring-0 resize-none text-[13px] font-noto-regular py-2.5 px-3 custom-scrollbar"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                            />
+                            <Button
+                                size="icon"
+                                className="h-8 w-8 bg-[#0056b3] hover:bg-[#004494] shadow-md flex-shrink-0 transition-all active:scale-95 mb-1 mr-1"
+                                onClick={handleSend}
+                                disabled={loading || !input.trim()}
+                            >
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                        <div className="px-1 flex items-center justify-between gap-4 opacity-70">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <AlertCircle className="h-2.5 w-2.5 flex-shrink-0 text-muted-foreground" />
+                                <p className="text-[9px] text-muted-foreground font-noto-medium truncate">
+                                    AI may occasionally make mistakes. Verify important details.
+                                </p>
+                            </div>
+                            <div className="text-[8px] text-muted-foreground font-noto-bold uppercase tracking-wider flex-shrink-0 whitespace-nowrap">
+                                <span className="opacity-50 font-noto-medium mr-1">Shift+Enter for</span> newline
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
