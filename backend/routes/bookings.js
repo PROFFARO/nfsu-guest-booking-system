@@ -10,8 +10,8 @@ import { authMiddleware, adminMiddleware, staffMiddleware, userOnlyMiddleware } 
 import { bookingCreateLimiter } from '../middleware/rateLimiter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { getIO } from '../realtime/socket.js';
-import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail } from '../services/emailService.js';
-import { generateInvoicePDF } from '../services/invoiceService.js';
+import { sendEmail, bookingConfirmationEmail, bookingCancellationEmail, paymentStatusChangeEmail, gatepassEmail, invoiceEmail } from '../services/emailService.js';
+import { generateInvoicePDF, generateInvoicePDFBuffer } from '../services/invoiceService.js';
 import { bookingsToCSV, buildExportQuery } from '../services/reportService.js';
 import { logEvent } from '../utils/auditLogger.js';
 
@@ -145,8 +145,19 @@ router.post('/', [
     try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'booked' }); } catch { }
     try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'confirmed' }); } catch { }
 
-    // Fire-and-forget: send confirmation email before returning
+    // Fire-and-forget: send email notifications before returning
     sendEmail(booking.email, bookingConfirmationEmail(booking)).catch(() => { });
+    sendEmail(booking.email, gatepassEmail(booking)).catch(() => { });
+
+    generateInvoicePDFBuffer(booking).then(pdfBuffer => {
+      const invoiceMail = invoiceEmail(booking);
+      invoiceMail.attachments = [{
+        filename: `NFSU_Invoice_${booking._id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }];
+      sendEmail(booking.email, invoiceMail).catch(() => { });
+    }).catch(err => console.error("Failed to generate invoice buffer:", err));
 
     return res.status(201).json({
       status: 'success',
@@ -328,8 +339,8 @@ router.post('/scan-gatepass', [
   const { token } = req.body;
 
   // Find booking by token (case-insensitive)
-  const booking = await Booking.findOne({ 
-    checkInToken: { $regex: new RegExp(`^${token.trim()}$`, 'i') } 
+  const booking = await Booking.findOne({
+    checkInToken: { $regex: new RegExp(`^${token.trim()}$`, 'i') }
   })
     .populate('room', 'roomNumber type floor block pricePerNight');
 
@@ -342,10 +353,10 @@ router.post('/scan-gatepass', [
   }
 
   if (booking.checkedInAt) {
-    return res.status(400).json({ 
-      status: 'error', 
+    return res.status(400).json({
+      status: 'error',
       message: 'Guest has already been checked in for this booking',
-      data: { booking } 
+      data: { booking }
     });
   }
 

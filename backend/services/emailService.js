@@ -301,6 +301,207 @@ export function sendPasswordResetEmail(user, resetUrl) {
   };
 }
 
+/**
+ * Booking Update Email
+ */
+export function bookingUpdateEmail(booking, updatedFields, priceDiff) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Your booking details have been <strong style="color:#0f766e;">successfully updated</strong>. Please review your updated itinerary:
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-collapse:collapse;">
+      ${detailRow('Booking Reference', `<strong>${booking._id}</strong>`)}
+      ${detailRow('Room Number', booking.room?.roomNumber || 'N/A')}
+      ${detailRow('Check-In Date', formatDate(booking.checkIn))}
+      ${detailRow('Check-Out Date', formatDate(booking.checkOut))}
+      ${detailRow('No. of Guests', booking.numberOfGuests)}
+      ${detailRow('Purpose of Visit', (booking.purpose || 'personal').toUpperCase())}
+      ${detailRow('Total Amount', `<strong style="color:#0056b3;">${formatCurrency(booking.totalAmount)}</strong>`)}
+    </table>
+
+    <div style="background:#f8f9fa;border:1px solid #e5e7eb;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Summary of Changes
+      </p>
+      <ul style="margin:8px 0 0;padding-left:16px;color:#4b5563;font-size:12px;line-height:1.8;">
+        <li><strong>Modified Fields:</strong> ${updatedFields.join(', ') || 'Various details'}</li>
+        ${priceDiff !== 0 ? `<li><strong>Price Difference:</strong> ${priceDiff > 0 ? `+${formatCurrency(priceDiff)}` : `-${formatCurrency(Math.abs(priceDiff))}`}</li>` : ''}
+      </ul>
+    </div>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Booking Updated [Ref: ${booking._id}]`,
+    html: emailWrapper('BOOKING UPDATE — OFFICIAL NOTIFICATION', body),
+  };
+}
+
+/**
+ * Invoice Email
+ */
+export function invoiceEmail(booking) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Please find attached the official <strong>Booking Receipt/Invoice</strong> for your stay at the NFSU Delhi Campus Guest House.
+    </p>
+    
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Invoice Details
+      </p>
+      <p style="margin:8px 0 0;color:#374151;font-size:12px;line-height:1.6;">
+        <strong>Total Amount:</strong> ${formatCurrency(booking.totalAmount)} <br/>
+        <strong>Payment Status:</strong> ${(booking.paymentStatus || 'unpaid').toUpperCase()}
+      </p>
+    </div>
+
+    <p style="margin:0 0 16px;color:#374151;font-size:12px;line-height:1.6;">
+      This is a system-generated document. Ensure to retain a copy for your records.
+    </p>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Invoice / Receipt [Ref: ${booking._id}]`,
+    html: emailWrapper('BOOKING RECEIPT & INVOICE', body),
+  };
+}
+
+/**
+ * Gatepass Email
+ */
+export function gatepassEmail(booking) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Your Smart Gatepass for entry to the NFSU Delhi Campus Guest House has been generated. Ensure to present this QR code or token at the reception scanning station upon arrival.
+    </p>
+
+    <div style="text-align:center;margin:24px 0;padding:24px;border:2px dashed #d1d5db;background:#ffffff;border-radius:8px;">
+      <p style="margin:0 0 12px;font-size:11px;color:#4b5563;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Secure Check-In QR Code
+      </p>
+      <img src="cid:gatepass-qrcode" alt="QR Code" style="display:block;margin:0 auto;width:150px;height:150px;border:1px solid #e5e7eb;padding:8px;border-radius:8px;" />
+      
+      <div style="margin-top:16px;">
+        <p style="margin:0 0 4px;font-size:10px;color:#6b7280;text-transform:uppercase;">6-Digit Entry Token</p>
+        <p style="margin:0;font-size:24px;font-weight:700;color:#0056b3;letter-spacing:4px;">${booking.checkInToken}</p>
+      </div>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-collapse:collapse;">
+      ${detailRow('Room Number', booking.room?.roomNumber || 'N/A')}
+      ${detailRow('Check-In Date', formatDate(booking.checkIn))}
+      ${detailRow('Check-Out Date', formatDate(booking.checkOut))}
+    </table>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
+    </p>`;
+
+  const qrBase64 = booking.qrCode.split(',')[1];
+
+  return {
+    subject: `NFSU Guest House — Smart Gatepass Token [Ref: ${booking._id}]`,
+    html: emailWrapper('SMART GATEPASS & ENTRY TOKEN', body),
+    attachments: [
+      {
+        filename: 'gatepass-qrcode.png',
+        content: Buffer.from(qrBase64, 'base64'),
+        cid: 'gatepass-qrcode' // referenced in the img tag
+      }
+    ]
+  };
+}
+
+/**
+ * AI Action - Maintenance Report Email
+ */
+export function maintenanceReportEmail(booking, issue) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      This is to confirm that the Campus AI Assistant has successfully logged a maintenance report for your room.
+    </p>
+    
+    <div style="background:#fffbeb;border:1px solid #fde68a;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#92400e;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Report Details
+      </p>
+      <p style="margin:8px 0 0;color:#374151;font-size:12px;line-height:1.6;">
+        <strong>Room:</strong> ${booking.room?.roomNumber || 'N/A'} <br/>
+        <strong>Issue Profile:</strong> ${issue} <br/>
+        <strong>Status:</strong> Notified to Maintenance Team
+      </p>
+    </div>
+
+    <p style="margin:0 0 16px;color:#374151;font-size:12px;line-height:1.6;">
+      The relevant personnel have been dispatched to address the concern as soon as possible.
+    </p>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Maintenance Logged [Room ${booking.room?.roomNumber}]`,
+    html: emailWrapper('AI SUPPORT — MAINTENANCE RECORDED', body),
+  };
+}
+
+/**
+ * AI Action - Supply Request Email
+ */
+export function supplyRequestEmail(booking, itemsList, specialInstructions) {
+  const body = `
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Dear <strong>${booking.guestName}</strong>,
+    </p>
+    <p style="margin:0 0 16px;color:#374151;font-size:13px;line-height:1.6;">
+      Your request for additional room supplies has been processed by the Campus AI Assistant and forwarded to Housekeeping.
+    </p>
+    
+    <div style="background:#ecfdf5;border:1px solid #a7f3d0;padding:12px 16px;margin:0 0 16px;">
+      <p style="margin:0;font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase;letter-spacing:1px;">
+        Request Summary
+      </p>
+      <p style="margin:8px 0 0;color:#374151;font-size:12px;line-height:1.6;">
+        <strong>Room:</strong> ${booking.room?.roomNumber || 'N/A'} <br/>
+        <strong>Requested Items:</strong> ${itemsList} <br/>
+        ${specialInstructions ? `<strong>Instructions:</strong> ${specialInstructions}` : ''}
+      </p>
+    </div>
+
+    <p style="margin:0 0 16px;color:#374151;font-size:12px;line-height:1.6;">
+      The housekeeping staff will deliver the requested amenities to your room shortly.
+    </p>
+
+    <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.6;">
+      For queries: <strong>011-27521091</strong> | <strong>directoroffice_dc@nfsu.ac.in</strong>
+    </p>`;
+
+  return {
+    subject: `NFSU Guest House — Hospitality Request [Room ${booking.room?.roomNumber}]`,
+    html: emailWrapper('AI SUPPORT — SERVICE REQUEST CONFIRMED', body),
+  };
+}
+
 // ────────────────────────────────────────────────────────────
 // SEND EMAIL FUNCTION
 // ────────────────────────────────────────────────────────────
@@ -309,7 +510,7 @@ export function sendPasswordResetEmail(user, resetUrl) {
  * Send an email using the configured transporter.
  * Fails silently in development if SMTP is not configured.
  */
-export async function sendEmail(to, { subject, html }) {
+export async function sendEmail(to, { subject, html, attachments }) {
   // Skip if SMTP is not configured
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log(`📧 [Email Skipped — SMTP not configured] To: ${to} | Subject: ${subject}`);
@@ -318,12 +519,18 @@ export async function sendEmail(to, { subject, html }) {
 
   try {
     const transport = getTransporter();
-    const info = await transport.sendMail({
+    const mailOptions = {
       from: `"NFSU Guest House" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
-    });
+    };
+
+    if (attachments) {
+      mailOptions.attachments = attachments;
+    }
+
+    const info = await transport.sendMail(mailOptions);
 
     console.log(`📧 Email sent to ${to} — MessageId: ${info.messageId}`);
     return { success: true, messageId: info.messageId };

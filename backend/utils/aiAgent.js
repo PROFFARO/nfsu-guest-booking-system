@@ -5,7 +5,7 @@ import FAQ from "../models/FAQ.js";
 import ChatThread from "../models/ChatThread.js";
 import ChatMessage from "../models/ChatMessage.js";
 import AuditLog from "../models/AuditLog.js";
-import { sendEmail, bookingCancellationEmail } from '../services/emailService.js';
+import { sendEmail, bookingCancellationEmail, bookingUpdateEmail, maintenanceReportEmail, supplyRequestEmail } from '../services/emailService.js';
 import { logEvent } from '../utils/auditLogger.js';
 
 // Tool Definitions (OpenAI Specification)
@@ -309,6 +309,9 @@ export const toolImplementations = {
       }
     });
 
+    const updatedFields = Object.keys(args).filter(k => k !== 'bookingId');
+    sendEmail(booking.email, bookingUpdateEmail(booking, updatedFields, priceDiff)).catch(() => { });
+
     return {
       success: true,
       message: `Booking details updated successfully.${priceDiff !== 0 ? ` New total: ₹${booking.totalAmount}.` : ''}`,
@@ -404,6 +407,16 @@ export const toolImplementations = {
       console.error("Failed to create support thread for maintenance report:", err);
     }
 
+    try {
+      const activeBooking = await Booking.findOne({ user: userId, room: room._id, status: { $in: ['confirmed', 'checked-in'] } });
+      if (activeBooking) {
+        activeBooking.room = room; // Populate dummy room for email template
+        sendEmail(activeBooking.email, maintenanceReportEmail(activeBooking, args.issueDescription)).catch(() => { });
+      }
+    } catch (err) {
+      console.error("Failed to send maintenance report email:", err);
+    }
+
     return {
       success: true,
       message: `Issue for Room ${args.roomNumber} has been logged and reported to the maintenance staff.`,
@@ -454,6 +467,16 @@ export const toolImplementations = {
       });
     } catch (err) {
       console.error("Failed to create support thread for supply request:", err);
+    }
+
+    try {
+      const activeBooking = await Booking.findOne({ user: userId, room: room._id, status: { $in: ['confirmed', 'checked-in'] } });
+      if (activeBooking) {
+        activeBooking.room = room; // Populate dummy room for email template
+        sendEmail(activeBooking.email, supplyRequestEmail(activeBooking, itemsList, args.specialInstructions)).catch(() => { });
+      }
+    } catch (err) {
+      console.error("Failed to send supply request email:", err);
     }
 
     return {
