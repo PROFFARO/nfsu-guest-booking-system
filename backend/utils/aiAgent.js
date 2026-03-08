@@ -2,6 +2,8 @@ import Room from "../models/Room.js";
 import Booking from "../models/Booking.js";
 import Review from "../models/Review.js";
 import FAQ from "../models/FAQ.js";
+import ChatThread from "../models/ChatThread.js";
+import ChatMessage from "../models/ChatMessage.js";
 import { sendEmail, bookingCancellationEmail } from '../services/emailService.js';
 import { logEvent } from '../utils/auditLogger.js';
 
@@ -33,6 +35,64 @@ const tools = [
           category: { type: "string", enum: ["general", "booking", "check-in", "amenities", "other"], description: "Optional category filter" }
         },
         required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "escalate_to_staff",
+      description: "Escalate the conversation to a real human support staff member when AI cannot help",
+      parameters: {
+        type: "object",
+        properties: {
+          reason: { type: "string", description: "The reason or summary of the problem for the staff member" }
+        },
+        required: ["reason"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "modify_booking",
+      description: "Modify the check-in or check-out dates for an existing booking (Stay extension or shift)",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "The ID of the booking to modify" },
+          newCheckIn: { type: "string", description: "New requested check-in date (ISO format)" },
+          newCheckOut: { type: "string", description: "New requested check-out date (ISO format)" }
+        },
+        required: ["bookingId", "newCheckIn", "newCheckOut"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_my_gatepass",
+      description: "Retrieve the Smart Gatepass QR code and check-in token for a confirmed booking",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "Optional booking ID. If omitted, retrieves the most recent confirmed booking." }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "report_room_issue",
+      description: "Report a maintenance issue or problem with the current room",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumber: { type: "string", description: "The room number where the issue is occurring" },
+          issueDescription: { type: "string", description: "A detailed description of the problem" }
+        },
+        required: ["roomNumber", "issueDescription"]
       }
     }
   },
@@ -108,6 +168,129 @@ const tools = [
 
 // Tool Implementation Map
 const toolImplementations = {
+  escalate_to_staff: async (args, userId) => {
+    // 1. Create a support thread
+    const thread = await ChatThread.create({
+      user: userId,
+      type: 'support',
+      status: 'open',
+      lastMessageAt: Date.now()
+    });
+
+    // 2. Add the initial message explaining why it was escalated
+    await ChatMessage.create({
+      thread: thread._id,
+      sender: userId,
+      senderType: 'user',
+      content: `[AUTO-ESCALATED FROM CAMPUS AI]\n\nReason: ${args.reason}`
+    });
+
+    await logEvent({
+      userId,
+      action: 'SUPPORT_ESCALATE',
+      details: { threadId: thread._id, reason: args.reason }
+    });
+
+    return {
+      success: true,
+      message: "A support ticket has been opened for you. A real staff member will respond to you in the support tab shortly.",
+      data: { threadId: thread._id, reason: args.reason }
+    };
+  },
+  modify_booking: async (args, userId) => {
+    const booking = await Booking.findById(args.bookingId).populate('room');
+    if (!booking) throw new Error("Booking not found.");
+    if (booking.user.toString() !== userId.toString()) throw new Error("Permission denied.");
+    if (['cancelled', 'completed'].includes(booking.status)) throw new Error(`Cannot modify a ${booking.status} booking.`);
+    if (booking.checkedInAt) throw new Error("Cannot modify booking after check-in. Please contact staff at reception.");
+
+    const newIn = new Date(args.newCheckIn);
+    const newOut = new Date(args.newCheckOut);
+
+    // Check availability (excluding this booking)
+    const isAvailable = await Booking.checkRoomAvailability(booking.room._id, newIn, newOut, booking._id);
+    if (!isAvailable) throw new Error("Room is not available for requested new dates.");
+
+    // Calculate new total
+    const nights = Math.ceil((newOut - newIn) / (1000 * 60 * 60 * 24));
+    const newTotal = nights * booking.room.pricePerNight;
+    const priceDiff = newTotal - booking.totalAmount;
+
+    const oldIn = booking.checkIn;
+    const oldOut = booking.checkOut;
+
+    booking.checkIn = newIn;
+    booking.checkOut = newOut;
+    booking.totalAmount = newTotal;
+    await booking.save();
+
+    await logEvent({
+      userId,
+      action: 'BOOKING_UPDATE',
+      details: { 
+        bookingId: booking._id, 
+        action: 'AI_MODIFICATION',
+        oldDates: { in: oldIn, out: oldOut },
+        newDates: { in: newIn, out: newOut },
+        priceDiff
+      }
+    });
+
+    return {
+      success: true,
+      message: `Booking modified successfully. New total: ₹${newTotal}.`,
+      data: {
+        bookingId: booking._id,
+        newDates: { in: newIn, out: newOut },
+        priceDiff,
+        newTotal
+      }
+    };
+  },
+  get_my_gatepass: async (args, userId) => {
+    let query = { user: userId, status: 'confirmed' };
+    if (args.bookingId) query._id = args.bookingId;
+
+    const booking = await Booking.findOne(query).sort({ checkIn: 1 });
+    if (!booking) {
+      throw new Error("No confirmed booking found. Please ensure your booking is confirmed before requesting a gatepass.");
+    }
+
+    if (!booking.checkInToken || !booking.qrCode) {
+      throw new Error("Gatepass is not yet generated for this booking. Please contact front desk.");
+    }
+
+    return {
+      success: true,
+      bookingId: booking._id,
+      roomNumber: (await booking.populate('room', 'roomNumber')).room?.roomNumber,
+      token: booking.checkInToken,
+      qrCode: booking.qrCode, // Base64
+      checkIn: booking.checkIn
+    };
+  },
+  report_room_issue: async (args, userId) => {
+    const room = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
+    
+    const timestamp = new Date().toLocaleString();
+    const issueEntry = `\n[ISSUE REPORTED ${timestamp}]: ${args.issueDescription}`;
+    
+    room.notes = (room.notes || "") + issueEntry;
+    await room.save();
+
+    await logEvent({
+      userId,
+      action: 'MAINTENANCE_REPORT',
+      details: { roomNumber: args.roomNumber, issue: args.issueDescription, source: 'ai_assistant' }
+    });
+
+    return { 
+      success: true, 
+      message: `Issue for Room ${args.roomNumber} has been logged and reported to the maintenance staff.`,
+      data: { roomNumber: args.roomNumber, timestamp }
+    };
+  },
   get_room_details: async (args) => {
     const room = await Room.findOne({ roomNumber: args.roomNumber });
     if (!room) return { error: "Room not found" };

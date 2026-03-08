@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -185,6 +185,115 @@ export function AIAgentTab() {
             );
         }
 
+        // Support Escalation Confirmation
+        if (action === 'escalate_to_staff' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-indigo-100 rounded-md bg-indigo-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-indigo-700">
+                        <div className="bg-indigo-100 p-1 rounded-full">
+                            <Headphones className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Support Ticket Opened</span>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">
+                        I've escalated your request to our human support team. A staff member has been notified of your issue: <span className="italic">"{result.data.reason}"</span>
+                    </p>
+                    <div className="text-center pt-2">
+                        <p className="text-[9px] text-indigo-600 font-noto-bold mb-1">Please check the "Support" tab to continue the conversation with a staff member.</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Booking Modification Confirmation
+        if (action === 'modify_booking' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-emerald-100 rounded-md bg-emerald-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                        <div className="bg-emerald-100 p-1 rounded-full">
+                            <CheckCircle2 className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Booking Modified</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 bg-white/50 p-2 rounded border border-emerald-100/50">
+                        <div>
+                            <p className="text-muted-foreground opacity-60 uppercase text-[8px]">New Check-in</p>
+                            <p className="font-noto-bold text-foreground">{new Date(result.data.newDates.in).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                            <p className="text-muted-foreground opacity-60 uppercase text-[8px]">New Check-out</p>
+                            <p className="font-noto-bold text-foreground">{new Date(result.data.newDates.out).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center px-1">
+                        <span className="text-muted-foreground">Price Adjustment:</span>
+                        <span className={`font-noto-bold ${result.data.priceDiff >= 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                            {result.data.priceDiff >= 0 ? `+ ₹${result.data.priceDiff}` : `- ₹${Math.abs(result.data.priceDiff)}`}
+                        </span>
+                    </div>
+                    <p className="text-muted-foreground border-t border-emerald-100 pt-2 text-[9px]">
+                        Your stay has been officially updated in the system.
+                    </p>
+                </div>
+            );
+        }
+
+        // Smart Gatepass Display
+        if (action === 'get_my_gatepass' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-border rounded-lg bg-card space-y-3 font-noto-regular shadow-sm max-w-[280px]">
+                    <div className="text-center font-noto-bold text-[10px] text-muted-foreground uppercase tracking-widest border-b border-border pb-2">
+                        Official Gatepass
+                    </div>
+                    <div className="flex justify-center py-2 bg-white rounded-md">
+                        <img
+                            src={result.qrCode}
+                            alt="Gatepass QR"
+                            className="h-32 w-32"
+                        />
+                    </div>
+                    <div className="text-center space-y-1">
+                        <p className="text-[10px] text-muted-foreground uppercase font-noto-bold">Check-in Token</p>
+                        <p className="text-xl font-noto-bold tracking-[0.3em] text-[#0056b3] uppercase">{result.token}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-[9px] text-muted-foreground">
+                        <div>
+                            <p className="opacity-60 uppercase">Room</p>
+                            <p className="font-noto-bold text-foreground">{result.roomNumber}</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="opacity-60 uppercase">Date</p>
+                            <p className="font-noto-bold text-foreground">{new Date(result.checkIn).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    <div className="bg-muted/30 p-2 rounded text-[8px] text-muted-foreground text-center">
+                        Please present this QR code at the reception scanning station during arrival.
+                    </div>
+                </div>
+            );
+        }
+
+        // Maintenance Issue Report
+        if (action === 'report_room_issue' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-red-100 rounded-md bg-red-50/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-red-700">
+                        <div className="bg-red-100 p-1 rounded-full">
+                            <AlertCircle className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Maintenance Logged</span>
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">
+                        The issue for <span className="font-noto-bold text-foreground">Room {result.data.roomNumber}</span> has been officially recorded in the maintenance log.
+                    </p>
+                    <div className="flex justify-between items-center pt-1 opacity-60 text-[8px]">
+                        <span>Reference: {result.data.timestamp}</span>
+                        <span className="bg-red-100/50 px-1.5 rounded-sm">Urgent Internal Notification Sent</span>
+                    </div>
+                </div>
+            );
+        }
+
         // Room Details (Deep Dive)
         if (action === 'get_room_details' && result && !result.error) {
             return (
@@ -264,7 +373,7 @@ export function AIAgentTab() {
                                 <span className="font-noto-bold text-xs">Room {b.room}</span>
                                 <div className="flex gap-1.5">
                                     <span className={`px-1.5 py-0.5 rounded-sm font-noto-bold text-[8px] uppercase ${b.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                            b.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
+                                        b.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-700'
                                         }`}>
                                         {b.status}
                                     </span>
