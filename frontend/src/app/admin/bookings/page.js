@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2 } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileText, LogIn, LogOut, Download, Loader2, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -33,8 +33,15 @@ export default function BookingManagementPage() {
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
     const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [exporting, setExporting] = useState(false);
     const [page, setPage] = useState(1);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const handleDownloadInvoice = async (bookingId) => {
         try {
@@ -50,6 +57,9 @@ export default function BookingManagementPage() {
         try {
             const params = { page, limit: 15 };
             if (statusFilter) params.status = statusFilter;
+            if (debouncedSearch) params.search = debouncedSearch;
+            if (dateRange.startDate) params.startDate = dateRange.startDate;
+            if (dateRange.endDate) params.endDate = dateRange.endDate;
             const res = await api.bookings.list(params);
             setBookings(res.data.bookings);
             setPagination(res.data.pagination);
@@ -57,7 +67,7 @@ export default function BookingManagementPage() {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchBookings(); }, [statusFilter, page]);
+    useEffect(() => { fetchBookings(); }, [statusFilter, page, debouncedSearch, dateRange.startDate, dateRange.endDate]);
 
     const handleStatusChange = async (bookingId, newStatus) => {
         try {
@@ -116,7 +126,7 @@ export default function BookingManagementPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 {/* Header */}
                 <div className="mb-8 border-b-2 border-border pb-5">
@@ -127,10 +137,33 @@ export default function BookingManagementPage() {
                 </div>
 
                 {/* Filters & Actions */}
-                <div className="mb-6 flex flex-col md:flex-row items-end md:items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div className="mb-6 flex flex-col gap-4">
+                    {/* Top Row: Search & Export */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                        <div className="relative w-full sm:max-w-md flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search by name, email, or room..." 
+                                className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full"
+                                value={searchQuery}
+                                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                            />
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end shrink-0">
+                            <div className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 py-2 bg-muted/30 rounded-sm h-10 flex items-center shrink-0">
+                                Records: {pagination?.totalBookings || 0}
+                            </div>
+                            <Button onClick={handleExport} disabled={exporting} className="h-10 px-4 rounded-sm font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white gap-2 flex-1 sm:flex-none" title="Download filtered report as CSV">
+                                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                Export CSV
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Bottom Row: Status & Dates */}
+                    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full">
                         <Select value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1); }}>
-                            <SelectTrigger className="w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-xs uppercase tracking-widest">
+                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest">
                                 <SelectValue placeholder="STATUS" />
                             </SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
@@ -143,21 +176,11 @@ export default function BookingManagementPage() {
                             </SelectContent>
                         </Select>
 
-                        <div className="flex items-center gap-2">
-                            <Input type="date" className="w-[140px] h-10 rounded-sm border-2 border-border text-xs font-noto-medium uppercase tracking-widest" value={dateRange.startDate} onChange={(e) => setDateRange(p => ({ ...p, startDate: e.target.value }))} title="Start Date" />
-                            <span className="text-muted-foreground font-noto-bold">—</span>
-                            <Input type="date" className="w-[140px] h-10 rounded-sm border-2 border-border text-xs font-noto-medium uppercase tracking-widest" value={dateRange.endDate} onChange={(e) => setDateRange(p => ({ ...p, endDate: e.target.value }))} title="End Date" />
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Input type="date" className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border text-[10px] sm:text-xs font-noto-medium uppercase tracking-widest" value={dateRange.startDate} onChange={(e) => { setDateRange(p => ({ ...p, startDate: e.target.value })); setPage(1); }} title="Start Date" />
+                            <span className="text-muted-foreground font-noto-bold shrink-0">—</span>
+                            <Input type="date" className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border text-[10px] sm:text-xs font-noto-medium uppercase tracking-widest" value={dateRange.endDate} onChange={(e) => { setDateRange(p => ({ ...p, endDate: e.target.value })); setPage(1); }} title="End Date" />
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full md:w-auto self-end md:self-auto">
-                        <div className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 py-2 bg-muted/30 rounded-sm h-10 flex items-center">
-                            Records: {pagination?.totalBookings || 0}
-                        </div>
-                        <Button onClick={handleExport} disabled={exporting} className="h-10 px-4 rounded-sm font-noto-bold text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white gap-2" title="Download filtered report as CSV">
-                            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                            Export CSV
-                        </Button>
                     </div>
                 </div>
 

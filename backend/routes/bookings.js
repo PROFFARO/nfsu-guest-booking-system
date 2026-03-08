@@ -462,7 +462,10 @@ router.get('/export', [
 router.get('/', [
   query('status').optional().isIn(['pending', 'confirmed', 'cancelled', 'completed', 'no-show']),
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 })
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('search').optional().isString(),
+  query('startDate').optional().isISO8601(),
+  query('endDate').optional().isISO8601()
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
@@ -474,7 +477,7 @@ router.get('/', [
     });
   }
 
-  const { status, page = 1, limit = 20 } = req.query;
+  const { status, page = 1, limit = 20, search, startDate, endDate } = req.query;
 
   // Build query
   let query = { isActive: true };
@@ -486,6 +489,36 @@ router.get('/', [
 
   if (status) {
     query.status = status;
+  }
+
+  if (search) {
+    // Also try to find rooms matching this search term
+    const matchedRooms = await Room.find({
+      $or: [
+        { roomNumber: { $regex: search, $options: 'i' } },
+        { type: { $regex: search, $options: 'i' } }
+      ]
+    }).select('_id');
+    const roomIds = matchedRooms.map(r => r._id);
+
+    query.$or = [
+      { guestName: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+
+    if (roomIds.length > 0) {
+      query.$or.push({ room: { $in: roomIds } });
+    }
+  }
+
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt.$lte = end;
+    }
   }
 
   // Calculate pagination

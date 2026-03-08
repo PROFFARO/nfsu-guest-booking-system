@@ -28,6 +28,7 @@ router.get('/', [
   query('facilities').optional().isString(),
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('search').optional().isString(),
   // Optional date filters to filter rooms available between dates
   query('checkIn').optional().isISO8601(),
   query('checkOut').optional().isISO8601()
@@ -50,6 +51,7 @@ router.get('/', [
     minPrice,
     maxPrice,
     facilities,
+    search,
     page = 1,
     limit = 20,
     checkIn,
@@ -73,6 +75,13 @@ router.get('/', [
   if (facilities) {
     const facilityArray = facilities.split(',').map(f => f.trim());
     filters.facilities = { $in: facilityArray };
+  }
+
+  if (search) {
+    filters.$or = [
+      { roomNumber: { $regex: search, $options: 'i' } },
+      { type: { $regex: search, $options: 'i' } }
+    ];
   }
 
   // If both dates provided, filter out rooms with conflicting bookings

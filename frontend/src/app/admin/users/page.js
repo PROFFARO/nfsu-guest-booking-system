@@ -96,7 +96,7 @@ export default function UserManagementPage() {
     }
 
     return (
-        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="mb-6 border-b-2 border-border pb-4">
                     <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Registered Personnel</h1>

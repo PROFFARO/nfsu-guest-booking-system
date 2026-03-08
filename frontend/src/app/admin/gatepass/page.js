@@ -168,7 +168,7 @@ export default function GatepassScannerPage() {
     };
 
     return (
-        <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto">
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-4xl mx-auto overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="mb-8 border-b-2 border-border pb-5">
                     <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight flex items-center gap-2">

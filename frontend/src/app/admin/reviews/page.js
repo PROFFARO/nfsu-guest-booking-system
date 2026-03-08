@@ -39,7 +39,7 @@ export default function AdminReviewsPage() {
     }, [page, ratingFilter]);
 
     return (
-        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between border-b-2 border-border pb-4 gap-4">
                     <div>

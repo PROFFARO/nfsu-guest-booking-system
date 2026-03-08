@@ -16,7 +16,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
-import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench } from 'lucide-react';
+import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageSlider } from '@/components/ui/ImageSlider';
 
@@ -48,7 +48,14 @@ export default function RoomManagementPage() {
     const [rooms, setRooms] = useState([]);
     const [pagination, setPagination] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ type: '', floor: '', status: '', page: 1, limit: 20 });
+    const [filters, setFilters] = useState({ type: '', floor: '', block: '', status: '', page: 1, limit: 20 });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Dialog states
     const [createOpen, setCreateOpen] = useState(false);
@@ -68,6 +75,7 @@ export default function RoomManagementPage() {
         try {
             const params = {};
             Object.entries(filters).forEach(([k, v]) => { if (v) params[k] = v; });
+            if (debouncedSearch) params.search = debouncedSearch;
             const res = await api.rooms.list(params);
             setRooms(res.data.rooms);
             setPagination(res.data.pagination);
@@ -75,7 +83,7 @@ export default function RoomManagementPage() {
         finally { setLoading(false); }
     };
 
-    useEffect(() => { fetchRooms(); }, [filters]);
+    useEffect(() => { fetchRooms(); }, [filters, debouncedSearch]);
 
     // --- Validation ---
     const validate = () => {
@@ -414,7 +422,7 @@ export default function RoomManagementPage() {
     );
 
     return (
-        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -428,32 +436,63 @@ export default function RoomManagementPage() {
                 </div>
 
                 {/* Filters */}
-                <div className="mb-6 flex flex-wrap gap-3">
-                    <Select value={filters.type || 'all'} onValueChange={(v) => updateFilter('type', v)}>
-                        <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="single">Single</SelectItem>
-                            <SelectItem value="double">Double</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select value={filters.floor || 'all'} onValueChange={(v) => updateFilter('floor', v)}>
-                        <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Floors</SelectItem>
-                            {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f}>Floor {f}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <Select value={filters.status || 'all'} onValueChange={(v) => updateFilter('status', v)}>
-                        <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="vacant">Vacant</SelectItem>
-                            <SelectItem value="booked">Booked</SelectItem>
-                            <SelectItem value="held">Held</SelectItem>
-                            <SelectItem value="maintenance">Maintenance</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="mb-6 flex flex-col gap-4">
+                    {/* Top Row: Search */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+                        <div className="relative w-full sm:max-w-md flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Search by room number..." 
+                                className="pl-9 text-xs border-2 border-border bg-background h-10 rounded-sm font-noto-medium w-full"
+                                value={searchQuery}
+                                onChange={(e) => { setSearchQuery(e.target.value); updateFilter('page', 1); }}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto shrink-0">
+                            <div className="text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest border-2 border-border px-3 py-2 bg-muted/30 rounded-sm h-10 flex items-center flex-1 sm:flex-none justify-center whitespace-nowrap">
+                                Total Rooms: {pagination?.totalRooms || 0}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Row: Dropdowns */}
+                    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full">
+                        <Select value={filters.type || 'all'} onValueChange={(v) => updateFilter('type', v)}>
+                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="TYPE" /></SelectTrigger>
+                            <SelectContent className="border-2 border-border rounded-sm">
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Types</SelectItem>
+                                <SelectItem value="single" className="font-noto-bold text-xs uppercase tracking-widest">Single</SelectItem>
+                                <SelectItem value="double" className="font-noto-bold text-xs uppercase tracking-widest">Double</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.floor || 'all'} onValueChange={(v) => updateFilter('floor', v)}>
+                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="FLOOR" /></SelectTrigger>
+                            <SelectContent className="border-2 border-border rounded-sm">
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Floors</SelectItem>
+                                {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f} className="font-noto-bold text-xs uppercase tracking-widest">Floor {f}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.block || 'all'} onValueChange={(v) => updateFilter('block', v)}>
+                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="BLOCK" /></SelectTrigger>
+                            <SelectContent className="border-2 border-border rounded-sm">
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Blocks</SelectItem>
+                                {['A', 'B', 'C', 'D', 'E', 'F'].map(b => <SelectItem key={b} value={b} className="font-noto-bold text-xs uppercase tracking-widest">Block {b}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={filters.status || 'all'} onValueChange={(v) => updateFilter('status', v)}>
+                            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="STATUS" /></SelectTrigger>
+                            <SelectContent className="border-2 border-border rounded-sm">
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Status</SelectItem>
+                                <SelectItem value="vacant" className="font-noto-bold text-xs uppercase tracking-widest">Vacant</SelectItem>
+                                <SelectItem value="booked" className="font-noto-bold text-xs uppercase tracking-widest">Booked</SelectItem>
+                                <SelectItem value="held" className="font-noto-bold text-xs uppercase tracking-widest">Held</SelectItem>
+                                <SelectItem value="maintenance" className="font-noto-bold text-xs uppercase tracking-widest">Maintenance</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Table */}

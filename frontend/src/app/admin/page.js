@@ -209,26 +209,26 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="p-4 md:p-6 space-y-8 mx-auto w-full overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 space-y-6 sm:space-y-8 mx-auto w-full overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 {/* Header */}
-                <div className="mb-8 border-b-2 border-border pb-5 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Executive Management Console</h1>
-                        <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                <div className="mb-6 sm:mb-8 border-b-2 border-border pb-4 sm:pb-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <div className="min-w-0">
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Executive Management Console</h1>
+                        <p className="mt-0.5 sm:mt-1 text-[9px] sm:text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
                             Centralized System Analytics & Facility Oversight
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         <Link href="/admin/gatepass">
-                            <Button className="bg-[#0f766e] text-white hover:bg-[#0f766e]/90 border-0 flex items-center gap-2 uppercase text-[10px] font-noto-bold tracking-widest h-9 px-4 rounded-sm">
-                                <QrCode className="h-4 w-4" /> Scan Gatepass
+                            <Button className="bg-[#0f766e] text-white hover:bg-[#0f766e]/90 border-0 flex items-center gap-1.5 sm:gap-2 uppercase text-[9px] sm:text-[10px] font-noto-bold tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
+                                <QrCode className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Scan
                             </Button>
                         </Link>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="border-2 border-border gap-2 text-[10px] font-noto-bold uppercase tracking-widest h-9 px-4 rounded-sm">
-                                    <Settings className="h-4 w-4" /> Edit Layout
+                                <Button variant="outline" size="sm" className="border-2 border-border gap-1.5 sm:gap-2 text-[9px] sm:text-[10px] font-noto-bold uppercase tracking-widest h-8 sm:h-9 px-2.5 sm:px-4 rounded-sm">
+                                    <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Layout
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-md">
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Grafana-style Draggable Dashboard Grid */}
-                <div ref={containerRef} className="w-full">
+                <div ref={containerRef} className="w-full overflow-hidden">
                     {mounted && (
                         <Responsive
                             className="layout"
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
                         rowHeight={80}
                         draggableHandle=".drag-handle"
                         onLayoutChange={handleLayoutChange}
-                        isBounded={false}
+                        isBounded={true}
                         margin={[16, 16]}
                         width={width}
                     >

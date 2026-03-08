@@ -26,6 +26,10 @@ import {
     Shield,
     Accessibility,
     Languages,
+    Star,
+    QrCode,
+    CircleHelp,
+    Headset,
 } from 'lucide-react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import AccessibilityPanel from '@/components/layout/AccessibilityPanel';
@@ -58,15 +62,23 @@ export default function Navbar() {
                 { href: '/admin/rooms', label: 'Rooms List', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
                 { href: '/admin/users', label: 'Users', icon: Shield },
+                { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
+                { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
+                { href: '/admin/support', label: 'Support Inbox', icon: Headset },
+                { href: '/admin/faq', label: 'Query Repository', icon: CircleHelp },
             ];
         }
 
         if (user.role === 'staff') {
-            // Staff: manage rooms and bookings only
+            // Staff: manage rooms and bookings
             return [
                 { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
                 { href: '/admin/rooms', label: 'Rooms', icon: BedDouble },
                 { href: '/admin/bookings', label: 'Bookings', icon: BookOpen },
+                { href: '/admin/reviews', label: 'Guest Feedback', icon: Star },
+                { href: '/admin/gatepass', label: 'Smart Gatepass', icon: QrCode },
+                { href: '/admin/support', label: 'Support Inbox', icon: Headset },
+                { href: '/admin/faq', label: 'Query Repository', icon: CircleHelp },
             ];
         }
 
@@ -250,12 +262,17 @@ export default function Navbar() {
                             <SheetContent side="right" className="w-[300px] sm:w-[350px] p-0 flex flex-col h-full bg-card border-l-border">
                                 <div className="p-6 border-b border-border bg-muted/10">
                                     <SheetTitle className="text-lg font-noto-bold text-[#0056b3] dark:text-cyan-500 mb-1">
-                                        NFSU Navigation
+                                        Navigation
                                     </SheetTitle>
                                     <p className="text-xs text-muted-foreground font-noto-medium">Campus Guest Management System</p>
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto px-4 py-6">
+                                    {(user?.role === 'admin' || user?.role === 'staff') && (
+                                        <p className="mb-3 px-2 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                                            System Management
+                                        </p>
+                                    )}
                                     <nav className="flex flex-col gap-2">
                                         {navLinks.map((link) => (
                                             <Link
@@ -279,20 +296,20 @@ export default function Navbar() {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="justify-start h-12"
+                                                className="justify-start h-12 overflow-hidden text-xs"
                                                 onClick={() => { setA11yOpen(true); setOpen(false); }}
                                             >
-                                                <Accessibility className="mr-2 h-4 w-4" />
-                                                Accessibility
+                                                <Accessibility className="mr-1.5 h-4 w-4 shrink-0" />
+                                                <span className="truncate">Access</span>
                                             </Button>
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="justify-start h-12"
+                                                className="justify-start h-12 overflow-hidden text-xs"
                                                 onClick={() => { setLangOpen(true); setOpen(false); }}
                                             >
-                                                <Languages className="mr-2 h-4 w-4" />
-                                                Language
+                                                <Languages className="mr-1.5 h-4 w-4 shrink-0" />
+                                                <span className="truncate">Language</span>
                                             </Button>
                                         </div>
                                     </div>

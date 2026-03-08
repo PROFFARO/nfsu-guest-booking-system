@@ -26,7 +26,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${notoSans.variable} antialiased min-h-screen flex flex-col`}>
+      <body className={`${notoSans.variable} antialiased min-h-screen flex flex-col overflow-x-hidden`}>
         <GoogleTranslateFix />
         <ThemeProvider>
           <AccessibilityProvider>
@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
               <SocketProvider>
                 <TooltipProvider>
                   <Navbar />
-                  <main className="flex-1">{children}</main>
+                  <main className="flex-1 w-full max-w-full overflow-x-hidden">{children}</main>
                   <ChatWidget />
                   <Footer />
                   <Toaster richColors position="top-right" />

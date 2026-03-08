@@ -97,7 +97,7 @@ export default function FAQManagement() {
     );
 
     return (
-        <div className="p-4 md:p-6 max-w-full mx-auto space-y-6 overflow-x-hidden">
+        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -236,32 +236,34 @@ export default function FAQManagement() {
                         return (
                             <Card key={faq._id} className="border border-border hover:border-[#0056b3]/30 transition-all bg-card shadow-xs rounded-sm group">
                                 <CardContent className="p-0">
-                                    <div className="p-5 flex items-start justify-between gap-6">
-                                        <div className="flex items-start gap-5 flex-1">
-                                            <Badge className="bg-primary/5 text-primary border-primary/20 capitalize text-[10px] font-noto-semibold px-2.5 py-0.5 rounded-full shrink-0 mt-1">{faq.category}</Badge>
-                                            <div className="space-y-4">
-                                                <h3 className="text-[16px] font-noto-semibold text-foreground leading-snug">{faq.question}</h3>
-                                                <div className="text-[14px] font-noto-regular text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                    <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start justify-between gap-4 sm:gap-6">
+                                        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-5 flex-1 w-full min-w-0">
+                                            <Badge className="bg-primary/5 text-primary border-primary/20 capitalize text-[9px] sm:text-[10px] font-noto-semibold px-2.5 py-0.5 rounded-full shrink-0 sm:mt-1">{faq.category}</Badge>
+                                            <div className="space-y-2 sm:space-y-4 min-w-0 w-full">
+                                                <h3 className="text-[14px] sm:text-[16px] font-noto-semibold text-foreground leading-snug break-words">{faq.question}</h3>
+                                                <div className="text-[12px] sm:text-[14px] font-noto-regular text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
                                                     {faq.answer}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center justify-end w-full sm:w-auto gap-1 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity mt-1 sm:mt-0 pt-3 sm:pt-0 border-t border-border sm:border-0">
                                             <Button 
                                                 variant="ghost" 
-                                                size="icon" 
-                                                className="text-muted-foreground hover:text-[#0056b3] h-8 w-8 rounded-sm"
+                                                size="sm" 
+                                                className="text-muted-foreground hover:text-[#0056b3] h-8 sm:w-8 px-3 sm:px-0 rounded-sm text-xs sm:text-sm"
                                                 onClick={() => handleEdit(faq)}
                                             >
-                                                <Pencil className="h-4 w-4" />
+                                                <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-0 mr-1.5" />
+                                                <span className="sm:hidden font-noto-medium">Edit</span>
                                             </Button>
                                             <Button 
                                                 variant="ghost" 
-                                                size="icon" 
-                                                className="text-muted-foreground hover:text-red-500 hover:bg-red-50 h-8 w-8 rounded-sm"
+                                                size="sm" 
+                                                className="text-muted-foreground hover:text-red-500 hover:bg-red-50 h-8 sm:w-8 px-3 sm:px-0 rounded-sm text-xs sm:text-sm"
                                                 onClick={() => handleDelete(faq._id)}
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-0 mr-1.5" />
+                                                <span className="sm:hidden font-noto-medium">Delete</span>
                                             </Button>
                                         </div>
                                     </div>

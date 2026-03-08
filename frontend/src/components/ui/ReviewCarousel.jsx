@@ -87,7 +87,7 @@ export function ReviewCarousel({ reviews = [] }) {
                 {displayReviews.map((review, idx) => (
                     <Card
                         key={`${review._id}-${idx}`}
-                        className="flex-shrink-0 w-[280px] sm:w-[320px] rounded-sm border-2 border-border bg-card shadow-sm hover:border-[#0056b3] dark:hover:border-cyan-600 transition-colors"
+                        className="flex-shrink-0 w-[240px] sm:w-[280px] md:w-[320px] rounded-sm border-2 border-border bg-card shadow-sm hover:border-[#0056b3] dark:hover:border-cyan-600 transition-colors"
                     >
                         <CardContent className="p-4 space-y-3">
                             <div className="flex items-start justify-between">

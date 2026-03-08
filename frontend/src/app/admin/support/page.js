@@ -6,7 +6,7 @@ import { useSocket } from '@/context/SocketContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Headset, MessageCircle, Send, CircleCheckBig, Clock, Inbox, Loader2 } from 'lucide-react';
+import { Headset, MessageCircle, Send, CircleCheckBig, Clock, Inbox, Loader2, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
@@ -99,7 +99,7 @@ export default function SupportInbox() {
     return (
         <div className="flex h-[calc(100vh-120px)] border-2 border-border rounded-sm overflow-hidden bg-card shadow-sm">
             {/* Sidebar: Open Threads */}
-            <div className="w-80 border-r-2 border-border flex flex-col bg-muted/10">
+            <div className={`flex flex-col bg-muted/10 transition-all ${activeThread ? 'hidden md:flex' : 'flex'} w-full md:w-80 md:border-r-2 border-border border-r-0`}>
                 <div className="p-4 border-b-2 border-border flex items-center gap-2 bg-background font-noto-semibold text-xs tracking-wide text-muted-foreground">
                     <Inbox className="h-4 w-4" />
                     Support Ledger {threads.length > 0 && `(${threads.length})`}
@@ -134,23 +134,31 @@ export default function SupportInbox() {
             </div>
 
             {/* Main: Chat View */}
-            <div className="flex-1 flex flex-col bg-background">
+            <div className={`flex flex-col bg-background flex-1 transition-all ${!activeThread ? 'hidden md:flex' : 'flex'} w-full md:w-auto`}>
                 {activeThread ? (
                     <>
-                        <div className="p-4 border-b-2 border-border flex items-center justify-between bg-muted/5">
+                        <div className="p-4 border-b-2 border-border flex items-center bg-muted/5 gap-3">
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="md:hidden shrink-0 h-8 w-8"
+                                onClick={() => setActiveThread(null)}
+                            >
+                                <ChevronLeft className="h-5 w-5" />
+                            </Button>
                             <div>
                                 <h3 className="text-sm font-noto-semibold text-foreground tracking-tight">{activeThread.user?.name}</h3>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <Badge variant="outline" className="text-[10px] h-5 rounded-sm border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-noto-medium">Connected</Badge>
-                                    <span className="text-[11px] text-muted-foreground font-noto-regular">{activeThread.user?.email}</span>
+                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    <Badge variant="outline" className="text-[9px] sm:text-[10px] h-5 rounded-sm border-emerald-500/20 bg-emerald-500/5 text-emerald-600 font-noto-medium px-1.5 shrink-0">Connected</Badge>
+                                    <span className="text-[10px] sm:text-[11px] text-muted-foreground font-noto-regular truncate max-w-[150px] sm:max-w-none">{activeThread.user?.email}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/20" ref={scrollRef}>
+                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/20" ref={scrollRef}>
                             {messages.map((msg, idx) => (
                                 <div key={idx} className={`flex ${msg.senderType === 'staff' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[75%] p-3 rounded-md text-[13px] leading-relaxed shadow-xs ${
+                                    <div className={`max-w-[85%] sm:max-w-[75%] p-3 rounded-md text-[12px] sm:text-[13px] leading-relaxed shadow-xs ${
                                         msg.senderType === 'staff' 
                                         ? 'bg-[#0056b3] text-white font-noto-regular' 
                                         : 'bg-card text-foreground border border-border font-noto-regular'
@@ -164,28 +172,29 @@ export default function SupportInbox() {
                             ))}
                         </div>
 
-                        <div className="p-4 border-t-2 border-border bg-background">
+                        <div className="p-3 sm:p-4 border-t-2 border-border bg-background">
                             <div className="flex gap-2">
                                 <Input 
                                     placeholder="Type your official response..."
-                                    className="flex-1 text-xs border-2 rounded-sm"
+                                    className="flex-1 text-[11px] sm:text-xs border-2 rounded-sm"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                                 />
                                 <Button 
-                                    className="bg-[#0056b3] hover:bg-[#004494] px-6 font-noto-semibold"
+                                    size="sm"
+                                    className="bg-[#0056b3] hover:bg-[#004494] px-4 sm:px-6 font-noto-semibold shrink-0"
                                     onClick={handleSend}
                                     disabled={!input.trim()}
                                 >
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Send
+                                    <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Send</span>
                                 </Button>
                             </div>
                         </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 p-6 hidden md:flex">
                         <Headset className="h-16 w-16 mb-4 text-muted-foreground" />
                         <h2 className="text-lg font-noto-semibold tracking-tight">Support Inbox</h2>
                         <p className="max-w-xs text-xs font-noto-regular mt-2">Select a thread from the ledger to begin assisting guests.</p>
