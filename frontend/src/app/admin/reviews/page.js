@@ -38,6 +38,11 @@ export default function AdminReviewsPage() {
         fetchReviews();
     }, [page, ratingFilter]);
 
+    useEffect(() => {
+        window.addEventListener('reviews-updated', fetchReviews);
+        return () => window.removeEventListener('reviews-updated', fetchReviews);
+    }, []);
+
     return (
         <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

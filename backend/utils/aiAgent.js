@@ -229,17 +229,18 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "submit_feedback",
-      description: "Submit a review/rating for a completed or checked-out booking. The user can reference a booking by its ID OR by room number (the system will auto-find the most recent eligible booking). If the user already submitted feedback for the same booking, this will update their existing review. Use this when the user says things like 'rate my stay', 'leave feedback', 'review my room', '5 stars', 'great experience', etc.",
+      name: "manage_feedback",
+      description: "Perform CRUD operations on official feedback/rating for a completed stay. Use this when the user wants to rate their stay, retrieve their past reviews, update a review, or delete a review. Action can be 'submit' (creates or updates), 'read', or 'delete'.",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The booking ID to review. Optional if roomNumber is provided — system will auto-find the latest completed booking for that room." },
+          action: { type: "string", description: "'submit', 'read', or 'delete'" },
+          bookingId: { type: "string", description: "The booking ID to review. Optional if roomNumber is provided." },
           roomNumber: { type: "string", description: "Alternative to bookingId. The room number the user stayed in (e.g. '101'). System will find the most recent completed/checked-out booking for this room." },
-          rating: { type: "number", description: "Star rating from 1 to 5. 1=Poor, 2=Fair, 3=Good, 4=VeryGood, 5=Excellent. Infer from natural language: 'amazing'=5, 'good'=4, 'okay'=3, 'bad'=2, 'terrible'=1." },
-          comment: { type: "string", description: "Optional text review/comment about their stay experience. Max 500 characters. Extract from what the user says naturally — they don't need to explicitly say 'comment is...'." }
+          rating: { type: "number", description: "Star rating from 1 to 5. Required for 'submit'." },
+          comment: { type: "string", description: "Optional text review/comment about their stay experience. Max 500 characters." }
         },
-        required: ["rating"]
+        required: ["action"]
       }
     }
   },
@@ -957,19 +958,31 @@ export const toolImplementations = {
       }
     };
   },
-  submit_feedback: async (args, userId) => {
-    if (!args.rating || args.rating < 1 || args.rating > 5) {
-      throw new Error("Rating must be between 1 and 5.");
-    }
-
+  manage_feedback: async (args, userId) => {
     let booking;
 
-    // Strategy 1: Find by explicit booking ID
+    if (args.action === 'read') {
+      const reviews = await Review.find({ user: userId })
+        .populate('room', 'roomNumber type')
+        .sort({ createdAt: -1 });
+
+      if (reviews.length === 0) {
+        return { success: true, message: "You haven't submitted any feedback yet.", data: { action: 'read', count: 0 } };
+      }
+
+      const reviewSummaries = reviews.map(r => `Room ${r.room?.roomNumber}: ${r.rating} Stars. ${r.comment ? `"${r.comment}"` : 'No comment.'}`);
+      return {
+        success: true,
+        message: `You have submitted ${reviews.length} reviews:\n\n${reviewSummaries.join('\n')}`,
+        data: { action: 'read', count: reviews.length }
+      };
+    }
+
+    // Common logic to find booking for submit & delete
     if (args.bookingId) {
       booking = await Booking.findOne({ _id: args.bookingId, user: userId });
     }
 
-    // Strategy 2: Find by room number (most recent completed/checked-out booking)
     if (!booking && args.roomNumber) {
       const room = await Room.findOne({ roomNumber: args.roomNumber });
       if (room) {
@@ -981,7 +994,6 @@ export const toolImplementations = {
       }
     }
 
-    // Strategy 3: Find the most recent booking for this user
     if (!booking) {
       booking = await Booking.findOne({
         user: userId,
@@ -990,50 +1002,80 @@ export const toolImplementations = {
     }
 
     if (!booking) {
-      throw new Error("No eligible booking found to submit feedback for. You need a confirmed, checked-in, or completed booking.");
+      throw new Error("No eligible booking found to manage feedback for. You need a confirmed, checked-in, or completed booking.");
     }
 
     let review = await Review.findOne({ booking: booking._id });
-    const isUpdate = !!review;
 
-    if (review) {
-      review.rating = args.rating;
-      if (args.comment) review.comment = args.comment;
-      await review.save();
-    } else {
-      review = await Review.create({
-        booking: booking._id,
-        room: booking.room,
-        user: userId,
-        rating: args.rating,
-        comment: args.comment || ''
+    if (args.action === 'delete') {
+      if (!review) {
+        throw new Error(`You haven't submitted any feedback for this booking (Room ${booking.room}).`);
+      }
+      const roomToRecalculate = review.room;
+      await review.deleteOne(); // Or findByIdAndDelete
+      await Review.calculateAverageRating(roomToRecalculate);
+
+      await logEvent({
+        userId,
+        action: 'FEEDBACK_DELETE',
+        details: { bookingId: booking._id, source: 'ai_assistant' }
       });
+      return {
+        success: true,
+        message: "Your feedback has been successfully deleted.",
+        data: { action: 'delete', bookingId: booking._id }
+      };
     }
 
-    // Recalculate room average rating
-    await Review.calculateAverageRating(booking.room);
-
-    // Log the feedback event
-    await logEvent({
-      userId,
-      action: 'FEEDBACK_SUBMIT',
-      details: { bookingId: booking._id, rating: args.rating, isUpdate, source: 'ai_assistant' }
-    });
-
-    const roomData = await Room.findById(booking.room).select('roomNumber rating numReviews');
-
-    return {
-      success: true,
-      message: isUpdate ? "Your feedback has been updated successfully." : "Thank you! Your feedback has been submitted successfully.",
-      data: {
-        bookingId: booking._id,
-        roomNumber: roomData?.roomNumber,
-        yourRating: args.rating,
-        roomNewAverage: roomData?.rating,
-        totalReviews: roomData?.numReviews,
-        isUpdate
+    if (args.action === 'submit') {
+      if (!args.rating || args.rating < 1 || args.rating > 5) {
+        throw new Error("Rating must be between 1 and 5.");
       }
-    };
+
+      const isUpdate = !!review;
+
+      if (review) {
+        review.rating = args.rating;
+        if (args.comment) review.comment = args.comment;
+        await review.save();
+      } else {
+        review = await Review.create({
+          booking: booking._id,
+          room: booking.room,
+          user: userId,
+          rating: args.rating,
+          comment: args.comment || ''
+        });
+      }
+
+      // Recalculate room average rating
+      await Review.calculateAverageRating(booking.room);
+
+      // Log the feedback event
+      await logEvent({
+        userId,
+        action: 'FEEDBACK_SUBMIT',
+        details: { bookingId: booking._id, rating: args.rating, isUpdate, source: 'ai_assistant' }
+      });
+
+      const roomData = await Room.findById(booking.room).select('roomNumber rating numReviews');
+
+      return {
+        success: true,
+        message: isUpdate ? "Your feedback has been updated successfully." : "Thank you! Your feedback has been submitted successfully.",
+        data: {
+          action: 'submit',
+          bookingId: booking._id,
+          roomNumber: roomData?.roomNumber,
+          yourRating: args.rating,
+          roomNewAverage: roomData?.rating,
+          totalReviews: roomData?.numReviews,
+          isUpdate
+        }
+      };
+    }
+
+    throw new Error("Invalid action provided for manage_feedback.");
   },
   cancel_multiple_bookings: async (args, userId) => {
     const results = [];
@@ -1492,7 +1534,7 @@ MANAGEMENT:
 SERVICES:
 - 'request_supplies' → towels, pillows, water, toiletries, room service items. Auto-detect room if possible.
 - 'report_room_issue' → maintenance, cleanliness, broken items, noise complaints
-- 'submit_feedback' → ratings and reviews. Works by bookingId OR roomNumber (auto-finds latest booking). Can update existing reviews.
+- 'manage_feedback' → ratings and reviews. Perform CRUD actions: submit, read, update, delete feedback. Works by bookingId OR roomNumber.
 
 INFORMATION:
 - 'get_my_profile' → user identity, role, contact info

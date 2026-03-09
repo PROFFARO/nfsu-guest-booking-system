@@ -126,13 +126,17 @@ export function AIAgentTab() {
                     fetchThreads();
                 }
 
-                // Auto-refresh the page if a cancellation or modification was performed
+                // Auto-refresh the page if a cancellation, modification, feedback, or extension was performed
                 const metadata = result.data.aiMessage.metadata;
                 const isCancellation = metadata && metadata.action === 'cancel_multiple_bookings' && (metadata.result?.success || metadata.result?.successCount > 0);
                 const isModification = metadata && metadata.action === 'modify_booking' && metadata.result?.success;
+                const isFeedback = metadata && (metadata.action === 'submit_feedback' || metadata.action === 'manage_feedback') && metadata.result?.success;
+                const isExtension = metadata && metadata.action === 'extend_stay' && metadata.result?.success;
 
-                if (isCancellation || isModification) {
+                if (isCancellation || isModification || isFeedback || isExtension) {
                     window.dispatchEvent(new CustomEvent('booking-updated'));
+                    // Dispatch a globally available custom event for other components like reviews
+                    window.dispatchEvent(new CustomEvent('reviews-updated'));
                 }
             } else {
                 setMessages(prev => [...prev, {
@@ -590,26 +594,35 @@ export function AIAgentTab() {
         }
 
         // Feedback Submission Confirmation
-        if (action === 'submit_feedback' && result && result.success) {
+        if ((action === 'submit_feedback' || action === 'manage_feedback') && result && result.success) {
+            const isDel = result.data?.action === 'delete';
+            const isRead = result.data?.action === 'read';
+
+            if (isRead) return null; // Let the AI text response handle the read output
+
             return (
-                <div className="mt-2 p-3 border border-amber-200 dark:border-amber-800 rounded-md bg-amber-50/30 dark:bg-amber-950/20 text-[10px] space-y-2 font-noto-regular">
-                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                        <div className="bg-amber-100 dark:bg-amber-900/50 p-1 rounded-full">
-                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                <div className={`mt-2 p-3 border rounded-md text-[10px] space-y-2 font-noto-regular ${isDel ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20' : 'border-amber-200 dark:border-amber-800 bg-amber-50/30 dark:bg-amber-950/20'}`}>
+                    <div className={`flex items-center gap-2 ${isDel ? 'text-red-700 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                        <div className={`p-1 rounded-full ${isDel ? 'bg-red-100 dark:bg-red-900/50' : 'bg-amber-100 dark:bg-amber-900/50'}`}>
+                            {isDel ? <Trash className="h-3 w-3" /> : <Star className="h-3 w-3 fill-amber-500 text-amber-500" />}
                         </div>
-                        <span className="font-noto-bold text-xs">{result.data?.isUpdate ? 'Feedback Updated' : 'Feedback Submitted'}</span>
+                        <span className="font-noto-bold text-xs">
+                            {isDel ? 'Feedback Deleted' : (result.data?.isUpdate ? 'Feedback Updated' : 'Feedback Submitted')}
+                        </span>
                     </div>
-                    <div className="bg-white dark:bg-slate-800/60 p-2 rounded border border-amber-100/50 dark:border-amber-800/30 space-y-2">
+                    <div className={`bg-white dark:bg-slate-800/60 p-2 rounded border space-y-2 ${isDel ? 'border-red-100/50 dark:border-red-800/30' : 'border-amber-100/50 dark:border-amber-800/30'}`}>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Room {result.data?.roomNumber}</span>
-                            <div className="flex items-center gap-0.5">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                    <Star
-                                        key={star}
-                                        className={`h-3 w-3 ${star <= (result.data?.yourRating || 0) ? 'fill-amber-500 text-amber-500' : 'text-gray-300 dark:text-gray-600'}`}
-                                    />
-                                ))}
-                            </div>
+                            {!isDel && (
+                                <div className="flex items-center gap-0.5">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <Star
+                                            key={star}
+                                            className={`h-3 w-3 ${star <= (result.data?.yourRating || 0) ? 'fill-amber-500 text-amber-500' : 'text-gray-300 dark:text-gray-600'}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         {result.data?.roomNewAverage && (
                             <div className="flex justify-between items-center text-[9px] text-muted-foreground border-t border-amber-50 dark:border-amber-900/30 pt-1">
