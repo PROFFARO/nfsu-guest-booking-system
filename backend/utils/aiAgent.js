@@ -12,17 +12,16 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import { getIO } from '../realtime/socket.js';
 
-// Tool Definitions (OpenAI Specification)
 const tools = [
   {
     type: "function",
     function: {
       name: "get_room_details",
-      description: "Get comprehensive details about a specific room including amenities and description",
+      description: "Get comprehensive details about a specific room including amenities, description, and primary image.",
       parameters: {
         type: "object",
         properties: {
-          roomNumber: { type: "string", description: "The room number (e.g. 101, B-205)" }
+          roomNumber: { type: "string", description: "The room number (e.g. 101, A-205)" }
         },
         required: ["roomNumber"]
       }
@@ -32,7 +31,7 @@ const tools = [
     type: "function",
     function: {
       name: "find_faq",
-      description: "Search the database for answers to common questions about stay, policy, and facilities",
+      description: "Search for answers to questions about the campus, stay policies, facilities, and more. Use this when the user asks 'how do I...', 'what is...', or 'is there...'",
       parameters: {
         type: "object",
         properties: {
@@ -47,11 +46,11 @@ const tools = [
     type: "function",
     function: {
       name: "escalate_to_staff",
-      description: "Escalate the conversation to a real human support staff member when AI cannot help",
+      description: "Use this ONLY when the AI cannot answer a question or handle a request, or if the user explicitly asks for a human.",
       parameters: {
         type: "object",
         properties: {
-          reason: { type: "string", description: "The reason or summary of the problem for the staff member" }
+          reason: { type: "string", description: "Mandatory reason for escalation" }
         },
         required: ["reason"]
       }
@@ -61,20 +60,20 @@ const tools = [
     type: "function",
     function: {
       name: "modify_booking",
-      description: "Modify any details of an existing booking (Dates, Guest Name, Purpose, Guests, Special Requests)",
+      description: "Update an existing booking (dates, guest details, etc.)",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The ID of the booking to modify" },
-          newCheckIn: { type: "string", description: "New check-in date (ISO format)" },
-          newCheckOut: { type: "string", description: "New check-out date (ISO format)" },
-          guestName: { type: "string", description: "Update guest name" },
-          email: { type: "string", description: "Update contact email" },
-          phone: { type: "string", description: "Update 10-digit phone number" },
-          purpose: { type: "string", enum: ["academic", "business", "personal", "other"], description: "Update category of visit" },
-          purposeDetails: { type: "string", description: "Update specific reason/details for stay" },
-          numberOfGuests: { type: "number", minimum: 1, maximum: 4, description: "Update number of occupants" },
-          specialRequests: { type: "string", description: "Update special instructions" }
+          bookingId: { type: "string", description: "The actual Mongo ID or short ID of the booking" },
+          newCheckIn: { type: "string", description: "New check-in date (YYYY-MM-DD)" },
+          newCheckOut: { type: "string", description: "New check-out date (YYYY-MM-DD)" },
+          guestName: { type: "string" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          purpose: { type: "string", enum: ["academic", "business", "personal", "other"] },
+          purposeDetails: { type: "string" },
+          numberOfGuests: { type: "number" },
+          specialRequests: { type: "string" }
         },
         required: ["bookingId"]
       }
@@ -84,11 +83,11 @@ const tools = [
     type: "function",
     function: {
       name: "get_my_gatepass",
-      description: "Retrieve the Smart Gatepass QR code and check-in token for a confirmed booking",
+      description: "Get the QR gatepass and check-in token for entry.",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "Optional booking ID. If omitted, retrieves the most recent confirmed booking." }
+          bookingId: { type: "string", description: "Optional specific booking ID" }
         }
       }
     }
@@ -97,12 +96,12 @@ const tools = [
     type: "function",
     function: {
       name: "report_room_issue",
-      description: "Report a maintenance issue or problem with the current room",
+      description: "Report maintenance or cleanliness issues for a room.",
       parameters: {
         type: "object",
         properties: {
-          roomNumber: { type: "string", description: "The room number where the issue is occurring" },
-          issueDescription: { type: "string", description: "A detailed description of the problem" }
+          roomNumber: { type: "string" },
+          issueDescription: { type: "string", description: "Detailed description of the problem" }
         },
         required: ["roomNumber", "issueDescription"]
       }
@@ -112,23 +111,19 @@ const tools = [
     type: "function",
     function: {
       name: "get_available_rooms",
-      description: "Get a list of available rooms based on dates, type, budget, floor, and facilities",
+      description: "Find available rooms with extreme flexibility. Can filter by dates, type, price range, block, floor, or specific amenities. If dates are missed, it searches for immediate availability.",
       parameters: {
         type: "object",
         properties: {
-          checkIn: { type: "string", description: "Desired check-in date (YYYY-MM-DD)" },
-          checkOut: { type: "string", description: "Desired check-out date (YYYY-MM-DD)" },
-          type: { type: "string", enum: ["single", "double"], description: "Room type" },
-          floor: { type: "string", description: "Desired floor number (1-6)" },
-          block: { type: "string", enum: ["A", "B", "C", "D", "E", "F"], description: "Block letter" },
-          minPrice: { type: "number", description: "Minimum price per night" },
-          maxPrice: { type: "number", description: "Maximum price per night (budget)" },
-          facilities: {
-            type: "array",
-            items: { type: "string" },
-            description: "List of required facilities (e.g. Gym, AC, WiFi)"
-          },
-          minRating: { type: "number", description: "Minimum star rating (0-5)" }
+          checkIn: { type: "string", description: "YYYY-MM-DD format" },
+          checkOut: { type: "string", description: "YYYY-MM-DD format" },
+          type: { type: "string", enum: ["single", "double"] },
+          floor: { type: "string", description: "Floor level (1-6)" },
+          block: { type: "string", enum: ["A", "B", "C", "D", "E", "F"] },
+          maxPrice: { type: "number", description: "User's maximum budget" },
+          minRating: { type: "number", description: "Minimum star rating 0-5" },
+          query: { type: "string", description: "Fuzzy search query for features (e.g. 'ac', 'garden view', 'near gate')" },
+          facilities: { type: "array", items: { type: "string" }, description: "Specific list of facility keywords" }
         }
       }
     }
@@ -137,19 +132,19 @@ const tools = [
     type: "function",
     function: {
       name: "create_booking",
-      description: "Create a new confirmed room booking for the user.",
+      description: "Create a room reservation. ALWAYS verify availability via get_available_rooms first.",
       parameters: {
         type: "object",
         properties: {
-          roomNumber: { type: "string", description: "The specific room number to book (e.g. 101, A-205)" },
-          checkIn: { type: "string", description: "Check-in date (YYYY-MM-DD)" },
-          checkOut: { type: "string", description: "Check-out date (YYYY-MM-DD)" },
-          guestName: { type: "string", description: "Name of the guest (leave empty to use account name)" },
-          email: { type: "string", description: "Contact email (leave empty to use account email)" },
-          phone: { type: "string", description: "Contact phone 10-digits (leave empty to use account phone)" },
-          purpose: { type: "string", enum: ["academic", "business", "personal", "other"], description: "Purpose of visit" },
-          numberOfGuests: { type: "number", minimum: 1, maximum: 4, description: "Number of guests staying" },
-          specialRequests: { type: "string", description: "Any special instructions or requests" }
+          roomNumber: { type: "string", description: "The room number to book, e.g. '101'" },
+          checkIn: { type: "string", description: "Check-in date in YYYY-MM-DD format. MUST be a concrete date, never a relative term like 'today'." },
+          checkOut: { type: "string", description: "Check-out date in YYYY-MM-DD format. MUST be a concrete date, never a relative term like 'tomorrow'." },
+          guestName: { type: "string" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          purpose: { type: "string", enum: ["academic", "business", "personal", "other"] },
+          numberOfGuests: { type: "number" },
+          specialRequests: { type: "string" }
         },
         required: ["roomNumber", "checkIn", "checkOut", "purpose", "numberOfGuests"]
       }
@@ -159,12 +154,12 @@ const tools = [
     type: "function",
     function: {
       name: "get_my_bookings",
-      description: "Get the current user's bookings with optional filtering",
+      description: "List the user's booking history and currently active/upcoming trips.",
       parameters: {
         type: "object",
         properties: {
-          status: { type: "string", enum: ["pending", "confirmed", "cancelled", "checked-in", "checked-out"], description: "Filter by booking status" },
-          upcoming: { type: "boolean", description: "If true, only returns future or current bookings (not cancelled/checked-out)" }
+          status: { type: "string", enum: ["pending", "confirmed", "cancelled", "checked-in", "checked-out"] },
+          upcoming: { type: "boolean", description: "Set true to filter for only valid future/current bookings" }
         }
       }
     }
@@ -173,11 +168,11 @@ const tools = [
     type: "function",
     function: {
       name: "get_booking_details",
-      description: "Get full details of a specific booking including payment status, guests, purpose, and administrative notes",
+      description: "Get deep-dive status of a reservation including payment, check-in time, and staff notes.",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The ID of the booking to retrieve" }
+          bookingId: { type: "string" }
         },
         required: ["bookingId"]
       }
@@ -187,12 +182,12 @@ const tools = [
     type: "function",
     function: {
       name: "cancel_booking",
-      description: "Cancel a specific booking by its ID",
+      description: "Cancel a booking. Always ask for confirmation first.",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The ID of the booking to cancel" },
-          reason: { type: "string", description: "The reason for cancellation (optional)" }
+          bookingId: { type: "string" },
+          reason: { type: "string" }
         },
         required: ["bookingId"]
       }
@@ -201,63 +196,33 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "submit_feedback",
-      description: "Submit a rating and comment for a completed stay",
+      name: "get_my_profile",
+      description: "Get the current user's account details (Name, Role, Email, Phone). Use this when the user asks 'who am I' or 'what is my info'.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_stay_quote",
+      description: "Calculate the total cost for a room stay without making a booking.",
       parameters: {
         type: "object",
         properties: {
-          bookingId: { type: "string", description: "The ID of the booking" },
-          rating: { type: "number", description: "Rating from 1 to 5" },
-          comment: { type: "string", description: "Feedback comment" }
+          roomNumber: { type: "string" },
+          checkIn: { type: "string" },
+          checkOut: { type: "string" }
         },
-        required: ["bookingId", "rating"]
+        required: ["roomNumber", "checkIn", "checkOut"]
       }
     }
   },
   {
     type: "function",
     function: {
-      name: "cancel_multiple_bookings",
-      description: "Cancel multiple bookings at once by their IDs",
-      parameters: {
-        type: "object",
-        properties: {
-          bookingIds: {
-            type: "array",
-            items: { type: "string" },
-            description: "List of booking IDs to cancel"
-          },
-          reason: { type: "string", description: "Common reason for these cancellations (optional)" }
-        },
-        required: ["bookingIds"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "request_supplies",
-      description: "Request room supplies or hospitality services (e.g. towels, water, toiletries, bedding). Use this when a guest wants extra items delivered to their room.",
-      parameters: {
-        type: "object",
-        properties: {
-          roomNumber: { type: "string", description: "The room number for the request" },
-          items: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                name: { type: "string", description: "Name of the item (e.g. Towel, Water Bottle)" },
-                quantity: { type: "number", description: "Number of items requested" }
-              },
-              required: ["name"]
-            },
-            description: "List of items and their quantities"
-          },
-          specialInstructions: { type: "string", description: "Any specific instructions for the housekeeping staff" }
-        },
-        required: ["roomNumber", "items"]
-      }
+      name: "get_system_info",
+      description: "Get general info about the building like check-in/out times, food hours, and local orientation.",
+      parameters: { type: "object", properties: {} }
     }
   }
 ];
@@ -314,8 +279,21 @@ export const toolImplementations = {
 
     // Handle Date Changes
     if (args.newCheckIn || args.newCheckOut) {
-      newIn = args.newCheckIn ? new Date(args.newCheckIn) : booking.checkIn;
-      newOut = args.newCheckOut ? new Date(args.newCheckOut) : booking.checkOut;
+      const resolveDate = (input) => {
+        if (!input) return null;
+        const lower = String(input).toLowerCase().trim();
+        const now = new Date();
+        if (lower === 'today' || lower === 'now') return new Date(now.toISOString().split('T')[0]);
+        if (lower === 'tomorrow' || lower === 'tmrw') {
+          const d = new Date(now); d.setDate(d.getDate() + 1); return new Date(d.toISOString().split('T')[0]);
+        }
+        if (lower.includes('day after tomorrow')) {
+          const d = new Date(now); d.setDate(d.getDate() + 2); return new Date(d.toISOString().split('T')[0]);
+        }
+        return new Date(input);
+      };
+      newIn = args.newCheckIn ? resolveDate(args.newCheckIn) : booking.checkIn;
+      newOut = args.newCheckOut ? resolveDate(args.newCheckOut) : booking.checkOut;
 
       const isAvailable = await Booking.checkRoomAvailability(booking.room._id, newIn, newOut, booking._id);
       if (!isAvailable) throw new Error("Room is not available for requested new dates.");
@@ -563,6 +541,10 @@ export const toolImplementations = {
     }));
   },
   get_available_rooms: async (args) => {
+    // Intelligent Defaults for non-technical users
+    const checkIn = args.checkIn ? new Date(args.checkIn) : new Date();
+    const checkOut = args.checkOut ? new Date(args.checkOut) : new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
+
     // 1. Base query for active, non-maintenance rooms
     const query = { isActive: true, status: { $ne: 'maintenance' } };
 
@@ -570,63 +552,86 @@ export const toolImplementations = {
     if (args.floor) query.floor = String(args.floor);
     if (args.block) query.block = args.block.toUpperCase();
     if (args.minRating) query.rating = { $gte: args.minRating };
-
-    // Price filtering
-    if (args.minPrice || args.maxPrice) {
-      query.pricePerNight = {};
-      if (args.minPrice) query.pricePerNight.$gte = args.minPrice;
-      if (args.maxPrice) query.pricePerNight.$lte = args.maxPrice;
-    }
+    if (args.maxPrice) query.pricePerNight = { $lte: args.maxPrice };
 
     let rooms = await Room.find(query).sort({ rating: -1, pricePerNight: 1 });
 
-    // 2. Fuzzy facility filtering (Case-insensitive)
-    if (args.facilities && args.facilities.length > 0) {
+    // 2. Fuzzy Search & Feature Filtering
+    if (args.query || (args.facilities && args.facilities.length > 0)) {
+      const searchTerms = [
+        ...(args.query ? [args.query.toLowerCase()] : []),
+        ...(args.facilities ? args.facilities.map(f => f.toLowerCase()) : [])
+      ];
+
       rooms = rooms.filter(room => {
-        const roomFacs = (room.facilities || []).map(f => f.toLowerCase());
-        return args.facilities.every(reqFac =>
-          roomFacs.some(f => f.includes(reqFac.toLowerCase()))
-        );
+        const roomText = `${room.description} ${room.facilities?.join(' ')} ${room.type} Block ${room.block} Floor ${room.floor}`.toLowerCase();
+        return searchTerms.every(term => roomText.includes(term));
       });
     }
 
-    // 3. Filter by Date Availability if provided
-    if (args.checkIn && args.checkOut) {
-      const checkInDate = new Date(args.checkIn);
-      const checkOutDate = new Date(args.checkOut);
-
-      if (!isNaN(checkInDate.getTime()) && !isNaN(checkOutDate.getTime())) {
-        const availableRooms = [];
-        for (const room of rooms) {
-          // Check if there are ANY conflicting bookings for this specific room
-          const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
-
-          if (isAvailable && room.status !== 'held') {
-            availableRooms.push(room);
-          } else if (isAvailable && room.status === 'held') {
-            // If it's held but the hold has expired
-            if (room.holdUntil && new Date() > room.holdUntil) {
-              availableRooms.push(room);
-            }
-          }
-        }
-        rooms = availableRooms;
+    // 3. Filter by Date Availability
+    const availableRooms = [];
+    for (const room of rooms) {
+      const isAvailable = await Booking.checkRoomAvailability(room._id, checkIn, checkOut);
+      if (isAvailable && room.status !== 'held') {
+        availableRooms.push(room);
+      } else if (isAvailable && room.status === 'held' && room.holdUntil && new Date() > room.holdUntil) {
+        availableRooms.push(room);
       }
-    } else {
-      // If no dates provided, only return fully vacant currently
-      rooms = rooms.filter(r => r.status === 'vacant');
     }
+    rooms = availableRooms;
 
-    const maxResults = rooms.slice(0, 10);
+    const maxResults = rooms.slice(0, 8);
     return maxResults.map(r => ({
       roomNumber: r.roomNumber,
       type: r.type,
       price: r.pricePerNight,
-      floor: r.floor,
-      block: r.block,
+      location: `Floor ${r.floor}, Block ${r.block}`,
       facilities: r.facilities,
-      rating: r.rating
+      rating: r.rating,
+      description: r.description,
+      primaryImage: r.images.find(img => img.isPrimary)?.url || r.images[0]?.url
     }));
+  },
+  get_my_profile: async (args, userId) => {
+    const { default: User } = await import('../models/User.js');
+    const user = await User.findById(userId).select('-password');
+    if (!user) throw new Error("User not found.");
+    return {
+      name: user.name,
+      email: user.email,
+      phone: user.phone || 'Not provided',
+      role: user.role,
+      joined: user.createdAt.toLocaleDateString()
+    };
+  },
+  calculate_stay_quote: async (args) => {
+    const room = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
+
+    const inDate = new Date(args.checkIn);
+    const outDate = new Date(args.checkOut);
+    const nights = Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24));
+
+    if (nights <= 0) throw new Error("Stay must be at least one night.");
+
+    return {
+      roomNumber: room.roomNumber,
+      type: room.type,
+      pricePerNight: room.pricePerNight,
+      totalNights: nights,
+      totalAmount: nights * room.pricePerNight,
+      dates: `${inDate.toLocaleDateString()} to ${outDate.toLocaleDateString()}`
+    };
+  },
+  get_system_info: async () => {
+    return {
+      checkInTime: "12:00 PM",
+      checkOutTime: "11:00 AM",
+      receptionHours: "24/7",
+      facilities: ["Gym (accessible 6 AM - 10 PM)", "Library", "Free Wi-Fi", "Student Cafeteria"],
+      policy: "Cancellations allowed up to 24h before check-in. Valid ID required for all guests."
+    };
   },
   create_booking: async (args, userId) => {
     const { default: User } = await import('../models/User.js');
@@ -636,8 +641,26 @@ export const toolImplementations = {
     const room = await Room.findOne({ roomNumber: args.roomNumber });
     if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
 
-    const checkInDate = new Date(args.checkIn);
-    const checkOutDate = new Date(args.checkOut);
+    // Resolve relative dates like 'today', 'tomorrow', 'day after tomorrow'
+    const resolveDate = (input) => {
+      if (!input) return new Date(NaN);
+      const lower = String(input).toLowerCase().trim();
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      if (lower === 'today' || lower === 'now') return new Date(todayStr);
+      if (lower === 'tomorrow' || lower === 'tmrw') {
+        const d = new Date(now); d.setDate(d.getDate() + 1); return new Date(d.toISOString().split('T')[0]);
+      }
+      if (lower.includes('day after tomorrow') || lower.includes('day after tmrw')) {
+        const d = new Date(now); d.setDate(d.getDate() + 2); return new Date(d.toISOString().split('T')[0]);
+      }
+      // Try parsing as-is (YYYY-MM-DD or other formats)
+      const parsed = new Date(input);
+      return parsed;
+    };
+
+    const checkInDate = resolveDate(args.checkIn);
+    const checkOutDate = resolveDate(args.checkOut);
 
     if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
       throw new Error("Invalid check-in or check-out date formats. Please use YYYY-MM-DD.");
@@ -890,7 +913,41 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: "You are the NFSU Campus AI Assistant. Use the provided tools. To search for available rooms using 'get_available_rooms' you MUST ask the user for their check-in and check-out dates if they have not provided any, otherwise the search will only return rooms that are completely vacant right now. If a user tries to create a booking, ALWAYS understand their dates and preferences, list options via 'get_available_rooms', ask them to pick a room, and FINALLY call 'create_booking'. For checking booking status, ALWAYS first call 'get_my_bookings' to show a summary list, then ask the user to select which one they want to see, and finally call 'get_booking_details' to show full status details. If reporting issues, use 'report_room_issue'. For asking supplies, use 'request_supplies'. To cancel, use 'get_my_bookings' then 'cancel_booking'. Be concise."
+      content: `You are the NFSU Campus AI Assistant, a friendly and helpful guide for non-technical users. Your goal is to make staying at the campus as easy as possible.
+
+IMPORTANT — TODAY'S DATE: ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})
+
+CRITICAL DATE HANDLING RULES:
+- When the user says "today", use ${new Date().toISOString().split('T')[0]}.
+- When the user says "tomorrow", use ${(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}.
+- When the user says "day after tomorrow", use ${(() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split('T')[0]; })()}.
+- ALWAYS convert relative dates (today, tomorrow, next week, this weekend, etc.) to YYYY-MM-DD format BEFORE calling any tool.
+- NEVER pass relative date strings like "today" or "tomorrow" as function arguments. Always pass the resolved YYYY-MM-DD date.
+
+FLEXIBILITY & MEMORY RULES:
+- Remember information the user already provided earlier in the conversation. Do NOT re-ask for details they already gave.
+- If the user provides multiple pieces of information in one message (dates, purpose, guest count, email, phone), extract ALL of them.
+- If a user says something like "me only" or "just me", numberOfGuests = 1.
+- Infer the purpose from context. If they say "retrieve bonafide certificate", that's "academic". If they say "conference", that's "business".
+- If the user provides a phone number, accept it as-is without validation complaints.
+- If some optional info is missing (like specialRequests), just skip it. Don't block the booking.
+- If a first attempt fails, explain clearly and suggest alternatives instead of just saying "I can't help".
+
+CORE GUIDELINES:
+1. BE FLEXIBLE: If a user isn't specific about dates or budgets, use 'get_available_rooms' with today's date and give them options. Don't block the user with technical questions.
+2. USE TOOLS:
+   - Use 'get_my_profile' if the user asks who they are or for their contact info.
+   - Use 'calculate_stay_quote' if they just want to know the price.
+   - Use 'get_system_info' for general building questions (check-in times, wifi, etc.).
+   - Use 'find_faq' for policy and rule questions.
+   - Use 'report_room_issue' for maintenance complaints.
+   - Use 'request_supplies' for amenity requests.
+   - Use 'submit_feedback' for reviews and feedback.
+3. BOOKING FLOW: First show options via 'get_available_rooms', then ask for a choice, then 'create_booking'.
+4. SUPPORT: If you can't help, offer to use 'escalate_to_staff'.
+5. SEARCH: Use the 'query' parameter in 'get_available_rooms' for fuzzy search like 'quiet room' or 'near gym'.
+
+Be concise, warm, and helpful. Never be overly bureaucratic. The user is a guest, treat them like one.`
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

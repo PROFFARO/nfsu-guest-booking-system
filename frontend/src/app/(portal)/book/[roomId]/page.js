@@ -108,10 +108,8 @@ export default function BookingFormPage({ params }) {
         }
     };
 
-    // Minimum date is tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 2);
-    const minDate = tomorrow.toISOString().split('T')[0];
+    // Minimum date is today
+    const minDate = new Date().toISOString().split('T')[0];
 
     if (loading) {
         return (

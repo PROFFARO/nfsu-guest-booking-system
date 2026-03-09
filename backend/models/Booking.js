@@ -16,9 +16,11 @@ const bookingSchema = new mongoose.Schema({
     required: [true, 'Check-in date is required'],
     validate: {
       validator: function (value) {
-        return value > new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return value >= today;
       },
-      message: 'Check-in date must be in the future'
+      message: 'Check-in date cannot be in the past'
     }
   },
   checkOut: {
