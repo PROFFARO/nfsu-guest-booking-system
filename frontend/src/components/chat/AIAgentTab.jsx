@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Send, Loader2, Sparkles, BedDouble, Calendar, CircleX, Star, Plus, Trash2, MessageSquare, History, ChevronLeft, ChevronRight, Search, AlertCircle, CheckCircle2, Headphones, User, Bot, Copy, Check, Square, CheckSquare, Trash, Edit3, User2, Briefcase, Tag, ChevronDown, CreditCard, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { api } from '@/lib/api';
+import Image from 'next/image';
 
 export function AIAgentTab() {
     const router = useRouter();
@@ -244,7 +243,7 @@ export function AIAgentTab() {
             return (
                 <div className="mt-2 p-3 border border-border rounded-md bg-muted/10 text-[10px] space-y-2 font-noto-regular max-w-[240px]">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="h-10 w-10 rounded-xs bg-[#1a365d] dark:bg-blue-600/10 flex items-center justify-center border border-[#1a365d] dark:border-blue-400/20">
+                        <div className="h-10 w-10 rounded-xs bg-slate-100 dark:bg-blue-600/10 flex items-center justify-center border border-slate-200 dark:border-blue-400/20">
                             <User2 className="h-5 w-5 text-[#1a365d] dark:text-blue-400" />
                         </div>
                         <div>
@@ -636,11 +635,11 @@ export function AIAgentTab() {
                         initial={{ width: 0, opacity: 0 }}
                         animate={{ width: 240, opacity: 1 }}
                         exit={{ width: 0, opacity: 0 }}
-                        className="border-r border-border bg-muted/5 flex flex-col overflow-hidden whitespace-nowrap"
+                        className="border-r border-border bg-slate-50 dark:bg-slate-900/50 flex flex-col overflow-hidden whitespace-nowrap"
                     >
                         <div className="p-4 border-b-2 border-border flex justify-between items-center bg-white dark:bg-slate-800/50">
                             <h3 className="text-[10px] font-noto-bold text-[#1a365d] dark:text-blue-400 uppercase tracking-[0.15em]">Official Logs</h3>
-                            <Button variant="outline" size="icon" className="h-7 w-7 rounded-xs border-[#1a365d] dark:border-blue-400/20 text-[#1a365d] dark:text-blue-400 hover:bg-[#1a365d] dark:hover:bg-blue-600 dark:bg-blue-600 hover:text-white transition-colors" title="New Inquiry" onClick={createNewChat}>
+                            <Button variant="outline" size="icon" className="h-7 w-7 rounded-xs border-[#1a365d]/30 dark:border-blue-400/20 text-[#1a365d] dark:text-blue-400 hover:bg-[#1a365d] dark:hover:bg-blue-600 hover:text-white transition-colors" title="New Inquiry" onClick={createNewChat}>
                                 <Plus className="h-4 w-4" />
                             </Button>
                         </div>
@@ -656,7 +655,7 @@ export function AIAgentTab() {
                                         key={t._id}
                                         onClick={() => setThreadId(t._id)}
                                         className={`group relative p-3 rounded-xs cursor-pointer transition-all flex items-start gap-3 border-b border-border ${threadId === t._id
-                                            ? 'bg-[#1a365d] dark:bg-blue-600/5 border-l-4 border-l-[#1a365d] dark:border-l-blue-400'
+                                            ? 'bg-[#1a365d]/10 dark:bg-blue-600/10 border-l-4 border-l-[#1a365d] dark:border-l-blue-400'
                                             : 'hover:bg-muted/30 border-l-4 border-l-transparent'
                                             }`}
                                     >
@@ -700,22 +699,28 @@ export function AIAgentTab() {
                 <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar mb-4 p-4 pt-12" ref={scrollRef}>
                     {messages.length === 0 && !loading && (
                         <div className="flex flex-col items-center justify-center text-center py-4 px-2">
-                            {/* Header */}
-                            <div className="p-3 bg-[#1a365d] dark:bg-blue-600/5 rounded-sm border border-[#1a365d] dark:border-blue-400/10 mb-3 relative overflow-hidden group inline-flex">
-                                <div className="absolute top-0 right-0 w-16 h-16 bg-[#1a365d] dark:bg-blue-600/5 rounded-full -mr-6 -mt-6 blur-xl group-hover:bg-amber-500/10 transition-colors duration-700" />
-                                <Bot className="h-7 w-7 text-[#1a365d] dark:text-blue-400 relative z-10" strokeWidth={1.5} />
+                            {/* Header - Official NFSU Logo */}
+                            <div className="mb-3 relative overflow-hidden group inline-flex">
+                                <Image
+                                    src="/logo.png"
+                                    alt="NFSU Official Logo"
+                                    width={56}
+                                    height={56}
+                                    className="object-contain relative z-10"
+                                    priority
+                                />
                             </div>
 
                             <div className="space-y-0.5 mb-3">
                                 <h3 className="text-[13px] font-noto-bold text-[#1a365d] dark:text-blue-400 uppercase tracking-tight flex items-center justify-center gap-1.5">
-                                    <span className="w-5 h-[1.5px] bg-[#1a365d] dark:bg-blue-600/20 hidden sm:block" />
+                                    <span className="w-5 h-[1.5px] bg-[#1a365d]/40 dark:bg-blue-600/20 hidden sm:block" />
                                     Official AI Desk Assistant
-                                    <span className="w-5 h-[1.5px] bg-[#1a365d] dark:bg-blue-600/20 hidden sm:block" />
+                                    <span className="w-5 h-[1.5px] bg-[#1a365d]/40 dark:bg-blue-600/20 hidden sm:block" />
                                 </h3>
-                                <p className="text-[8px] font-noto-bold text-amber-700 uppercase tracking-[0.15em] opacity-80">National Forensic Sciences University</p>
+                                <p className="text-[8px] font-noto-bold text-amber-700 dark:text-amber-500 uppercase tracking-[0.15em] opacity-80">National Forensic Sciences University</p>
                             </div>
 
-                            <p className="text-[10px] font-noto-medium leading-relaxed text-muted-foreground max-w-[340px] bg-muted/20 p-2.5 border-y border-border/40 mb-4">
+                            <p className="text-[10px] font-noto-medium leading-relaxed text-muted-foreground max-w-[340px] bg-slate-50 dark:bg-slate-800/30 p-2.5 border-y border-border/40 mb-4">
                                 {threadId
                                     ? "Welcome back. I am ready to process your inquiries regarding this official correspondence log."
                                     : "I am the authorized digital representative for NFSU Guest Relations. I can facilitate lodging requisitions, verify clearance statuses, and provide campus guidelines."
@@ -740,7 +745,7 @@ export function AIAgentTab() {
                                                 { label: "Stay Quote", query: "Calculate the price for a 3-night stay" }
                                             ].map((task, i) => (
                                                 <button key={i} onClick={() => handleSendWithContent(task.query)}
-                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 dark:bg-blue-600 hover:text-white border border-[#1a365d] dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
+                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 hover:text-white border border-[#1a365d]/20 dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
                                                     {task.label}
                                                 </button>
                                             ))}
@@ -760,7 +765,7 @@ export function AIAgentTab() {
                                                 { label: "Cancel Multiple", query: "Cancel all my pending bookings" }
                                             ].map((task, i) => (
                                                 <button key={i} onClick={() => handleSendWithContent(task.query)}
-                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 dark:bg-blue-600 hover:text-white border border-[#1a365d] dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
+                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 hover:text-white border border-[#1a365d]/20 dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
                                                     {task.label}
                                                 </button>
                                             ))}
@@ -794,7 +799,7 @@ export function AIAgentTab() {
                                                 { label: "Escalate to Staff", query: "I need to speak with a staff member about an urgent matter" }
                                             ].map((task, i) => (
                                                 <button key={i} onClick={() => handleSendWithContent(task.query)}
-                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 dark:bg-blue-600 hover:text-white border border-[#1a365d] dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
+                                                    className="p-1.5 text-[8px] font-noto-bold text-[#1a365d] dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-[#1a365d] dark:hover:bg-blue-600 hover:text-white border border-[#1a365d]/20 dark:border-blue-400/10 rounded-sm transition-all text-left truncate">
                                                     {task.label}
                                                 </button>
                                             ))}
@@ -826,14 +831,14 @@ export function AIAgentTab() {
                         <div key={idx} className={`flex gap-3 ${msg.senderType === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                             <div className={`flex flex-col max-w-[92%] sm:max-w-[85%] ${msg.senderType === 'user' ? 'items-end' : 'items-start'}`}>
                                 <div className={`p-4 rounded-sm text-[12px] leading-relaxed shadow-xs transition-all duration-200 border-2 ${msg.senderType === 'user'
-                                    ? 'bg-[#1a365d] dark:bg-blue-600 text-white border-[#1a365d] dark:border-blue-400 font-noto-medium'
+                                    ? 'bg-[#0056b3] dark:bg-blue-600 text-white border-[#0056b3] dark:border-blue-500 font-noto-medium'
                                     : msg.isError
-                                        ? 'bg-red-50 text-red-900 border-red-200 font-noto-medium'
-                                        : 'bg-card text-foreground border-border/80 font-noto-medium'
+                                        ? 'bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-300 border-red-200 dark:border-red-800 font-noto-medium'
+                                        : 'bg-white dark:bg-slate-800/80 text-foreground border-slate-200 dark:border-slate-700 font-noto-medium'
                                     }`}>
                                     {msg.senderType === 'ai' && (
-                                        <div className="flex items-center gap-1.5 mb-3 border-b border-border pb-2 opacity-80 uppercase tracking-widest text-[9px] font-noto-bold text-[#1a365d] dark:text-blue-400">
-                                            <Bot className="h-3 w-3" />
+                                        <div className="flex items-center gap-1.5 mb-3 border-b border-slate-200 dark:border-slate-700 pb-2 opacity-80 uppercase tracking-widest text-[9px] font-noto-bold text-[#1a365d] dark:text-blue-400">
+                                            <Image src="/logo.png" alt="NFSU" width={14} height={14} className="object-contain" />
                                             <span>Official Response</span>
                                         </div>
                                     )}
@@ -842,15 +847,15 @@ export function AIAgentTab() {
                                     ) : (
                                         <div className="prose prose-sm dark:prose-invert max-w-none 
                                             prose-p:leading-relaxed prose-p:mb-3 last:prose-p:mb-0
-                                            prose-strong:font-noto-bold prose-strong:text-[#1a365d] dark:text-blue-400 dark:prose-strong:text-cyan-400
+                                            prose-strong:font-noto-bold prose-strong:text-[#1a365d] dark:prose-strong:text-blue-400
                                             prose-ul:list-disc prose-ul:pl-4 prose-li:mb-1">
                                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                                         </div>
                                     )}
                                     {renderMetadata(msg)}
                                 </div>
-                                <div className={`text-[8px] mt-1.5 px-1 opacity-50 hover:opacity-100 transition-all font-noto-bold flex items-center gap-2 uppercase tracking-widest text-[#1a365d] dark:text-blue-400`}>
-                                    <span className="bg-[#1a365d] dark:bg-blue-600/10 px-1.5 py-0.5 rounded-xs">{msg.senderType === 'user' ? 'Inquirer' : 'Authorized Asst'}</span>
+                                <div className={`text-[8px] mt-1.5 px-1 opacity-50 hover:opacity-100 transition-all font-noto-bold flex items-center gap-2 uppercase tracking-widest text-slate-500 dark:text-slate-400`}>
+                                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded-xs">{msg.senderType === 'user' ? 'Inquirer' : 'Authorized Asst'}</span>
                                     <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                                     <button
                                         onClick={() => handleCopy(msg.content, msg._id || idx)}
@@ -872,8 +877,8 @@ export function AIAgentTab() {
 
                     {loading && (
                         <div className="flex justify-start">
-                            <div className="bg-[#1a365d] dark:bg-blue-600/5 p-3 rounded-sm border border-[#1a365d] dark:border-blue-400/20 flex items-center gap-3">
-                                <Loader2 className="h-3 w-3 animate-spin text-[#1a365d] dark:text-blue-400" />
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-sm border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                                <Loader2 className="h-3 w-3 animate-spin text-[#0056b3] dark:text-blue-400" />
                                 <span className="text-[9px] font-noto-bold uppercase tracking-widest text-[#1a365d] dark:text-blue-400 opacity-70">Processing Official Response...</span>
                             </div>
                         </div>
@@ -882,7 +887,7 @@ export function AIAgentTab() {
 
                 <div className="px-4 pb-4 bg-background">
                     <div className="flex flex-col gap-1.5">
-                        <div className="flex items-end gap-2 bg-background border-2 border-border/60 rounded-sm p-1.5 focus-within:border-[#1a365d] dark:border-blue-400 focus-within:ring-0 transition-all shadow-xs">
+                        <div className="flex items-end gap-2 bg-background border-2 border-slate-200 dark:border-slate-700 rounded-sm p-1.5 focus-within:border-[#0056b3] dark:focus-within:border-blue-400 focus-within:ring-0 transition-all shadow-xs">
                             <Textarea
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
@@ -900,7 +905,7 @@ export function AIAgentTab() {
                                 size="icon"
                                 onClick={handleSend}
                                 disabled={!input.trim() || loading}
-                                className="h-9 w-9 rounded-xs bg-[#1a365d] dark:bg-blue-600 hover:bg-[#2a4a7d] text-white transition-all shrink-0 mb-0.5"
+                                className="h-9 w-9 rounded-xs bg-[#0056b3] dark:bg-blue-600 hover:bg-[#004494] text-white transition-all shrink-0 mb-0.5"
                             >
                                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             </Button>
@@ -921,8 +926,8 @@ function BookingActionCard({ booking, onCancel, onUpdate }) {
 
     if (isEditing) {
         return (
-            <div className="border border-[#1a365d] dark:border-blue-400/20 rounded-xs overflow-hidden bg-white dark:bg-slate-800 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200">
-                <div className="bg-[#1a365d] dark:bg-blue-600/5 px-3 py-2 border-b border-[#1a365d] dark:border-blue-400/10 flex justify-between items-center text-[10px] font-noto-bold text-[#1a365d] dark:text-blue-400 uppercase tracking-widest">
+            <div className="border border-slate-200 dark:border-blue-400/20 rounded-xs overflow-hidden bg-white dark:bg-slate-800 shadow-xs animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="bg-slate-50 dark:bg-slate-800/80 px-3 py-2 border-b border-slate-200 dark:border-blue-400/10 flex justify-between items-center text-[10px] font-noto-bold text-[#1a365d] dark:text-blue-400 uppercase tracking-widest">
                     <div className="flex items-center gap-1.5"><Edit3 className="h-3 w-3" /> Update Official Record</div>
                     <button onClick={() => setIsEditing(false)} className="text-muted-foreground hover:text-foreground"><ChevronDown className="h-3.5 w-3.5 rotate-180" /></button>
                 </div>
@@ -970,7 +975,7 @@ function BookingActionCard({ booking, onCancel, onUpdate }) {
                     size="sm"
                     variant="outline"
                     onClick={() => setIsEditing(true)}
-                    className="flex-1 h-7 text-[9px] rounded-xs font-noto-bold uppercase tracking-wider gap-1.5 border-[#1a365d] dark:border-blue-400/20 text-[#1a365d] dark:text-blue-400 hover:bg-[#1a365d] dark:hover:bg-blue-600 dark:bg-blue-600/5"
+                    className="flex-1 h-7 text-[9px] rounded-xs font-noto-bold uppercase tracking-wider gap-1.5 border-[#1a365d]/30 dark:border-blue-400/20 text-[#1a365d] dark:text-blue-400 hover:bg-[#1a365d] hover:text-white dark:hover:bg-blue-600"
                 >
                     <Edit3 className="h-2.5 w-2.5" /> Update
                 </Button>
@@ -1083,7 +1088,7 @@ function BookingModifier({ booking, onCancel, onSave }) {
             </div>
 
             <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={() => onSave(formData)} className="flex-1 h-8 rounded-xs text-[9px] font-noto-bold uppercase bg-[#1a365d] dark:bg-blue-600 hover:bg-[#2a4a7d] text-white">
+                <Button size="sm" onClick={() => onSave(formData)} className="flex-1 h-8 rounded-xs text-[9px] font-noto-bold uppercase bg-[#0056b3] dark:bg-blue-600 hover:bg-[#004494] text-white">
                     Apply Updates
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onCancel} className="h-8 rounded-sm text-[9px] font-noto-bold uppercase text-muted-foreground">
@@ -1150,7 +1155,7 @@ function BookingSelector({ bookings, onConfirm }) {
                     setConfirmed(true);
                     onConfirm(selectedIds);
                 }}
-                className={`w-full h-8 mt-2 rounded-xs font-noto-bold uppercase text-[10px] tracking-widest transition-all ${confirmed ? 'bg-emerald-600 text-white' : 'bg-[#1a365d] dark:bg-blue-600 hover:bg-[#2a4a7d] text-white shadow-xs'}`}
+                className={`w-full h-8 mt-2 rounded-xs font-noto-bold uppercase text-[10px] tracking-widest transition-all ${confirmed ? 'bg-emerald-600 text-white' : 'bg-[#0056b3] dark:bg-blue-600 hover:bg-[#004494] text-white shadow-xs'}`}
             >
                 {confirmed ? (
                     <span className="flex items-center gap-1.5"><Check className="h-3 w-3" /> Processing...</span>
