@@ -622,6 +622,121 @@ export function AIAgentTab() {
             );
         }
 
+        // Stay Extension Confirmation
+        if (action === 'extend_stay' && result && result.success) {
+            const d = result.data;
+            return (
+                <div className="mt-2 p-3 border border-emerald-200 dark:border-emerald-800 rounded-md bg-emerald-50/30 dark:bg-emerald-950/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/50 p-1 rounded-full">
+                            <Calendar className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Stay Extended — Room {d?.roomNumber}</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800/60 p-2 rounded border border-emerald-100/50 dark:border-emerald-800/30 space-y-1.5">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Previous Checkout</span><span className="line-through opacity-60">{d?.oldCheckOut}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">New Checkout</span><span className="font-noto-bold text-emerald-700 dark:text-emerald-400">{d?.newCheckOut}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Added Nights</span><span>+{d?.addedNights} night(s)</span></div>
+                        <div className="border-t border-emerald-50 dark:border-emerald-900/30 pt-1 flex justify-between">
+                            <span className="text-muted-foreground">Additional Cost</span>
+                            <span className="font-noto-bold">+₹{d?.additionalCost?.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">New Total</span>
+                            <span className="font-noto-bold text-emerald-700 dark:text-emerald-400">₹{d?.newTotal?.toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Invoice / Receipt
+        if (action === 'get_booking_invoice' && result && result.success) {
+            const inv = result.data;
+            return (
+                <div className="mt-2 p-3 border border-blue-200 dark:border-blue-800 rounded-md bg-blue-50/30 dark:bg-blue-950/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                            <div className="bg-blue-100 dark:bg-blue-900/50 p-1 rounded-full">
+                                <CreditCard className="h-3 w-3" />
+                            </div>
+                            <span className="font-noto-bold text-xs">Invoice {inv?.invoiceNumber}</span>
+                        </div>
+                        <span className={`px-1.5 py-0.5 rounded-xs text-[8px] font-noto-bold uppercase ${inv?.billing?.paymentStatus === 'paid' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400'}`}>
+                            {inv?.billing?.paymentStatus}
+                        </span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800/60 p-2 rounded border border-blue-100/50 dark:border-blue-800/30 space-y-1.5">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Guest</span><span>{inv?.guest?.name}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Room</span><span>{inv?.room?.number} ({inv?.room?.type})</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Stay</span><span>{inv?.stay?.checkIn} → {inv?.stay?.checkOut} ({inv?.stay?.totalNights} nights)</span></div>
+                        <div className="border-t border-blue-50 dark:border-blue-900/30 pt-1 space-y-1">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Rate</span><span>₹{inv?.billing?.pricePerNight}/night</span></div>
+                            <div className="flex justify-between font-noto-bold"><span>Total</span><span className="text-blue-700 dark:text-blue-400">₹{inv?.billing?.totalAmount?.toLocaleString('en-IN')}</span></div>
+                        </div>
+                    </div>
+                    {inv?.downloadUrl && (
+                        <a href={inv.downloadUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-noto-bold uppercase tracking-wider rounded-xs transition-colors">
+                            <ArrowRight className="h-3 w-3" /> Download PDF Invoice
+                        </a>
+                    )}
+                </div>
+            );
+        }
+
+        // Room Comparison
+        if (action === 'compare_rooms' && result && result.success && result.rooms) {
+            return (
+                <div className="mt-2 p-3 border border-purple-200 dark:border-purple-800 rounded-md bg-purple-50/30 dark:bg-purple-950/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-purple-700 dark:text-purple-400 mb-1">
+                        <div className="bg-purple-100 dark:bg-purple-900/50 p-1 rounded-full">
+                            <BedDouble className="h-3 w-3" />
+                        </div>
+                        <span className="font-noto-bold text-xs">Room Comparison ({result.totalCompared} rooms)</span>
+                        {result.dateRange && <span className="text-[8px] text-muted-foreground ml-auto">{result.dateRange}</span>}
+                    </div>
+                    <div className="overflow-x-auto">
+                        <div className="flex gap-2 min-w-min">
+                            {result.rooms.map((room, i) => (
+                                <div key={i} className={`flex-shrink-0 w-[160px] bg-white dark:bg-slate-800/60 p-2 rounded border ${room.available !== false ? 'border-purple-100/50 dark:border-purple-800/30' : 'border-red-200 dark:border-red-800/30 opacity-70'} space-y-1.5`}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-noto-bold text-foreground">Room {room.roomNumber}</span>
+                                        <span className={`px-1 py-0.5 rounded-xs text-[7px] font-noto-bold uppercase ${room.available !== false ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400'}`}>
+                                            {room.available !== false ? '✓ Free' : '✗ Taken'}
+                                        </span>
+                                    </div>
+                                    <div className="text-[8px] text-muted-foreground capitalize">{room.type} • {room.location}</div>
+                                    <div className="font-noto-bold text-purple-700 dark:text-purple-400">
+                                        ₹{room.pricePerNight}/night
+                                        {room.totalForStay && <span className="text-[8px] text-muted-foreground font-normal ml-1">(₹{room.totalForStay.toLocaleString('en-IN')} total)</span>}
+                                    </div>
+                                    <div className="flex items-center gap-0.5">
+                                        {[1, 2, 3, 4, 5].map(s => (
+                                            <Star key={s} className={`h-2 w-2 ${s <= Math.round(room.rating) ? 'fill-amber-500 text-amber-500' : 'text-gray-300 dark:text-gray-600'}`} />
+                                        ))}
+                                        <span className="text-[8px] text-muted-foreground ml-0.5">({room.numReviews})</span>
+                                    </div>
+                                    {room.facilities?.length > 0 && (
+                                        <div className="flex flex-wrap gap-0.5">
+                                            {room.facilities.slice(0, 4).map((f, fi) => (
+                                                <span key={fi} className="px-1 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-[7px] rounded">{f}</span>
+                                            ))}
+                                            {room.facilities.length > 4 && <span className="text-[7px] text-muted-foreground">+{room.facilities.length - 4}</span>}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {result.recommendation && (
+                        <div className="bg-purple-100/50 dark:bg-purple-900/20 p-1.5 rounded text-[9px] text-purple-800 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/30">
+                            💡 {result.recommendation}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         return null;
     };
 

@@ -288,6 +288,56 @@ const tools = [
         required: ["bookingIds"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "extend_stay",
+      description: "Extend a guest's current stay by additional nights OR to a specific new checkout date. Automatically finds the user's active/upcoming booking if no bookingId is given. Checks room availability for the extended period, recalculates pricing, and sends an update email. Use when the user says things like 'can I stay 2 more nights', 'extend my stay', 'I want to check out on Friday instead', 'add 3 extra nights'.",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "Optional. The specific booking to extend. If not given, auto-detects the user's most recent active/confirmed/checked-in booking." },
+          roomNumber: { type: "string", description: "Optional alternative. Find the active booking for this room number." },
+          additionalNights: { type: "number", description: "Number of extra nights to add to the current checkout date. E.g., '2 more nights' → 2. Use this OR newCheckOut, not both." },
+          newCheckOut: { type: "string", description: "Specific new checkout date in YYYY-MM-DD format. Use this when the user gives an exact date like 'extend until March 15'. Use this OR additionalNights, not both." }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_booking_invoice",
+      description: "Retrieve a detailed invoice/receipt for a booking. Returns structured billing data including guest info, room details, nights breakdown, charges, payment status, and a link to download the PDF. Works for any booking status. Use when the user asks for 'invoice', 'receipt', 'bill', 'payment details', or needs documentation for reimbursement.",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "The booking ID. Optional if roomNumber is provided or only one recent booking exists." },
+          roomNumber: { type: "string", description: "Optional. Find the most recent booking for this room to generate invoice for." }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compare_rooms",
+      description: "Compare 2 to 5 rooms side-by-side with detailed info including pricing, facilities, amenities, ratings, reviews, floor, block, and live availability. Use when the user says 'compare room 101 and 205', 'which room is better', 'difference between single and double rooms', 'show me options'. Can optionally check availability for specific dates.",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumbers: {
+            type: "array",
+            description: "Array of room numbers to compare (2-5 rooms). E.g., ['101', '205', '302']",
+            items: { type: "string" }
+          },
+          checkIn: { type: "string", description: "Optional. Check-in date (YYYY-MM-DD) to verify availability for each room during comparison." },
+          checkOut: { type: "string", description: "Optional. Check-out date (YYYY-MM-DD) to verify availability and calculate total cost for comparison." }
+        },
+        required: ["roomNumbers"]
+      }
+    }
   }
 ];
 
@@ -1032,6 +1082,333 @@ export const toolImplementations = {
       results,
       errors
     };
+  },
+  extend_stay: async (args, userId) => {
+    // --- 1. Find the booking (flexible: by ID, by room, or auto-detect) ---
+    let booking;
+
+    if (args.bookingId) {
+      booking = await Booking.findById(args.bookingId).populate('room');
+    }
+
+    if (!booking && args.roomNumber) {
+      const room = await Room.findOne({ roomNumber: args.roomNumber });
+      if (room) {
+        booking = await Booking.findOne({
+          user: userId,
+          room: room._id,
+          status: { $in: ['confirmed', 'checked-in', 'pending'] }
+        }).populate('room').sort({ checkOut: -1 });
+      }
+    }
+
+    if (!booking) {
+      booking = await Booking.findOne({
+        user: userId,
+        status: { $in: ['confirmed', 'checked-in', 'pending'] },
+        checkOut: { $gte: new Date() }
+      }).populate('room').sort({ checkIn: 1 });
+    }
+
+    if (!booking) {
+      throw new Error("No active or upcoming booking found to extend. Please specify a booking ID or room number.");
+    }
+
+    // Authorization
+    if (booking.user.toString() !== userId.toString()) {
+      throw new Error("You do not have permission to modify this booking.");
+    }
+
+    if (['cancelled', 'completed'].includes(booking.status)) {
+      throw new Error(`Cannot extend a ${booking.status} booking.`);
+    }
+
+    // --- 2. Calculate new checkout date ---
+    const resolveDate = (input) => {
+      if (!input) return null;
+      const lower = String(input).toLowerCase().trim();
+      const now = new Date();
+      if (lower === 'today' || lower === 'now') return new Date(now.toISOString().split('T')[0]);
+      if (lower === 'tomorrow' || lower === 'tmrw') {
+        const d = new Date(now); d.setDate(d.getDate() + 1); return new Date(d.toISOString().split('T')[0]);
+      }
+      if (lower.includes('day after tomorrow')) {
+        const d = new Date(now); d.setDate(d.getDate() + 2); return new Date(d.toISOString().split('T')[0]);
+      }
+      return new Date(input);
+    };
+
+    const oldCheckOut = new Date(booking.checkOut);
+    let newCheckOut;
+
+    if (args.newCheckOut) {
+      newCheckOut = resolveDate(args.newCheckOut);
+    } else if (args.additionalNights && args.additionalNights > 0) {
+      newCheckOut = new Date(oldCheckOut);
+      newCheckOut.setDate(newCheckOut.getDate() + Math.floor(args.additionalNights));
+    } else {
+      throw new Error("Please specify either the number of additional nights or a new checkout date.");
+    }
+
+    if (isNaN(newCheckOut.getTime())) {
+      throw new Error("Invalid checkout date. Please use YYYY-MM-DD format.");
+    }
+
+    if (newCheckOut <= oldCheckOut) {
+      throw new Error(`New checkout (${newCheckOut.toISOString().split('T')[0]}) must be after current checkout (${oldCheckOut.toISOString().split('T')[0]}). To shorten use modify_booking instead.`);
+    }
+
+    // --- 3. Check room availability for the extended period ---
+    const isAvailable = await Booking.checkRoomAvailability(booking.room._id, oldCheckOut, newCheckOut, booking._id);
+    if (!isAvailable) {
+      // Suggest alternate dates
+      const maxExtend = new Date(oldCheckOut);
+      for (let i = 1; i <= 14; i++) {
+        const testDate = new Date(oldCheckOut);
+        testDate.setDate(testDate.getDate() + i);
+        const avail = await Booking.checkRoomAvailability(booking.room._id, oldCheckOut, testDate, booking._id);
+        if (!avail) {
+          maxExtend.setDate(oldCheckOut.getDate() + i - 1);
+          break;
+        }
+        if (i === 14) maxExtend.setDate(oldCheckOut.getDate() + 14);
+      }
+      const maxNights = Math.ceil((maxExtend - oldCheckOut) / (1000 * 60 * 60 * 24));
+      throw new Error(`Room ${booking.room.roomNumber} is not available for the full extension. Maximum available extension: ${maxNights} night(s) until ${maxExtend.toISOString().split('T')[0]}.`);
+    }
+
+    // --- 4. Calculate pricing ---
+    const oldNights = Math.ceil((oldCheckOut - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24));
+    const newNights = Math.ceil((newCheckOut - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24));
+    const addedNights = newNights - oldNights;
+    const pricePerNight = booking.room.pricePerNight;
+    const additionalCost = addedNights * pricePerNight;
+    const oldTotal = booking.totalAmount;
+    const newTotal = newNights * pricePerNight;
+
+    // --- 5. Apply changes ---
+    booking.checkOut = newCheckOut;
+    booking.totalAmount = newTotal;
+    await booking.save();
+
+    // Real-time update
+    try {
+      getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: booking.status });
+    } catch (e) { }
+
+    // Audit log
+    await logEvent({
+      userId,
+      action: 'BOOKING_EXTEND',
+      details: {
+        bookingId: booking._id,
+        roomNumber: booking.room.roomNumber,
+        oldCheckOut: oldCheckOut.toISOString().split('T')[0],
+        newCheckOut: newCheckOut.toISOString().split('T')[0],
+        addedNights,
+        additionalCost,
+        source: 'ai_assistant'
+      }
+    });
+
+    // Send update email
+    sendEmail(booking.email, bookingUpdateEmail(booking, ['checkOut', 'totalAmount'], additionalCost)).catch(() => { });
+
+    return {
+      success: true,
+      message: `Stay extended successfully! Added ${addedNights} night(s). New checkout: ${newCheckOut.toISOString().split('T')[0]}.`,
+      data: {
+        bookingId: booking._id,
+        roomNumber: booking.room.roomNumber,
+        oldCheckOut: oldCheckOut.toISOString().split('T')[0],
+        newCheckOut: newCheckOut.toISOString().split('T')[0],
+        addedNights,
+        pricePerNight,
+        additionalCost,
+        oldTotal,
+        newTotal,
+        totalNights: newNights
+      }
+    };
+  },
+  get_booking_invoice: async (args, userId) => {
+    // --- 1. Find the booking (flexible) ---
+    let booking;
+
+    if (args.bookingId) {
+      booking = await Booking.findById(args.bookingId)
+        .populate('room', 'roomNumber type floor block pricePerNight facilities')
+        .populate('user', 'name email phone');
+    }
+
+    if (!booking && args.roomNumber) {
+      const room = await Room.findOne({ roomNumber: args.roomNumber });
+      if (room) {
+        booking = await Booking.findOne({
+          user: userId,
+          room: room._id
+        }).populate('room', 'roomNumber type floor block pricePerNight facilities')
+          .populate('user', 'name email phone')
+          .sort({ createdAt: -1 });
+      }
+    }
+
+    if (!booking) {
+      booking = await Booking.findOne({ user: userId })
+        .populate('room', 'roomNumber type floor block pricePerNight facilities')
+        .populate('user', 'name email phone')
+        .sort({ createdAt: -1 });
+    }
+
+    if (!booking) {
+      throw new Error("No booking found to generate invoice for.");
+    }
+
+    // Authorization
+    if (booking.user._id.toString() !== userId.toString()) {
+      throw new Error("You do not have permission to view this invoice.");
+    }
+
+    // --- 2. Calculate invoice breakdown ---
+    const nights = Math.ceil((new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24));
+    const pricePerNight = booking.room?.pricePerNight || 0;
+    const subtotal = nights * pricePerNight;
+
+    return {
+      success: true,
+      message: "Invoice generated successfully.",
+      data: {
+        invoiceNumber: `NFSU-INV-${booking._id.toString().slice(-8).toUpperCase()}`,
+        bookingId: booking._id,
+        generatedAt: new Date().toISOString(),
+
+        // Guest Details
+        guest: {
+          name: booking.guestName,
+          email: booking.email,
+          phone: booking.phone,
+          purpose: booking.purpose
+        },
+
+        // Room Details
+        room: {
+          number: booking.room?.roomNumber,
+          type: booking.room?.type,
+          floor: booking.room?.floor,
+          block: booking.room?.block,
+          facilities: booking.room?.facilities
+        },
+
+        // Stay Details
+        stay: {
+          checkIn: new Date(booking.checkIn).toISOString().split('T')[0],
+          checkOut: new Date(booking.checkOut).toISOString().split('T')[0],
+          totalNights: nights,
+          numberOfGuests: booking.numberOfGuests
+        },
+
+        // Billing
+        billing: {
+          pricePerNight,
+          subtotal,
+          totalAmount: booking.totalAmount,
+          paymentStatus: booking.paymentStatus,
+          paymentMethod: booking.paymentMethod
+        },
+
+        // Status
+        bookingStatus: booking.status,
+        specialRequests: booking.specialRequests || 'None',
+
+        // Download link
+        downloadUrl: `/api/bookings/${booking._id}/invoice`,
+        note: "Use the download URL to get the official PDF invoice. This can be used for reimbursement and official records."
+      }
+    };
+  },
+  compare_rooms: async (args) => {
+    if (!args.roomNumbers || args.roomNumbers.length < 2) {
+      throw new Error("Please provide at least 2 room numbers to compare.");
+    }
+    if (args.roomNumbers.length > 5) {
+      throw new Error("Maximum 5 rooms can be compared at once.");
+    }
+
+    const rooms = await Room.find({
+      roomNumber: { $in: args.roomNumbers },
+      isActive: true
+    });
+
+    if (rooms.length === 0) {
+      throw new Error(`None of the rooms (${args.roomNumbers.join(', ')}) were found.`);
+    }
+
+    const notFound = args.roomNumbers.filter(rn => !rooms.find(r => r.roomNumber === rn));
+
+    // Get reviews for each room
+    const roomReviews = await Review.aggregate([
+      { $match: { room: { $in: rooms.map(r => r._id) } } },
+      { $group: { _id: '$room', avgRating: { $avg: '$rating' }, count: { $sum: 1 }, latestComment: { $last: '$comment' } } }
+    ]);
+
+    // Check availability if dates are provided
+    let availabilityMap = {};
+    let stayNights = null;
+    if (args.checkIn && args.checkOut) {
+      const checkIn = new Date(args.checkIn);
+      const checkOut = new Date(args.checkOut);
+      stayNights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+      for (const room of rooms) {
+        const isAvailable = await Booking.checkRoomAvailability(room._id, checkIn, checkOut);
+        availabilityMap[room._id.toString()] = isAvailable;
+      }
+    }
+
+    const comparison = rooms.map(room => {
+      const reviewData = roomReviews.find(r => r._id.toString() === room._id.toString());
+      const available = availabilityMap[room._id.toString()];
+
+      return {
+        roomNumber: room.roomNumber,
+        type: room.type,
+        pricePerNight: room.pricePerNight,
+        totalForStay: stayNights ? room.pricePerNight * stayNights : null,
+        floor: room.floor,
+        block: room.block,
+        location: `Floor ${room.floor}, Block ${room.block}`,
+        facilities: room.facilities || [],
+        amenities: (room.amenities || []).filter(a => a.available).map(a => a.name),
+        rating: room.rating || 0,
+        numReviews: reviewData?.count || room.numReviews || 0,
+        latestReview: reviewData?.latestComment || null,
+        description: room.description || 'No description available',
+        status: room.status,
+        available: available !== undefined ? available : (room.status === 'vacant'),
+        primaryImage: room.images?.find(img => img.isPrimary)?.url || room.images?.[0]?.url || null
+      };
+    });
+
+    // Sort by rating (highest first), then price (lowest first)
+    comparison.sort((a, b) => b.rating - a.rating || a.pricePerNight - b.pricePerNight);
+
+    // Generate recommendation
+    const availableRooms = comparison.filter(r => r.available);
+    let recommendation = null;
+    if (availableRooms.length > 0) {
+      const best = availableRooms[0];
+      recommendation = `Room ${best.roomNumber} is recommended — ${best.type}, ₹${best.pricePerNight}/night, rated ${best.rating}★ with ${best.numReviews} reviews.`;
+    }
+
+    return {
+      success: true,
+      totalCompared: comparison.length,
+      stayNights,
+      dateRange: args.checkIn && args.checkOut ? `${args.checkIn} to ${args.checkOut}` : null,
+      rooms: comparison,
+      notFound: notFound.length > 0 ? notFound : undefined,
+      recommendation
+    };
   }
 };
 
@@ -1106,8 +1483,11 @@ MANAGEMENT:
 - 'get_my_bookings' → list all or filtered bookings (by status, upcoming only)
 - 'get_booking_details' → detailed status of one booking
 - 'modify_booking' → update dates, guest details, purpose, etc.
+- 'extend_stay' → add extra nights or set a new checkout date. Auto-finds active booking. E.g., "stay 2 more nights" or "extend until Friday"
 - 'cancel_booking' → cancel a single booking (ask for confirmation first)
 - 'cancel_multiple_bookings' → bulk cancel (ALWAYS show bookings first, then confirm)
+- 'get_booking_invoice' → retrieve a detailed invoice/receipt with billing breakdown and PDF download link. Works by bookingId or roomNumber.
+- 'compare_rooms' → compare 2-5 rooms side-by-side with pricing, facilities, ratings, and optional date-based availability check
 
 SERVICES:
 - 'request_supplies' → towels, pillows, water, toiletries, room service items. Auto-detect room if possible.
@@ -1130,8 +1510,11 @@ INFORMATION:
 4. ERRORS: If something fails, explain what went wrong clearly and suggest alternatives.
 5. FEEDBACK: When the user wants to rate, be flexible — let them just say "5 stars for room 101" and handle everything.
 6. SUPPLIES: Parse items naturally — "I need 2 towels and some soap" → [{name:"Towel", quantity:2}, {name:"Soap", quantity:1}]
-7. TONE: Be concise, warm, and professional. The user is a guest — treat them like one.
-8. NEVER fabricate data. Only respond with information retrieved from tools.`
+7. EXTEND: "2 more nights" → use extend_stay with additionalNights=2. "extend until March 15" → use newCheckOut.
+8. INVOICE: When user asks for bill/receipt/invoice, use get_booking_invoice. Include the download URL in your response.
+9. COMPARE: When user says "compare" or "which is better", use compare_rooms. Share the recommendation.
+10. TONE: Be concise, warm, and professional. The user is a guest — treat them like one.
+11. NEVER fabricate data. Only respond with information retrieved from tools.`
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',
