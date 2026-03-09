@@ -62,9 +62,6 @@ export const api = {
         sessions: () => request('/auth/sessions'),
         revokeSession: (id) => request(`/auth/sessions/${id}`, { method: 'DELETE' }),
         revokeAllSessions: () => request('/auth/sessions', { method: 'DELETE' }),
-        // Firebase Phone Authentication
-        verifyPhoneToken: (idToken) => request('/auth/phone/verify-token', { method: 'POST', body: JSON.stringify({ idToken }) }),
-        registerWithPhone: (body) => request('/auth/phone/register', { method: 'POST', body: JSON.stringify(body) }),
     },
 
 
