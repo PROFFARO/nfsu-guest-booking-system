@@ -545,8 +545,9 @@ export const toolImplementations = {
     const checkIn = args.checkIn ? new Date(args.checkIn) : new Date();
     const checkOut = args.checkOut ? new Date(args.checkOut) : new Date(Date.now() + 24 * 60 * 60 * 1000); // Tomorrow
 
-    // 1. Base query for active, non-maintenance rooms
-    const query = { isActive: true, status: { $ne: 'maintenance' } };
+    // 1. Base query for active AND ONLY completely vacant rooms
+    // We do NOT show 'booked' or 'held' rooms in this list
+    const query = { isActive: true, status: 'vacant' };
 
     if (args.type) query.type = args.type.toLowerCase();
     if (args.floor) query.floor = String(args.floor);
@@ -569,13 +570,11 @@ export const toolImplementations = {
       });
     }
 
-    // 3. Filter by Date Availability
+    // 3. Filter by Date Availability (even if status is vacant, a future booking might exist)
     const availableRooms = [];
     for (const room of rooms) {
       const isAvailable = await Booking.checkRoomAvailability(room._id, checkIn, checkOut);
-      if (isAvailable && room.status !== 'held') {
-        availableRooms.push(room);
-      } else if (isAvailable && room.status === 'held' && room.holdUntil && new Date() > room.holdUntil) {
+      if (isAvailable) {
         availableRooms.push(room);
       }
     }
@@ -590,7 +589,7 @@ export const toolImplementations = {
       facilities: r.facilities,
       rating: r.rating,
       description: r.description,
-      primaryImage: r.images.find(img => img.isPrimary)?.url || r.images[0]?.url
+      primaryImage: r.images[0]?.url || (r.images[0]?.filename ? `/uploads/rooms/${r.images[0].filename}` : '')
     }));
   },
   get_my_profile: async (args, userId) => {
@@ -952,12 +951,13 @@ CORE GUIDELINES:
    - Use 'calculate_stay_quote' if they just want to know the price.
    - Use 'get_system_info' for general building questions (check-in times, wifi, etc.).
    - Use 'find_faq' for policy and rule questions.
-   - Use 'report_room_issue' for maintenance complaints.
+- Use 'report_room_issue' for maintenance complaints.
    - Use 'request_supplies' for amenity requests.
    - Use 'submit_feedback' for reviews and feedback.
 3. BOOKING FLOW: First show options via 'get_available_rooms', then ask for a choice, then 'create_booking'.
-4. SUPPORT: If you can't help, offer to use 'escalate_to_staff'.
-5. SEARCH: Use the 'query' parameter in 'get_available_rooms' for fuzzy search like 'quiet room' or 'near gym'.
+4. CURRENCY: ONLY use the Indian Rupee symbol (₹) or 'INR' for prices. NEVER use the dollar sign ($) or 'USD'.
+5. SUPPORT: If you can't help, offer to use 'escalate_to_staff'.
+6. SEARCH: Use the 'query' parameter in 'get_available_rooms' for fuzzy search like 'quiet room' or 'near gym'.
 
 Be concise, warm, and helpful. Never be overly bureaucratic. The user is a guest, treat them like one.`
     },
