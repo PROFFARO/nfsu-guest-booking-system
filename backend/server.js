@@ -38,7 +38,7 @@ dotenv.config({ path: './.env' });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 5000;
 // Stripe init removed
 
@@ -131,7 +131,7 @@ mongoose.connect(process.env.MONGODB_URI)
   })
   .catch((error) => {
     console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'production') process.exit(1);
   });
 
 // Health check endpoint
@@ -155,15 +155,14 @@ app.use('/api/audit-logs', apiLimiter, authMiddleware, auditLogRoutes);
 app.use('/api/chats', apiLimiter, authMiddleware, chatRoutes);
 app.use('/api/faq', apiLimiter, faqRoutes);
 
-// Serve static upload files
+// Serve static upload files (Legacy fallback)
 const uploadsPath = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
+if (fs.existsSync(uploadsPath)) {
+  app.use('/uploads', express.static(uploadsPath));
 }
-app.use('/uploads', express.static(uploadsPath));
 
 // Serve static files in production only if dist folder exists
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = path.join(__dirname, '../dist');
 
   // Check if dist folder exists (for monorepo deployments)
@@ -175,11 +174,9 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.join(distPath, 'index.html'));
       });
       console.log('📁 Serving static files from:', distPath);
-    } else {
-      console.log('📁 No dist folder found - frontend deployed separately');
     }
   } catch (error) {
-    console.log('📁 Static file serving disabled - frontend deployed separately');
+    console.log('📁 Static file serving disabled');
   }
 }
 
@@ -204,43 +201,29 @@ initSocket(server, {
   }
 });
 
-// Periodic cleanup of expired holds
-setInterval(async () => {
-  const now = new Date();
-  try {
-    const expiredHeldRooms = await Room.find({ status: 'held', holdUntil: { $lt: now } });
-    for (const r of expiredHeldRooms) {
-      r.status = 'vacant';
-      r.holdBy = null;
-      r.holdUntil = null;
-      await r.save();
-      try { getIO().of('/').emit('roomStatusUpdated', { roomId: r._id, status: 'vacant' }); } catch { }
-    }
-  } catch (e) {
-    console.error('Error cleaning up expired holds:', e.message);
-  }
-}, 60 * 1000);
-
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}/api`);
-});
+// Start server locally (Skip on Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  console.log('SIGTERM received');
   mongoose.connection.close(() => {
-    console.log('MongoDB connection closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
+  console.log('SIGINT received');
   mongoose.connection.close(() => {
-    console.log('MongoDB connection closed');
     process.exit(0);
   });
 });
+
+export default app;
+

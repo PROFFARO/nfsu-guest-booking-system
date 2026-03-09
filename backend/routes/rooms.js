@@ -58,6 +58,9 @@ router.get('/', [
     checkOut
   } = req.query;
 
+  // Run Lazy Cleanup
+  await Room.cleanupExpiredHolds();
+
   // Build filter object - accommodate older seeded rooms missing this field
   const filters = { isActive: { $ne: false } };
 
@@ -278,6 +281,9 @@ router.get('/availability', [
     limit = 1000
   } = req.query;
 
+  // Run Lazy Cleanup
+  await Room.cleanupExpiredHolds();
+
   // Build filter object
   const filters = { isActive: true };
 
@@ -427,6 +433,20 @@ router.get('/:id', [
   });
 }));
 
+// @route   GET /api/rooms/:id/image/:imageIdx
+// @desc    Get room image binary from MongoDB
+// @access  Public
+router.get('/:id/image/:imageIdx', asyncHandler(async (req, res) => {
+  const room = await Room.findById(req.params.id);
+  if (!room || !room.images[req.params.imageIdx] || !room.images[req.params.imageIdx].data) {
+    return res.status(404).json({ status: 'error', message: 'Image not found' });
+  }
+
+  const image = room.images[req.params.imageIdx];
+  res.set('Content-Type', image.contentType || 'image/jpeg');
+  res.send(image.data);
+}));
+
 // @route   POST /api/rooms
 // @desc    Create a new room (Admin/Staff only)
 // @access  Private (Admin/Staff)
@@ -443,12 +463,6 @@ router.post('/', [
   // Check for validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    // Clean up uploaded files if validation fails
-    if (req.files) {
-      req.files.forEach(file => {
-        try { fs.unlinkSync(file.path); } catch (e) {}
-      });
-    }
     return res.status(400).json({
       status: 'error',
       message: 'Validation failed',
@@ -458,26 +472,22 @@ router.post('/', [
 
   const roomData = req.body;
   if (roomData.facilities && typeof roomData.facilities === 'string') {
-    try { roomData.facilities = JSON.parse(roomData.facilities); } catch(e) {}
+    try { roomData.facilities = JSON.parse(roomData.facilities); } catch (e) { }
   }
 
-  // Handle uploaded images
+  // Handle uploaded images (storing in MongoDB)
   if (req.files && req.files.length > 0) {
     roomData.images = req.files.map((file, index) => ({
-      url: `/uploads/rooms/${file.filename}`,
-      filename: file.filename,
-      isPrimary: index === 0 // Make the first one primary by default
+      data: file.buffer,
+      contentType: file.mimetype,
+      filename: file.originalname,
+      isPrimary: index === 0
     }));
   }
 
   // Check if room number already exists
   const existingRoom = await Room.findOne({ roomNumber: roomData.roomNumber });
   if (existingRoom) {
-    if (req.files) {
-      req.files.forEach(file => {
-        try { fs.unlinkSync(file.path); } catch (e) {}
-      });
-    }
     return res.status(400).json({
       status: 'error',
       message: 'Room with this number already exists'
@@ -485,8 +495,15 @@ router.post('/', [
   }
 
   const room = new Room(roomData);
+
+  // Set real URLs based on IDs
+  room.images = room.images.map((img, idx) => ({
+    ...img.toObject(),
+    url: `/api/rooms/${room._id}/image/${idx}`
+  }));
+
   await room.save();
-  try { getIO().of('/').of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
+  try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   await logEvent({
     userId: req.user._id,
@@ -516,11 +533,6 @@ router.put('/:id', [
   // Check for validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    if (req.files) {
-      req.files.forEach(file => {
-        try { fs.unlinkSync(file.path); } catch (e) {}
-      });
-    }
     return res.status(400).json({
       status: 'error',
       message: 'Validation failed',
@@ -539,7 +551,7 @@ router.put('/:id', [
 
   const roomData = req.body;
   if (roomData.facilities && typeof roomData.facilities === 'string') {
-    try { roomData.facilities = JSON.parse(roomData.facilities); } catch(e) {}
+    try { roomData.facilities = JSON.parse(roomData.facilities); } catch (e) { }
   }
 
   let existingImagesCount = 0;
@@ -548,32 +560,42 @@ router.put('/:id', [
       const parsed = JSON.parse(roomData.existingImages);
       roomData.images = parsed;
       existingImagesCount = parsed.length;
-      
+
       // Cleanup removed images from filesystem
       const oldFilenames = room.images.map(i => i.filename);
       const newFilenames = parsed.map(i => i.filename);
       const removedFilenames = oldFilenames.filter(f => !newFilenames.includes(f));
-      
+
       removedFilenames.forEach(filename => {
         try {
-          fs.unlinkSync(path.join(__dirname, '../uploads/rooms', filename));
-        } catch(e) { console.error('Failed to delete old image', e); }
+          const legacyPath = path.join(__dirname, '../uploads/rooms', filename);
+          if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
+        } catch (e) { /* Ignore - file might already be gone or we're in serverless */ }
       });
-    } catch(e) {}
+    } catch (e) { }
   } else {
     // If not provided, keep current ones
     roomData.images = room.images;
     existingImagesCount = room.images.length;
   }
 
-  // Handle newly uploaded images
+  // Handle newly uploaded images (MongoDB Buffer storage)
   if (req.files && req.files.length > 0) {
     const newImages = req.files.map((file, index) => ({
-      url: `/uploads/rooms/${file.filename}`,
-      filename: file.filename,
-      isPrimary: existingImagesCount === 0 && index === 0
+      data: file.buffer,
+      contentType: file.mimetype,
+      filename: file.originalname,
+      isPrimary: (roomData.images?.length || 0) === 0 && index === 0
     }));
     roomData.images = [...(roomData.images || []), ...newImages];
+  }
+
+  // Update URLs to point to the correct image indices
+  if (roomData.images) {
+    roomData.images = roomData.images.map((img, idx) => ({
+      ...img,
+      url: `/api/rooms/${room._id}/image/${idx}`
+    }));
   }
 
   // Update room

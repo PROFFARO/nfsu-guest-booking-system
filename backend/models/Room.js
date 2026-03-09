@@ -51,7 +51,9 @@ const roomSchema = new mongoose.Schema({
     maxlength: [500, 'Description cannot exceed 500 characters']
   },
   images: [{
-    url: { type: String, required: true },
+    data: { type: Buffer },
+    contentType: { type: String },
+    url: { type: String }, // Optional URL for external links
     filename: { type: String, required: true },
     isPrimary: { type: Boolean, default: false }
   }],
@@ -148,7 +150,7 @@ roomSchema.statics.acquireHold = function (roomId, userId, ttlSeconds = 600) {
       $or: [
         { status: 'vacant' },
         { status: 'booked' },
-        { status: 'held', holdBy: userId }, 
+        { status: 'held', holdBy: userId },
         { status: 'held', $or: [{ holdUntil: null }, { holdUntil: { $lt: now } }] }
       ]
     },
@@ -167,6 +169,15 @@ roomSchema.statics.releaseHold = function (roomId, userId = null) {
     filter,
     { $set: { status: 'vacant' }, $unset: { holdBy: "", holdUntil: "" } },
     { new: true }
+  );
+};
+
+// Static method to cleanup expired holds (Lazy Cleanup)
+roomSchema.statics.cleanupExpiredHolds = async function () {
+  const now = new Date();
+  return this.updateMany(
+    { status: 'held', holdUntil: { $lt: now } },
+    { $set: { status: 'vacant' }, $unset: { holdBy: "", holdUntil: "" } }
   );
 };
 

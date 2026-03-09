@@ -38,6 +38,17 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchBookings();
+
+        // Add polling fallback for production/Vercel (45s for users)
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+        let interval;
+        if (isProduction) {
+            interval = setInterval(fetchBookings, 45000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, []);
 
     useEffect(() => {

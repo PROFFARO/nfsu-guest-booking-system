@@ -20,8 +20,8 @@ export function initSocket(httpServer, options) {
     });
 
     socket.on('sendMessage', (data) => {
-        // data: { threadId, message }
-        ioInstance.to(`chat:${data.threadId}`).emit('newMessage', data.message);
+      // data: { threadId, message }
+      ioInstance.to(`chat:${data.threadId}`).emit('newMessage', data.message);
     });
   });
 
@@ -30,7 +30,13 @@ export function initSocket(httpServer, options) {
 
 export function getIO() {
   if (!ioInstance) {
-    throw new Error('Socket.IO not initialized');
+    // Return a dummy object to prevent crashes in environments where Socket.IO isn't supported (e.g., Vercel Serverless)
+    return {
+      emit: () => { },
+      to: () => ({ emit: () => { } }),
+      of: () => getIO(), // Support chained calls like getIO().of('/').emit(...)
+      in: () => ({ emit: () => { } })
+    };
   }
   return ioInstance;
 }

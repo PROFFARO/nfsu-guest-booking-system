@@ -29,20 +29,29 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [roomRes, bookingRes, auditRes, supplyRes] = await Promise.all([
+            const results = await Promise.allSettled([
                 api.rooms.stats(),
-                api.bookings.list({ limit: 100 }), // Fetch more for analytics
+                api.bookings.list({ limit: 100 }),
                 api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 }),
                 api.auditLogs.getAll({ action: 'SUPPLY_REQUEST', limit: 10 })
             ]);
-            setRoomStats(roomRes.data);
-            setMaintenanceReports(auditRes.data || []);
-            setSupplyRequests(supplyRes.data || []);
 
-            const allBookings = bookingRes.data.bookings || [];
-            setAnalyticsBookings(allBookings);
-            setRecentBookings(allBookings.slice(0, 5)); // Just the 5 most recent for the table
+            if (results[0].status === 'fulfilled') setRoomStats(results[0].value.data);
+            if (results[1].status === 'fulfilled') {
+                const allBookings = results[1].value.data.bookings || [];
+                setAnalyticsBookings(allBookings);
+                setRecentBookings(allBookings.slice(0, 5));
+            }
+            if (results[2].status === 'fulfilled') setMaintenanceReports(results[2].value.data || []);
+            if (results[3].status === 'fulfilled') setSupplyRequests(results[3].value.data || []);
+
+            // Log rejection for debugging
+            results.forEach((res, i) => {
+                if (res.status === 'rejected') console.warn(`Dashboard fetch failed for endpoint ${i}:`, res.reason);
+            });
+
         } catch (err) {
+            console.error('Critical dashboard fetch error:', err);
             toast.error('Failed to load analytical data');
         } finally {
             setLoading(false);
@@ -51,6 +60,17 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         fetchData();
+
+        // Add polling fallback for production/Vercel (30s)
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+        let interval;
+        if (isProduction) {
+            interval = setInterval(fetchData, 30000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, []);
 
     // 1. Room Summary Stats
