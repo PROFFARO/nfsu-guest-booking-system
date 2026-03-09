@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "nfsu-guest-booking-system",
   "builds": [
     {
       "src": "backend/server.js",
