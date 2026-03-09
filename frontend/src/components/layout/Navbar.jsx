@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -43,6 +43,13 @@ export default function Navbar() {
     const [open, setOpen] = useState(false);
     const [a11yOpen, setA11yOpen] = useState(false);
     const [langOpen, setLangOpen] = useState(false);
+
+    // Close the mobile menu automatically when the pathname changes (e.g., after clicking a link)
+    // This prevents race conditions where onClick unmounts the Link before navigation completes,
+    // which caused full page reloads in the Next.js App Router.
+    useEffect(() => {
+        setOpen(false);
+    }, [pathname]);
 
     const handleLogout = async () => {
         await logout();
@@ -282,7 +289,6 @@ export default function Navbar() {
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
-                                                onClick={() => setOpen(false)}
                                                 className={`flex items-center gap-3 rounded-sm px-4 py-3 text-sm font-noto-semibold transition-colors ${isActive(link.href)
                                                     ? 'bg-[#0056b3]/10 text-[#0056b3] dark:text-cyan-500 border-l-4 border-[#0056b3] dark:border-cyan-500'
                                                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -322,10 +328,10 @@ export default function Navbar() {
                                 <div className="p-6 border-t border-border bg-muted/5">
                                     {!user ? (
                                         <div className="flex flex-col gap-3">
-                                            <Button variant="outline" className="w-full text-sm font-noto-bold" asChild onClick={() => setOpen(false)}>
+                                            <Button variant="outline" className="w-full text-sm font-noto-bold" asChild>
                                                 <Link href="/login">Sign In</Link>
                                             </Button>
-                                            <Button variant="cta" className="w-full text-sm font-noto-bold" asChild onClick={() => setOpen(false)}>
+                                            <Button variant="cta" className="w-full text-sm font-noto-bold" asChild>
                                                 <Link href="/register">Get Started</Link>
                                             </Button>
                                         </div>
