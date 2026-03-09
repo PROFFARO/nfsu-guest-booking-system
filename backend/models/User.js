@@ -102,6 +102,18 @@ const userSchema = new mongoose.Schema({
   twoFactorTempSecret: {
     type: String,
     select: false
+  },
+  // OTP for phone login/verification
+  phoneOtp: {
+    type: String,
+    select: false
+  },
+  phoneOtpExpire: {
+    type: Date
+  },
+  isPhoneVerified: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
