@@ -638,91 +638,103 @@ export const toolImplementations = {
     const user = await User.findById(userId);
     if (!user) throw new Error("User account not found.");
 
-    const room = await Room.findOne({ roomNumber: args.roomNumber });
-    if (!room) throw new Error(`Room ${args.roomNumber} not found.`);
+    const baseRoom = await Room.findOne({ roomNumber: args.roomNumber });
+    if (!baseRoom) throw new Error(`Room ${args.roomNumber} not found.`);
 
-    // Resolve relative dates like 'today', 'tomorrow', 'day after tomorrow'
-    const resolveDate = (input) => {
-      if (!input) return new Date(NaN);
-      const lower = String(input).toLowerCase().trim();
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      if (lower === 'today' || lower === 'now') return new Date(todayStr);
-      if (lower === 'tomorrow' || lower === 'tmrw') {
-        const d = new Date(now); d.setDate(d.getDate() + 1); return new Date(d.toISOString().split('T')[0]);
-      }
-      if (lower.includes('day after tomorrow') || lower.includes('day after tmrw')) {
-        const d = new Date(now); d.setDate(d.getDate() + 2); return new Date(d.toISOString().split('T')[0]);
-      }
-      // Try parsing as-is (YYYY-MM-DD or other formats)
-      const parsed = new Date(input);
-      return parsed;
-    };
-
-    const checkInDate = resolveDate(args.checkIn);
-    const checkOutDate = resolveDate(args.checkOut);
-
-    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-      throw new Error("Invalid check-in or check-out date formats. Please use YYYY-MM-DD.");
+    // 1. Atomically acquire a lock on the room to handle parallel bookings gracefully
+    // Just like the main booking flow, hold the room for 10 minutes to allow admin review/payment flow
+    const room = await Room.acquireHold(baseRoom._id, userId, 10 * 60);
+    if (!room) {
+      throw new Error(`Room ${args.roomNumber} is currently locked or being booked by someone else. Please try another room.`);
     }
 
-    const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
-    if (!isAvailable) {
-      throw new Error(`Room ${room.roomNumber} is generally not available for the selected dates. Please check availability again.`);
-    }
-
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    if (nights <= 0) throw new Error("Check-out date must be after check-in date.");
-
-    const totalAmount = nights * room.pricePerNight;
-
-    const booking = new Booking({
-      user: userId,
-      room: room._id,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      guestName: args.guestName || user.name,
-      email: args.email || user.email,
-      phone: args.phone ? String(args.phone) : user.phone,
-      purpose: args.purpose,
-      numberOfGuests: args.numberOfGuests,
-      specialRequests: args.specialRequests,
-      totalAmount: totalAmount,
-      status: 'pending',
-      paymentMethod: 'cash',
-      paymentStatus: 'unpaid'
-    });
-
-    await booking.save();
-    // In AI flow, we keep room status as is (will be considered booked/unavailable via overlap check)
-    // or we could mark as 'held' to be safe visually.
-    try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'held' }); } catch { }
-
-    // Emitting real-time updates
     try {
-      getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'pending' });
-    } catch (e) { }
+      getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'held' });
 
-    await logEvent({
-      userId,
-      action: 'BOOKING_CREATE',
-      details: { bookingId: booking._id, roomNumber: room.roomNumber, checkIn: args.checkIn, checkOut: args.checkOut, source: 'ai_assistant' }
-    });
+      // Resolve relative dates like 'today', 'tomorrow', 'day after tomorrow'
+      const resolveDate = (input) => {
+        if (!input) return new Date(NaN);
+        const lower = String(input).toLowerCase().trim();
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        if (lower === 'today' || lower === 'now') return new Date(todayStr);
+        if (lower === 'tomorrow' || lower === 'tmrw') {
+          const d = new Date(now); d.setDate(d.getDate() + 1); return new Date(d.toISOString().split('T')[0]);
+        }
+        if (lower.includes('day after tomorrow') || lower.includes('day after tmrw')) {
+          const d = new Date(now); d.setDate(d.getDate() + 2); return new Date(d.toISOString().split('T')[0]);
+        }
+        // Try parsing as-is (YYYY-MM-DD or other formats)
+        const parsed = new Date(input);
+        return parsed;
+      };
 
-    // Send Pending Email
-    await booking.populate('room', 'roomNumber type floor block pricePerNight');
-    sendEmail(booking.email, bookingPendingEmail(booking)).catch(() => { });
+      const checkInDate = resolveDate(args.checkIn);
+      const checkOutDate = resolveDate(args.checkOut);
 
-    return {
-      success: true,
-      message: `Booking request received for Room ${room.roomNumber} from ${args.checkIn} to ${args.checkOut}. Total amount: ₹${totalAmount}. Your application is now PENDING staff approval. You will receive a confirmation email once approved.`,
-      data: {
-        bookingId: booking._id,
-        roomNumber: room.roomNumber,
-        totalAmount,
-        status: 'pending'
+      if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+        throw new Error("Invalid check-in or check-out date formats. Please use YYYY-MM-DD.");
       }
-    };
+
+      const isAvailable = await Booking.checkRoomAvailability(room._id, checkInDate, checkOutDate);
+      if (!isAvailable) {
+        throw new Error(`Room ${room.roomNumber} is generally not available for the selected dates. Please check availability again.`);
+      }
+
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      if (nights <= 0) throw new Error("Check-out date must be after check-in date.");
+
+      const totalAmount = nights * room.pricePerNight;
+
+      const booking = new Booking({
+        user: userId,
+        room: room._id,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        guestName: args.guestName || user.name,
+        email: args.email || user.email,
+        phone: args.phone ? String(args.phone) : user.phone,
+        purpose: args.purpose,
+        numberOfGuests: args.numberOfGuests,
+        specialRequests: args.specialRequests,
+        totalAmount: totalAmount,
+        status: 'pending',
+        paymentMethod: 'cash',
+        paymentStatus: 'unpaid'
+      });
+
+      await booking.save();
+
+      // Emitting real-time updates
+      try {
+        getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'pending' });
+      } catch (e) { }
+
+      await logEvent({
+        userId,
+        action: 'BOOKING_CREATE',
+        details: { bookingId: booking._id, roomNumber: room.roomNumber, checkIn: args.checkIn, checkOut: args.checkOut, source: 'ai_assistant' }
+      });
+
+      // Send Pending Email
+      await booking.populate('room', 'roomNumber type floor block pricePerNight');
+      sendEmail(booking.email, bookingPendingEmail(booking)).catch(() => { });
+
+      return {
+        success: true,
+        message: `Booking request received for Room ${room.roomNumber} from ${args.checkIn} to ${args.checkOut}. Total amount: ₹${totalAmount}. Your application is now PENDING staff approval. You will receive a confirmation email once approved.`,
+        data: {
+          bookingId: booking._id,
+          roomNumber: room.roomNumber,
+          totalAmount,
+          status: 'pending'
+        }
+      };
+    } catch (error) {
+      await Room.releaseHold(room._id, userId);
+      try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: 'vacant' }); } catch { }
+      throw error;
+    }
   },
   get_my_bookings: async (args, userId) => {
     const query = { user: userId };
