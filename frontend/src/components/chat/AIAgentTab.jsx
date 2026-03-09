@@ -752,10 +752,10 @@ export function AIAgentTab() {
                                         <p className="text-[7px] font-noto-bold text-[#1a365d] uppercase tracking-wider pl-0.5 opacity-60">Reservations</p>
                                         <div className="grid grid-cols-3 gap-1">
                                             {[
-                                                { label: "Book a Room", query: "I want to book a room for tonight" },
+                                                { label: "Book a Room", query: "I want to book a room" },
                                                 { label: "My Bookings", query: "Show all my bookings" },
                                                 { label: "Booking Details", query: "Show details of my latest booking" },
-                                                { label: "Modify Booking", query: "I want to modify my booking dates" },
+                                                { label: "Modify Booking", query: "I want to modify one of my booking" },
                                                 { label: "Cancel Booking", query: "I need to cancel my booking" },
                                                 { label: "Cancel Multiple", query: "Cancel all my pending bookings" }
                                             ].map((task, i) => (
