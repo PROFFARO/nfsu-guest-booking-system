@@ -700,12 +700,12 @@ export function AIAgentTab() {
                     {messages.length === 0 && !loading && (
                         <div className="flex flex-col items-center justify-center text-center py-4 px-2">
                             {/* Header - Official NFSU Logo */}
-                            <div className="mb-3 relative overflow-hidden group inline-flex">
+                            <div className="mb-4 relative overflow-hidden group inline-flex">
                                 <Image
                                     src="/logo.png"
                                     alt="NFSU Official Logo"
-                                    width={56}
-                                    height={56}
+                                    width={80}
+                                    height={80}
                                     className="object-contain relative z-10"
                                     priority
                                 />
