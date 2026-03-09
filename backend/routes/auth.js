@@ -600,7 +600,7 @@ import { sendPasswordResetEmail, sendEmail } from '../services/emailService.js';
 // @desc    Forgot password -> send reset email
 // @access  Public
 router.post('/forgot-password', [
-  body('email').isEmail().withMessage('Please provide a valid email')
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -618,12 +618,17 @@ router.post('/forgot-password', [
   await user.save({ validateBeforeSave: false });
 
   // Create reset url
-  const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.ALLOWED_ORIGINS || 'http://localhost:3000';
   const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-  // Fire-and-forget email dispatch
+  // Send reset email
   const { subject, html } = sendPasswordResetEmail(user, resetUrl);
-  sendEmail(user.email, { subject, html }).catch((err) => console.error("Forgot Password Email failed:", err));
+  try {
+    await sendEmail(user.email, { subject, html });
+  } catch (err) {
+    console.error("Forgot Password Email failed:", err);
+    // Continue despite email error to avoid leaking email existence
+  }
 
   res.status(200).json({ status: 'success', message: 'If an account exists, a reset link will be sent.' });
 }));
