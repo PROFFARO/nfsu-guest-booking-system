@@ -811,7 +811,7 @@ export function AIAgentTab() {
                                                 { label: "Facilities", query: "What facilities are available on campus?" }
                                             ].map((task, i) => (
                                                 <button key={i} onClick={() => handleSendWithContent(task.query)}
-                                                    className="p-1.5 text-center text-[8px] font-noto-bold text-muted-foreground bg-muted/15 hover:bg-muted/40 border border-border/60 rounded-sm transition-colors uppercase tracking-tight">
+                                                    className="p-1.5 text-center text-[8px] font-noto-bold text-muted-foreground bg-muted/15 hover:bg-muted/40 border border-border/60 rounded-sm transition-colors uppercase tracking-tight truncate">
                                                     {task.label}
                                                 </button>
                                             ))}

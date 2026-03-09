@@ -5,6 +5,7 @@ import FAQ from "../models/FAQ.js";
 import ChatThread from "../models/ChatThread.js";
 import ChatMessage from "../models/ChatMessage.js";
 import AuditLog from "../models/AuditLog.js";
+import User from "../models/User.js";
 import { sendEmail, bookingCancellationEmail, bookingPendingEmail, bookingUpdateEmail, maintenanceReportEmail, supplyRequestEmail, bookingConfirmationEmail, gatepassEmail, invoiceEmail } from '../services/emailService.js';
 import { generateInvoicePDFBuffer } from '../services/invoiceService.js';
 import { logEvent } from '../utils/auditLogger.js';
@@ -139,12 +140,12 @@ const tools = [
           roomNumber: { type: "string", description: "The room number to book, e.g. '101'" },
           checkIn: { type: "string", description: "Check-in date in YYYY-MM-DD format. MUST be a concrete date, never a relative term like 'today'." },
           checkOut: { type: "string", description: "Check-out date in YYYY-MM-DD format. MUST be a concrete date, never a relative term like 'tomorrow'." },
-          guestName: { type: "string" },
-          email: { type: "string" },
-          phone: { type: "string" },
+          guestName: { type: "string", description: "Optional. Do NOT ask for this. System auto-fills from profile." },
+          email: { type: "string", description: "Optional. Do NOT ask for this. System auto-fills from profile." },
+          phone: { type: "string", description: "Optional. Do NOT ask for this. System auto-fills from profile." },
           purpose: { type: "string", enum: ["academic", "business", "personal", "other"] },
           numberOfGuests: { type: "number" },
-          specialRequests: { type: "string" }
+          specialRequests: { type: "string", description: "Optional. Do NOT ask for this. System auto-fills or leaves blank." }
         },
         required: ["roomNumber", "checkIn", "checkOut", "purpose", "numberOfGuests"]
       }
@@ -593,7 +594,6 @@ export const toolImplementations = {
     }));
   },
   get_my_profile: async (args, userId) => {
-    const { default: User } = await import('../models/User.js');
     const user = await User.findById(userId).select('-password');
     if (!user) throw new Error("User not found.");
     return {
@@ -633,7 +633,6 @@ export const toolImplementations = {
     };
   },
   create_booking: async (args, userId) => {
-    const { default: User } = await import('../models/User.js');
     const user = await User.findById(userId);
     if (!user) throw new Error("User account not found.");
 
@@ -937,11 +936,10 @@ CRITICAL DATE HANDLING RULES:
 
 FLEXIBILITY & MEMORY RULES:
 - Remember information the user already provided earlier in the conversation. Do NOT re-ask for details they already gave.
-- If the user provides multiple pieces of information in one message (dates, purpose, guest count, email, phone), extract ALL of them.
+- If the user provides multiple pieces of information in one message (dates, purpose, guest count), extract ALL of them.
 - If a user says something like "me only" or "just me", numberOfGuests = 1.
 - Infer the purpose from context. If they say "retrieve bonafide certificate", that's "academic". If they say "conference", that's "business".
-- If the user provides a phone number, accept it as-is without validation complaints.
-- If some optional info is missing (like specialRequests), just skip it. Don't block the booking.
+- Do NOT ask the user for their name, email, phone number, or special requests. The backend automatically pulls this from their secure profile. ALWAYS leave these parameters empty when calling create_booking.
 - If a first attempt fails, explain clearly and suggest alternatives instead of just saying "I can't help".
 
 CORE GUIDELINES:
