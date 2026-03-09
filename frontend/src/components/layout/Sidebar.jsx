@@ -91,6 +91,7 @@ export default function Sidebar() {
                             <Link
                                 key={link.href}
                                 href={link.href}
+                                prefetch={false}
                                 title={isCollapsed ? link.label : undefined}
                                 className={cn(
                                     'flex items-center gap-3 py-2.5 text-sm font-noto-medium transition-colors border-l-4 whitespace-nowrap',

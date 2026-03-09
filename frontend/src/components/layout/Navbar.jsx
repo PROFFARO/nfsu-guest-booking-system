@@ -156,6 +156,7 @@ export default function Navbar() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
+                                    prefetch={false}
                                     className={`flex h-full items-center border-b-2 px-1 text-sm font-noto-semibold transition-colors ${active
                                         ? 'border-[#0056b3] text-[#0056b3] dark:border-cyan-500 dark:text-cyan-500'
                                         : 'border-transparent text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground'
@@ -289,6 +290,7 @@ export default function Navbar() {
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
+                                                prefetch={false}
                                                 className={`flex items-center gap-3 rounded-sm px-4 py-3 text-sm font-noto-semibold transition-colors ${isActive(link.href)
                                                     ? 'bg-[#0056b3]/10 text-[#0056b3] dark:text-cyan-500 border-l-4 border-[#0056b3] dark:border-cyan-500'
                                                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
