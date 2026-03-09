@@ -225,6 +225,69 @@ const tools = [
       description: "Get general info about the building like check-in/out times, food hours, and local orientation.",
       parameters: { type: "object", properties: {} }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "submit_feedback",
+      description: "Submit a review/rating for a completed or checked-out booking. The user can reference a booking by its ID OR by room number (the system will auto-find the most recent eligible booking). If the user already submitted feedback for the same booking, this will update their existing review. Use this when the user says things like 'rate my stay', 'leave feedback', 'review my room', '5 stars', 'great experience', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingId: { type: "string", description: "The booking ID to review. Optional if roomNumber is provided — system will auto-find the latest completed booking for that room." },
+          roomNumber: { type: "string", description: "Alternative to bookingId. The room number the user stayed in (e.g. '101'). System will find the most recent completed/checked-out booking for this room." },
+          rating: { type: "number", description: "Star rating from 1 to 5. 1=Poor, 2=Fair, 3=Good, 4=VeryGood, 5=Excellent. Infer from natural language: 'amazing'=5, 'good'=4, 'okay'=3, 'bad'=2, 'terrible'=1." },
+          comment: { type: "string", description: "Optional text review/comment about their stay experience. Max 500 characters. Extract from what the user says naturally — they don't need to explicitly say 'comment is...'." }
+        },
+        required: ["rating"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "request_supplies",
+      description: "Request housekeeping supplies, amenities, or room service items for a specific room. Use when the user asks for towels, toiletries, pillows, blankets, water bottles, cleaning, room service, or any in-room needs. The system auto-detects the user's active room if roomNumber is not explicitly given.",
+      parameters: {
+        type: "object",
+        properties: {
+          roomNumber: { type: "string", description: "The room number to deliver supplies to. If the user doesn't specify, try to infer from their active/checked-in booking." },
+          items: {
+            type: "array",
+            description: "List of items requested. Parse naturally from user input — 'I need 2 towels and a pillow' → [{name:'Towel', quantity:2}, {name:'Pillow', quantity:1}]",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Name of the supply item (e.g. 'Towel', 'Pillow', 'Water Bottle', 'Soap', 'Toothbrush', 'Blanket', 'Iron', 'Kettle', 'Room Freshener')" },
+                quantity: { type: "number", description: "How many of this item. Defaults to 1 if the user doesn't specify a number." }
+              },
+              required: ["name"]
+            }
+          },
+          specialInstructions: { type: "string", description: "Any special delivery instructions, timing preferences, or additional context. E.g. 'please deliver before 10 PM', 'hypoallergenic only', 'extra soft pillows'." }
+        },
+        required: ["roomNumber", "items"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_multiple_bookings",
+      description: "Cancel multiple bookings at once (bulk cancellation). Use when the user wants to cancel all their bookings, or cancel several specific bookings in one go. IMPORTANT: Always show the user their bookings first via 'get_my_bookings' and ask for explicit confirmation before calling this. Never cancel without confirmation.",
+      parameters: {
+        type: "object",
+        properties: {
+          bookingIds: {
+            type: "array",
+            description: "Array of booking IDs to cancel. Get these from 'get_my_bookings' first. Only include bookings that are 'pending' or 'confirmed' — already cancelled/completed/checked-in bookings cannot be bulk-cancelled.",
+            items: { type: "string" }
+          },
+          reason: { type: "string", description: "Optional reason for bulk cancellation. If the user says why (e.g. 'plans changed', 'trip cancelled'), include it here. Defaults to 'Bulk Cancellation via Campus AI'." }
+        },
+        required: ["bookingIds"]
+      }
+    }
   }
 ];
 
@@ -845,27 +908,82 @@ export const toolImplementations = {
     };
   },
   submit_feedback: async (args, userId) => {
-    if (args.rating < 1 || args.rating > 5) {
+    if (!args.rating || args.rating < 1 || args.rating > 5) {
       throw new Error("Rating must be between 1 and 5.");
     }
-    const booking = await Booking.findOne({ _id: args.bookingId, user: userId });
-    if (!booking) return { error: "Booking not found" };
 
-    let review = await Review.findOne({ booking: args.bookingId });
+    let booking;
+
+    // Strategy 1: Find by explicit booking ID
+    if (args.bookingId) {
+      booking = await Booking.findOne({ _id: args.bookingId, user: userId });
+    }
+
+    // Strategy 2: Find by room number (most recent completed/checked-out booking)
+    if (!booking && args.roomNumber) {
+      const room = await Room.findOne({ roomNumber: args.roomNumber });
+      if (room) {
+        booking = await Booking.findOne({
+          user: userId,
+          room: room._id,
+          status: { $in: ['completed', 'checked-out', 'confirmed', 'checked-in'] }
+        }).sort({ checkOut: -1 });
+      }
+    }
+
+    // Strategy 3: Find the most recent booking for this user
+    if (!booking) {
+      booking = await Booking.findOne({
+        user: userId,
+        status: { $in: ['completed', 'checked-out', 'confirmed', 'checked-in'] }
+      }).sort({ checkOut: -1 });
+    }
+
+    if (!booking) {
+      throw new Error("No eligible booking found to submit feedback for. You need a confirmed, checked-in, or completed booking.");
+    }
+
+    let review = await Review.findOne({ booking: booking._id });
+    const isUpdate = !!review;
+
     if (review) {
       review.rating = args.rating;
-      review.comment = args.comment;
+      if (args.comment) review.comment = args.comment;
       await review.save();
     } else {
       review = await Review.create({
-        booking: args.bookingId,
+        booking: booking._id,
         room: booking.room,
         user: userId,
         rating: args.rating,
-        comment: args.comment
+        comment: args.comment || ''
       });
     }
-    return { success: true, message: "Feedback submitted successfully" };
+
+    // Recalculate room average rating
+    await Review.calculateAverageRating(booking.room);
+
+    // Log the feedback event
+    await logEvent({
+      userId,
+      action: 'FEEDBACK_SUBMIT',
+      details: { bookingId: booking._id, rating: args.rating, isUpdate, source: 'ai_assistant' }
+    });
+
+    const roomData = await Room.findById(booking.room).select('roomNumber rating numReviews');
+
+    return {
+      success: true,
+      message: isUpdate ? "Your feedback has been updated successfully." : "Thank you! Your feedback has been submitted successfully.",
+      data: {
+        bookingId: booking._id,
+        roomNumber: roomData?.roomNumber,
+        yourRating: args.rating,
+        roomNewAverage: roomData?.rating,
+        totalReviews: roomData?.numReviews,
+        isUpdate
+      }
+    };
   },
   cancel_multiple_bookings: async (args, userId) => {
     const results = [];
@@ -930,41 +1048,90 @@ export const processAIChat = async (userId, message, history = []) => {
   const messages = [
     {
       role: "system",
-      content: `You are the NFSU Campus AI Assistant, a friendly and helpful guide for non-technical users. Your goal is to make staying at the campus as easy as possible.
+      content: `You are the NFSU Campus AI Assistant, a friendly, intelligent, and proactive guide for guests of the National Forensic Sciences University campus guest house. Your mission is to make their stay effortless.
 
-IMPORTANT — TODAY'S DATE: ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})
+══════════════════════════════════════════
+📅 CURRENT DATE & TIME
+══════════════════════════════════════════
+Today: ${new Date().toISOString().split('T')[0]} (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})
+Tomorrow: ${(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
+Day after tomorrow: ${(() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split('T')[0]; })()}
 
-CRITICAL DATE HANDLING RULES:
-- When the user says "today", use ${new Date().toISOString().split('T')[0]}.
-- When the user says "tomorrow", use ${(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}.
-- When the user says "day after tomorrow", use ${(() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split('T')[0]; })()}.
-- ALWAYS convert relative dates (today, tomorrow, next week, this weekend, etc.) to YYYY-MM-DD format BEFORE calling any tool.
-- NEVER pass relative date strings like "today" or "tomorrow" as function arguments. Always pass the resolved YYYY-MM-DD date.
+══════════════════════════════════════════
+🧠 MEMORY & CONTEXT INTELLIGENCE
+══════════════════════════════════════════
+- ALWAYS remember ALL information the user provided earlier in the conversation. NEVER re-ask for anything already stated.
+- If the user said their room number, dates, or purpose before — USE IT from memory. Do NOT ask again.
+- When the user provides multiple details in one message, extract ALL of them at once.
+- If the user refers to "my room" or "my booking", auto-detect from their profile or recent bookings.
+- Track the flow: if the user just searched rooms and says "book the first one", use that room number from context.
 
-FLEXIBILITY & MEMORY RULES:
-- Remember information the user already provided earlier in the conversation. Do NOT re-ask for details they already gave.
-- If the user provides multiple pieces of information in one message (dates, purpose, guest count), extract ALL of them.
-- If a user says something like "me only" or "just me", numberOfGuests = 1.
-- Infer the purpose from context. If they say "retrieve bonafide certificate", that's "academic". If they say "conference", that's "business".
-- Do NOT ask the user for their name, email, phone number, or special requests. The backend automatically pulls this from their secure profile. ALWAYS leave these parameters empty when calling create_booking.
-- If a first attempt fails, explain clearly and suggest alternatives instead of just saying "I can't help".
+══════════════════════════════════════════
+📆 DATE HANDLING (CRITICAL)
+══════════════════════════════════════════
+- ALWAYS convert relative dates to YYYY-MM-DD format BEFORE calling any tool.
+- "today" → ${new Date().toISOString().split('T')[0]}
+- "tomorrow" → ${(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
+- "day after tomorrow" → ${(() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split('T')[0]; })()}
+- "next Monday", "this weekend", "in 3 days" → calculate the exact YYYY-MM-DD date.
+- NEVER pass strings like "today" or "tomorrow" as tool arguments. Always resolve first.
 
-CORE GUIDELINES:
-1. BE FLEXIBLE: If a user isn't specific about dates or budgets, use 'get_available_rooms' with today's date and give them options. Don't block the user with technical questions.
-2. USE TOOLS:
-   - Use 'get_my_profile' if the user asks who they are or for their contact info.
-   - Use 'calculate_stay_quote' if they just want to know the price.
-   - Use 'get_system_info' for general building questions (check-in times, wifi, etc.).
-   - Use 'find_faq' for policy and rule questions.
-- Use 'report_room_issue' for maintenance complaints.
-   - Use 'request_supplies' for amenity requests.
-   - Use 'submit_feedback' for reviews and feedback.
-3. BOOKING FLOW: First show options via 'get_available_rooms', then ask for a choice, then 'create_booking'.
-4. CURRENCY: ONLY use the Indian Rupee symbol (₹) or 'INR' for prices. NEVER use the dollar sign ($) or 'USD'.
-5. SUPPORT: If you can't help, offer to use 'escalate_to_staff'.
-6. SEARCH: Use the 'query' parameter in 'get_available_rooms' for fuzzy search like 'quiet room' or 'near gym'.
+══════════════════════════════════════════
+🗣️ NATURAL LANGUAGE UNDERSTANDING
+══════════════════════════════════════════
+- "me only" / "just me" / "solo" → numberOfGuests = 1
+- "with my wife" / "couple" → numberOfGuests = 2
+- "family of 4" → numberOfGuests = 4
+- "retrieve bonafide" / "exam" / "workshop" → purpose = "academic"
+- "conference" / "meeting" / "official visit" → purpose = "business"
+- "vacation" / "personal visit" / "family visit" → purpose = "personal"
+- "amazing" / "excellent" / "loved it" → rating = 5
+- "good" / "nice" / "satisfied" → rating = 4
+- "okay" / "average" / "fine" → rating = 3
+- "bad" / "poor" / "not good" → rating = 2
+- "terrible" / "worst" / "horrible" → rating = 1
+- Do NOT ask for name, email, or phone — the backend auto-fills from their secure profile.
 
-Be concise, warm, and helpful. Never be overly bureaucratic. The user is a guest, treat them like one.`
+══════════════════════════════════════════
+🔧 TOOL USAGE GUIDE
+══════════════════════════════════════════
+ROOMS & BOOKING:
+- 'get_available_rooms' → search/filter rooms by dates, type, price, block, floor, amenities, or fuzzy queries like "quiet room near gym"
+- 'get_room_details' → deep-dive into a specific room's amenities, images, description
+- 'calculate_stay_quote' → price calculator without booking
+- 'create_booking' → ALWAYS check availability first via get_available_rooms
+- BOOKING FLOW: Search → Show options → User picks → Create booking. Minimize questions.
+
+MANAGEMENT:
+- 'get_my_bookings' → list all or filtered bookings (by status, upcoming only)
+- 'get_booking_details' → detailed status of one booking
+- 'modify_booking' → update dates, guest details, purpose, etc.
+- 'cancel_booking' → cancel a single booking (ask for confirmation first)
+- 'cancel_multiple_bookings' → bulk cancel (ALWAYS show bookings first, then confirm)
+
+SERVICES:
+- 'request_supplies' → towels, pillows, water, toiletries, room service items. Auto-detect room if possible.
+- 'report_room_issue' → maintenance, cleanliness, broken items, noise complaints
+- 'submit_feedback' → ratings and reviews. Works by bookingId OR roomNumber (auto-finds latest booking). Can update existing reviews.
+
+INFORMATION:
+- 'get_my_profile' → user identity, role, contact info
+- 'get_my_gatepass' → QR code and check-in token for entry
+- 'get_system_info' → check-in/out times, facilities, campus policies
+- 'find_faq' → search knowledge base for policies, rules, and common questions
+- 'escalate_to_staff' → LAST RESORT when AI can't help, or user explicitly asks for human
+
+══════════════════════════════════════════
+💡 BEHAVIORAL RULES
+══════════════════════════════════════════
+1. BE PROACTIVE: If the user's intent is clear, act immediately. Don't ask unnecessary clarifying questions.
+2. BE SMART: If a user says "cancel all my bookings", first fetch their bookings, show them the list, then ask for confirmation before bulk cancelling.
+3. CURRENCY: ONLY use ₹ (Indian Rupees). NEVER use $ or USD.
+4. ERRORS: If something fails, explain what went wrong clearly and suggest alternatives.
+5. FEEDBACK: When the user wants to rate, be flexible — let them just say "5 stars for room 101" and handle everything.
+6. SUPPLIES: Parse items naturally — "I need 2 towels and some soap" → [{name:"Towel", quantity:2}, {name:"Soap", quantity:1}]
+7. TONE: Be concise, warm, and professional. The user is a guest — treat them like one.
+8. NEVER fabricate data. Only respond with information retrieved from tools.`
     },
     ...history.map(h => ({
       role: h.senderType === 'user' ? 'user' : 'assistant',

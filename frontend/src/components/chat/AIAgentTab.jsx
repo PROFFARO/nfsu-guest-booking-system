@@ -589,6 +589,39 @@ export function AIAgentTab() {
             );
         }
 
+        // Feedback Submission Confirmation
+        if (action === 'submit_feedback' && result && result.success) {
+            return (
+                <div className="mt-2 p-3 border border-amber-200 dark:border-amber-800 rounded-md bg-amber-50/30 dark:bg-amber-950/20 text-[10px] space-y-2 font-noto-regular">
+                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                        <div className="bg-amber-100 dark:bg-amber-900/50 p-1 rounded-full">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        </div>
+                        <span className="font-noto-bold text-xs">{result.data?.isUpdate ? 'Feedback Updated' : 'Feedback Submitted'}</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-800/60 p-2 rounded border border-amber-100/50 dark:border-amber-800/30 space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Room {result.data?.roomNumber}</span>
+                            <div className="flex items-center gap-0.5">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <Star
+                                        key={star}
+                                        className={`h-3 w-3 ${star <= (result.data?.yourRating || 0) ? 'fill-amber-500 text-amber-500' : 'text-gray-300 dark:text-gray-600'}`}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        {result.data?.roomNewAverage && (
+                            <div className="flex justify-between items-center text-[9px] text-muted-foreground border-t border-amber-50 dark:border-amber-900/30 pt-1">
+                                <span>Room Average: <span className="font-noto-bold text-foreground">{result.data.roomNewAverage}★</span></span>
+                                <span>{result.data.totalReviews} {result.data.totalReviews === 1 ? 'review' : 'reviews'} total</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         return null;
     };
 
