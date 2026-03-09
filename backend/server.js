@@ -124,21 +124,57 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Database connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
+// Trust proxy for Vercel and rate limiting
+app.set('trust proxy', 1);
+
+// Database connection optimized for serverless
+let isConnected = false;
+
+const connectDB = async () => {
+  if (isConnected) return;
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return;
+  }
+
+  // Set global mongoose setting to prevent infinite hanging
+  mongoose.set('bufferCommands', false);
+
+  try {
+    const db = await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    isConnected = !!db.connections[0].readyState;
     console.log('✅ Connected to MongoDB successfully');
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error('❌ MongoDB connection error:', error);
-    if (process.env.NODE_ENV !== 'production') process.exit(1);
-  });
+    throw error;
+  }
+};
+
+// Ensure DB is connected before handling API requests
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    try {
+      await connectDB();
+    } catch (error) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Database connection failed. Please ensure your IP is whitelisted in MongoDB Atlas or check connection string.',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+  next();
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'NFSU Guest House API is running',
+    dbConnected: isConnected,
     timestamp: new Date().toISOString()
   });
 });
