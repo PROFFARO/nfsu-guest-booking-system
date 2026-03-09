@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { compressImage } from '@/lib/imageUtils';
 import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ const emptyRoomForm = {
 
 export default function RoomManagementPage() {
     const { user } = useAuth();
+    const { socket } = useSocket();
     const isAdmin = user?.role === 'admin';
 
     const [rooms, setRooms] = useState([]);
@@ -85,6 +87,18 @@ export default function RoomManagementPage() {
     };
 
     useEffect(() => { fetchRooms(); }, [filters, debouncedSearch]);
+
+    // Socket.io Real-time updates
+    useEffect(() => {
+        if (!socket) return;
+        const handler = (data) => {
+            setRooms((prev) => prev.map((room) =>
+                room._id === data.roomId ? { ...room, status: data.status } : room
+            ));
+        };
+        socket.on('roomStatusUpdated', handler);
+        return () => socket.off('roomStatusUpdated', handler);
+    }, [socket]);
 
     // --- Validation ---
     const validate = () => {

@@ -736,7 +736,7 @@ export function AIAgentTab() {
                                         <div className="grid grid-cols-3 gap-1">
                                             {[
                                                 { label: "Search Rooms", query: "Show me all available rooms" },
-                                                { label: "Room Details", query: "Show me details of room 101" },
+                                                { label: "Room Details", query: "Show me details of a room" },
                                                 { label: "Stay Quote", query: "Calculate the price for a 3-night stay" }
                                             ].map((task, i) => (
                                                 <button key={i} onClick={() => handleSendWithContent(task.query)}
@@ -789,7 +789,7 @@ export function AIAgentTab() {
                                         <div className="grid grid-cols-2 gap-1">
                                             {[
                                                 { label: "Report Room Issue", query: "I want to report a maintenance issue in my room" },
-                                                { label: "Request Supplies", query: "I need extra towels and toiletries for my room" },
+                                                { label: "Request Supplies", query: "I need some supplies for my room" },
                                                 { label: "Submit Feedback", query: "I want to submit feedback about my stay" },
                                                 { label: "Escalate to Staff", query: "I need to speak with a staff member about an urgent matter" }
                                             ].map((task, i) => (

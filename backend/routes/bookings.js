@@ -772,8 +772,9 @@ router.put('/:id/status', [
 
     if (otherConfirmedBookings.length === 0) {
       await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+      try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room, status: 'vacant' }); } catch { }
     }
-  } else if (oldStatus !== 'confirmed' && status === 'confirmed') {
+  } else if (!['pending', 'confirmed'].includes(oldStatus) && status === 'confirmed') {
     // Already handled in the confirmation flow block above
   }
 
@@ -851,9 +852,10 @@ router.delete('/:id', [
     req
   });
 
-  // Update room status if it was confirmed
-  if (oldStatus === 'confirmed') {
+  // Update room status if it was confirmed or pending
+  if (['pending', 'confirmed'].includes(oldStatus)) {
     await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room, status: 'vacant' }); } catch { }
   }
 
   // Populate for email
