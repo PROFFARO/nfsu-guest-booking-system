@@ -812,10 +812,14 @@ export const toolImplementations = {
     // Save previous state for logic
     await booking.cancel(reason, userId);
 
-    // Update room status if it was confirmed
-    if (oldStatus === 'confirmed') {
+    // Update room status if it was pending or confirmed
+    if (['pending', 'confirmed'].includes(oldStatus)) {
       await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+      // Emit real-time status update to clear the held/booked state immediately on admin dash
+      try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room, status: 'vacant' }); } catch { }
     }
+
+    try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'cancelled' }); } catch { }
 
     // Populate for email
     await booking.populate('room', 'roomNumber type floor block pricePerNight');
@@ -880,9 +884,12 @@ export const toolImplementations = {
 
         await booking.cancel(reason, userId);
 
-        if (oldStatus === 'confirmed') {
+        if (['pending', 'confirmed'].includes(oldStatus)) {
           await Room.findByIdAndUpdate(booking.room, { status: 'vacant', holdBy: null, holdUntil: null });
+          try { getIO().of('/').emit('roomStatusUpdated', { roomId: booking.room, status: 'vacant' }); } catch { }
         }
+
+        try { getIO().of('/').emit('bookingUpdated', { bookingId: booking._id, status: 'cancelled' }); } catch { }
 
         await booking.populate('room', 'roomNumber');
         sendEmail(booking.email, bookingCancellationEmail(booking)).catch(() => { });
