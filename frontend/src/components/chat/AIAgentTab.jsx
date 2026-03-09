@@ -788,7 +788,9 @@ function BookingActionCard({ booking, onCancel, onUpdate }) {
                 </div>
                 <div className="space-y-1">
                     <div className="text-[8px] text-muted-foreground uppercase font-noto-bold flex items-center gap-1"><History className="h-2.5 w-2.5" /> Payment</div>
-                    <div className="text-[10px] font-noto-bold uppercase text-emerald-600">{booking.paymentStatus}</div>
+                    <div className="text-[10px] font-noto-bold uppercase text-emerald-600">
+                        {booking.paymentStatus} {booking.paymentMethod && `(${booking.paymentMethod})`}
+                    </div>
                 </div>
             </div>
 

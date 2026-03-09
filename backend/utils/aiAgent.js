@@ -718,7 +718,10 @@ export const toolImplementations = {
       room: b.room?.roomNumber,
       checkIn: b.checkIn.toISOString().split('T')[0],
       checkOut: b.checkOut.toISOString().split('T')[0],
-      status: b.status
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      paymentMethod: b.paymentMethod,
+      total: b.totalAmount
     }));
   },
   get_booking_details: async (args, userId) => {
