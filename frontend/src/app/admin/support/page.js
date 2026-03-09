@@ -164,7 +164,7 @@ export default function SupportInbox() {
                                         </span>
                                         <button
                                             onClick={(e) => handleDeleteThread(e, t)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-red-500 transition-all rounded-sm hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            className="p-1 text-muted-foreground/50 hover:text-red-500 active:text-red-500 transition-colors rounded-sm hover:bg-red-50 active:bg-red-50 dark:hover:bg-red-900/20 dark:active:bg-red-900/20 shrink-0"
                                             title="Delete Thread"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
