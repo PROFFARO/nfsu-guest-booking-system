@@ -10,23 +10,41 @@ export function ImageSlider({ images, autoPlay = true, interval = 3000, classNam
 
     // Normalize images: if an image is a File object, create a local preview URL
     const normalizedImages = images?.map(img => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
-        
+        // If it's a File object (uploaded but not saved), use a local preview URL
         if (img instanceof File) {
             return { url: URL.createObjectURL(img), filename: img.name };
         }
-        if (typeof img === 'string') {
-            const finalUrl = img.startsWith('http') ? img : `${baseUrl}${img.startsWith('/') ? '' : '/uploads/rooms/'}${img}`;
-            return { url: finalUrl, filename: 'image' };
+
+        let rawUrl = (typeof img === 'string') ? img : img.url;
+        if (!rawUrl) return { url: '', filename: 'none' };
+
+        // If it's already an absolute HTTP(S) URL, use it
+        if (rawUrl.startsWith('http')) {
+            return { url: rawUrl, filename: (typeof img !== 'string' ? img.filename : 'image') || 'image' };
         }
-        
-        const finalUrl = img.url?.startsWith('http') 
-            ? img.url 
-            : `${baseUrl}${img.url?.startsWith('/') ? '' : '/uploads/rooms/'}${img.url}`;
-            
+
+        // Handle relative paths
+        // In Vercel/Production, we prefer relative paths (/api/...) 
+        // In local development, we might need to point to port 5000
+        const isLocalhost = typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+        let finalUrl = rawUrl;
+
+        // If the path doesn't start with /api or /uploads, it might be an old-style filename
+        if (!finalUrl.startsWith('/')) {
+            finalUrl = '/uploads/rooms/' + finalUrl;
+        }
+
+        // Prepend base URL only if on localhost and NEXT_PUBLIC_API_URL isn't set to a relative path
+        if (isLocalhost && !process.env.NEXT_PUBLIC_API_URL?.startsWith('/')) {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            finalUrl = `${baseUrl}${finalUrl}`;
+        }
+
         return {
             url: finalUrl,
-            filename: img.filename || 'image'
+            filename: (typeof img !== 'string' ? img.filename : 'image') || 'image'
         };
     }) || [];
 
@@ -103,7 +121,7 @@ export function ImageSlider({ images, autoPlay = true, interval = 3000, classNam
                     </div>
                 </>
             )}
-            
+
             {/* Image Counter Badge */}
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded-sm bg-black/60 text-white text-[10px] font-noto-bold tracking-wider backdrop-blur-sm">
                 {currentIndex + 1} / {normalizedImages.length}
