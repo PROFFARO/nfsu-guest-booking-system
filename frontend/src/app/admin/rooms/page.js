@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { compressImage } from '@/lib/imageUtils';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -169,11 +170,26 @@ export default function RoomManagementPage() {
         setSaving(true);
         try {
             const formData = new FormData();
+            // Process and compress images
+            const compressedImages = await Promise.all(
+                (form.images || []).map(async (item) => {
+                    if (item instanceof File) {
+                        try {
+                            return await compressImage(item);
+                        } catch (err) {
+                            console.error('Compression failed for', item.name, err);
+                            return item; // Fallback to original
+                        }
+                    }
+                    return item;
+                })
+            );
+
             Object.entries(form).forEach(([key, value]) => {
                 if (key === 'facilities') {
                     formData.append(key, JSON.stringify(value));
                 } else if (key === 'images') {
-                    value.forEach(file => {
+                    compressedImages.forEach(file => {
                         if (file instanceof File) formData.append('images', file);
                     });
                 } else if (key === 'pricePerNight') {
@@ -199,11 +215,26 @@ export default function RoomManagementPage() {
             const formData = new FormData();
             const existingImages = [];
 
+            // Process and compress images
+            const compressedImages = await Promise.all(
+                (form.images || []).map(async (item) => {
+                    if (item instanceof File) {
+                        try {
+                            return await compressImage(item);
+                        } catch (err) {
+                            console.error('Compression failed for', item.name, err);
+                            return item; // Fallback to original
+                        }
+                    }
+                    return item;
+                })
+            );
+
             Object.entries(form).forEach(([key, value]) => {
                 if (key === 'facilities') {
                     formData.append(key, JSON.stringify(value));
                 } else if (key === 'images') {
-                    value.forEach(item => {
+                    compressedImages.forEach(item => {
                         if (item instanceof File) {
                             formData.append('images', item);
                         } else {
