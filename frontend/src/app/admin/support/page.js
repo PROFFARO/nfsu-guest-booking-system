@@ -43,17 +43,68 @@ export default function SupportInbox() {
         const handleNewMessage = (message) => {
             if (activeThread && message.thread === activeThread._id) {
                 setMessages(prev => {
+                    // Prevent duplicates
                     if (prev.some(m => m._id === message._id)) return prev;
+                    // Replace optimistic message if match found
+                    if (prev.some(m => m.tempId === message.tempId)) {
+                        return prev.map(m => m.tempId === message.tempId ? message : m);
+                    }
                     return [...prev, message];
                 });
             }
             // Update threads list last message hint
-            setThreads(prev => prev.map(t =>
-                t._id === message.thread ? { ...t, lastMessageAt: message.createdAt } : t
-            ));
+            setThreads(prev => {
+                const updated = prev.map(t =>
+                    t._id === message.thread ? { ...t, lastMessageAt: message.createdAt } : t
+                );
+                // Sort by last message time
+                return updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+            });
         };
         socket.on('newMessage', handleNewMessage);
         return () => socket.off('newMessage', handleNewMessage);
+    }, [socket, activeThread?._id]);
+
+    // Polling Fallback for Admin (Every 8 seconds for all threads, 4 seconds for active)
+    useEffect(() => {
+        let activeInterval;
+        let globalInterval;
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+
+        if (isProduction || (socket && !socket.connected)) {
+            // Global threads refresh
+            globalInterval = setInterval(async () => {
+                try {
+                    const res = await api.chats.getAdminInbox();
+                    setThreads(res.data.threads);
+                } catch (e) {
+                    console.warn("Global inbox polling failed", e);
+                }
+            }, 8000);
+
+            // Active thread messages refresh
+            if (activeThread?._id) {
+                activeInterval = setInterval(async () => {
+                    try {
+                        const res = await api.chats.getThreadMessages(activeThread._id);
+                        const newMessages = res.data.messages || [];
+                        setMessages(prev => {
+                            const existingIds = new Set(prev.map(m => m._id));
+                            const filtered = newMessages.filter(m => !existingIds.has(m._id));
+                            if (filtered.length === 0) return prev;
+                            return [...prev, ...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                        });
+                    } catch (e) {
+                        console.warn("Active thread polling failed", e);
+                    }
+                }, 4000);
+            }
+        }
+
+        return () => {
+            if (globalInterval) clearInterval(globalInterval);
+            if (activeInterval) clearInterval(activeInterval);
+        };
     }, [socket, activeThread?._id]);
 
     useEffect(() => {
@@ -114,20 +165,42 @@ export default function SupportInbox() {
     const handleSend = async () => {
         if (!input.trim() || !activeThread) return;
         const content = input;
+        const tempId = `temp-${Date.now()}`;
         setInput('');
+
+        // Optimistic UI Update
+        const optimisticMsg = {
+            _id: tempId,
+            tempId,
+            content,
+            senderType: 'staff',
+            createdAt: new Date().toISOString(),
+            thread: activeThread._id
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+
         try {
             const res = await api.chats.sendMessage({
                 threadId: activeThread._id,
-                content
+                content,
+                tempId
             });
+
             if (res.status === 'success') {
-                socket.emit('sendMessage', {
-                    threadId: activeThread._id,
-                    message: res.data.message
-                });
+                if (socket && socket.connected) {
+                    socket.emit('sendMessage', {
+                        threadId: activeThread._id,
+                        message: { ...res.data.message, tempId }
+                    });
+                }
+                // Sync optimistic message
+                setMessages(prev => prev.map(m => m.tempId === tempId ? res.data.message : m));
             }
         } catch (err) {
             console.error("Failed to send reply", err);
+            setMessages(prev => prev.filter(m => m.tempId !== tempId));
+            toast.error("Message delivery failed");
         }
     };
 

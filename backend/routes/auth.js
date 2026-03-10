@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import LoginHistory from '../models/LoginHistory.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { logEvent } from '../utils/auditLogger.js';
 
@@ -19,7 +20,7 @@ const router = express.Router();
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', [
+router.post('/register', authLimiter, [
   body('name')
     .trim()
     .isLength({ min: 2, max: 50 })
@@ -99,7 +100,7 @@ router.post('/register', [
 // @route   POST /api/auth/login
 // @desc    Login user
 // @access  Public
-router.post('/login', [
+router.post('/login', authLimiter, [
   body('email')
     .isEmail()
     .normalizeEmail()
@@ -409,7 +410,7 @@ router.post('/2fa/setup', authMiddleware, asyncHandler(async (req, res) => {
 // @route   POST /api/auth/2fa/verify
 // @desc    Verify 2FA code during setup or to disable
 // @access  Private
-router.post('/2fa/verify', authMiddleware, asyncHandler(async (req, res) => {
+router.post('/2fa/verify', authMiddleware, authLimiter, asyncHandler(async (req, res) => {
   const { code, action } = req.body; // action: 'enable' or 'disable'
   const speakeasy = await import('speakeasy');
 
@@ -599,7 +600,7 @@ import { sendPasswordResetEmail, sendEmail } from '../services/emailService.js';
 // @route   POST /api/auth/forgot-password
 // @desc    Forgot password -> send reset email
 // @access  Public
-router.post('/forgot-password', [
+router.post('/forgot-password', authLimiter, [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -636,7 +637,7 @@ router.post('/forgot-password', [
 // @route   PUT /api/auth/reset-password/:token
 // @desc    Reset password using token
 // @access  Public
-router.put('/reset-password/:token', [
+router.put('/reset-password/:token', authLimiter, [
   body('password')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-={}|;':",./<>?]).{8,}$/)

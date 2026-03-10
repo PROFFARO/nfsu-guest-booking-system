@@ -16,7 +16,7 @@ export const authLimiter = rateLimit({
 // General API limiter
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500, // Increased from 100 to 500 for testing
+    max: 2000, // Increased from 500 to 2000 to accommodate active dashboard polling
     standardHeaders: true,
     legacyHeaders: false,
     message: {

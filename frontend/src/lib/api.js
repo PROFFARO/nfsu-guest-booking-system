@@ -214,5 +214,8 @@ export const api = {
             body: JSON.stringify(data),
         }),
         delete: (id) => request(`/faq/${id}`, { method: 'DELETE' }),
+    },
+    dashboard: {
+        stats: () => request('/dashboard/stats')
     }
 };

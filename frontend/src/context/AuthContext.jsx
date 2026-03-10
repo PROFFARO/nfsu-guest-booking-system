@@ -18,9 +18,14 @@ export function AuthProvider({ children }) {
         try {
             const res = await api.auth.getMe();
             setUser(res.data.user);
-        } catch {
-            localStorage.removeItem('token');
-            setUser(null);
+        } catch (err) {
+            // Only auto-logout if token is definitively invalid
+            if (err.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('sessionToken');
+                setUser(null);
+            }
+            console.error('Failed to load user:', err);
         } finally {
             setLoading(false);
         }

@@ -49,8 +49,12 @@ export function SupportTab() {
             // Only add if it belongs to this thread
             if (thread && message.thread === thread._id) {
                 setMessages(prev => {
-                    // Prevent duplicates (e.g. if socket sends back our own message)
+                    // Prevent duplicates (especially important with polling fallback)
                     if (prev.some(m => m._id === message._id)) return prev;
+                    if (prev.some(m => m.tempId === message.tempId)) {
+                        // Replace temp message with server message
+                        return prev.map(m => m.tempId === message.tempId ? message : m);
+                    }
                     return [...prev, message];
                 });
             }
@@ -58,6 +62,40 @@ export function SupportTab() {
 
         socket.on('newMessage', handleNewMessage);
         return () => socket.off('newMessage', handleNewMessage);
+    }, [socket, thread?._id]);
+
+    // Polling Fallback for Production/Vercel (Every 5 seconds)
+    useEffect(() => {
+        let interval;
+        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+
+        if (isProduction || (socket && !socket.connected)) {
+            interval = setInterval(async () => {
+                if (!thread?._id) return;
+                try {
+                    const res = await api.chats.getThreadMessages(thread._id);
+                    const newMessages = res.data.messages || [];
+
+                    setMessages(prev => {
+                        const existingIds = new Set(prev.map(m => m._id));
+                        const filtered = newMessages.filter(m => !existingIds.has(m._id));
+                        if (filtered.length === 0) return prev;
+
+                        // Merge and sort by creation date
+                        const merged = [...prev, ...filtered].sort((a, b) =>
+                            new Date(a.createdAt) - new Date(b.createdAt)
+                        );
+                        return merged;
+                    });
+                } catch (e) {
+                    console.warn("Support polling failed", e);
+                }
+            }, 5000);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
     }, [socket, thread?._id]);
 
     useEffect(() => {
@@ -75,23 +113,44 @@ export function SupportTab() {
         if (!input.trim() || !thread) return;
 
         const content = input;
+        const tempId = `temp-${Date.now()}`;
         setInput('');
+
+        // Optimistic UI Update
+        const optimisticMsg = {
+            _id: tempId,
+            tempId,
+            content,
+            senderType: 'user',
+            createdAt: new Date().toISOString(),
+            thread: thread._id
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
 
         try {
             const res = await api.chats.sendMessage({
                 threadId: thread._id,
-                content
+                content,
+                tempId // Pass tempId to backend if needed for sync
             });
 
             if (res.status === 'success') {
                 // Emit via socket for real-time delivery
-                socket.emit('sendMessage', {
-                    threadId: thread._id,
-                    message: res.data.message
-                });
+                if (socket && socket.connected) {
+                    socket.emit('sendMessage', {
+                        threadId: thread._id,
+                        message: { ...res.data.message, tempId }
+                    });
+                }
+
+                // Update the optimistic message with server data
+                setMessages(prev => prev.map(m => m.tempId === tempId ? res.data.message : m));
             }
         } catch (err) {
             console.error("Failed to send message", err);
+            // Optionally remove optimistic message or show error
+            setMessages(prev => prev.filter(m => m.tempId !== tempId));
         }
     };
 

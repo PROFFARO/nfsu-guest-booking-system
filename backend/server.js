@@ -26,6 +26,7 @@ import reviewRoutes from './routes/reviews.js';
 import auditLogRoutes from './routes/auditLogs.js';
 import chatRoutes from './routes/chats.js';
 import faqRoutes from './routes/faq.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -180,8 +181,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // API routes
-// Rate limit: strict on auth (10 req/15min), general on all API (100 req/15min)
-app.use('/api/auth', authLimiter, authRoutes);
+// Rate limit: strict on auth (applied internally in auth routes), general on all API (2000 req/15min)
+app.use('/api/auth', apiLimiter, authRoutes);
 app.use('/api/rooms', apiLimiter, roomRoutes);
 app.use('/api/bookings', apiLimiter, authMiddleware, bookingRoutes);
 // Payments routes removed
@@ -190,6 +191,7 @@ app.use('/api/reviews', apiLimiter, reviewRoutes);
 app.use('/api/audit-logs', apiLimiter, authMiddleware, auditLogRoutes);
 app.use('/api/chats', apiLimiter, authMiddleware, chatRoutes);
 app.use('/api/faq', apiLimiter, faqRoutes);
+app.use('/api/dashboard', apiLimiter, authMiddleware, dashboardRoutes);
 
 // Serve static upload files (Legacy fallback)
 const uploadsPath = path.join(__dirname, 'uploads');

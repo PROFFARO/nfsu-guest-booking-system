@@ -5,11 +5,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { AccessibilityProvider } from "@/context/AccessibilityContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "sonner";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import GoogleTranslateFix from "@/components/layout/GoogleTranslateFix";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+import ClientProviders from "@/components/layout/ClientProviders";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -33,11 +30,9 @@ export default function RootLayout({ children }) {
             <AuthProvider>
               <SocketProvider>
                 <TooltipProvider>
-                  <Navbar />
-                  <main className="flex-1 w-full max-w-full overflow-x-hidden">{children}</main>
-                  <ChatWidget />
-                  <Footer />
-                  <Toaster richColors position="top-right" />
+                  <ClientProviders>
+                    {children}
+                  </ClientProviders>
                 </TooltipProvider>
               </SocketProvider>
             </AuthProvider>

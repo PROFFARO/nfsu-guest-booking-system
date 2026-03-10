@@ -26,51 +26,34 @@ export default function AdminDashboard() {
     const [analyticsBookings, setAnalyticsBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
-            const results = await Promise.allSettled([
-                api.rooms.stats(),
-                api.bookings.list({ limit: 100 }),
-                api.auditLogs.getAll({ action: 'MAINTENANCE_REPORT', limit: 10 }),
-                api.auditLogs.getAll({ action: 'SUPPLY_REQUEST', limit: 10 })
-            ]);
+            const res = await api.dashboard.stats();
+            if (res.status === 'success') {
+                const { roomStats, bookings, maintenanceReports, supplyRequests } = res.data;
 
-            if (results[0].status === 'fulfilled') setRoomStats(results[0].value.data);
-            if (results[1].status === 'fulfilled') {
-                const allBookings = results[1].value.data.bookings || [];
-                setAnalyticsBookings(allBookings);
-                setRecentBookings(allBookings.slice(0, 5));
+                setRoomStats(roomStats);
+                setAnalyticsBookings(bookings || []);
+                setRecentBookings((bookings || []).slice(0, 5));
+                setMaintenanceReports(maintenanceReports || []);
+                setSupplyRequests(supplyRequests || []);
             }
-            if (results[2].status === 'fulfilled') setMaintenanceReports(results[2].value.data || []);
-            if (results[3].status === 'fulfilled') setSupplyRequests(results[3].value.data || []);
-
-            // Log rejection for debugging
-            results.forEach((res, i) => {
-                if (res.status === 'rejected') console.warn(`Dashboard fetch failed for endpoint ${i}:`, res.reason);
-            });
-
         } catch (err) {
             console.error('Critical dashboard fetch error:', err);
             toast.error('Failed to load analytical data');
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchData(true); // Initial fetch with loading indicator
 
-        // Add polling fallback for production/Vercel (30s)
-        const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-        let interval;
-        if (isProduction) {
-            interval = setInterval(fetchData, 30000);
-        }
+        // Background refresh every 30 seconds
+        const interval = setInterval(() => fetchData(false), 30000);
 
-        return () => {
-            if (interval) clearInterval(interval);
-        };
+        return () => clearInterval(interval); // Cleanup interval on unmount
     }, []);
 
     // 1. Room Summary Stats

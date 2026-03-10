@@ -56,7 +56,7 @@ export default function ProfilePage() {
     const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '' });
     const [saving, setSaving] = useState(false);
     const [changingPw, setChangingPw] = useState(false);
-    
+
     // two-factor authentication state
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.twoFactorEnabled || false);
     const [settingUp2fa, setSettingUp2fa] = useState(false);
@@ -81,7 +81,7 @@ export default function ProfilePage() {
             const res = await api.auth.sessions();
             setSessions(res.data.sessions || []);
         } catch (err) {
-            console.error('Failed to load sessions');
+            console.error('Failed to load sessions:', err);
         } finally {
             setLoadingSessions(false);
         }
@@ -486,11 +486,10 @@ export default function ProfilePage() {
                                                         className={`flex items-center gap-4 px-6 py-3 ${entry.status === 'failed' ? 'bg-red-50/30 dark:bg-red-950/5' : ''}`}
                                                     >
                                                         {/* Status Icon */}
-                                                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border ${
-                                                            entry.status === 'success'
+                                                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border ${entry.status === 'success'
                                                                 ? 'border-emerald-500/30 bg-emerald-100 dark:bg-emerald-900/20'
                                                                 : 'border-red-500/30 bg-red-100 dark:bg-red-900/20'
-                                                        }`}>
+                                                            }`}>
                                                             {entry.status === 'success' ? (
                                                                 <CircleCheckBig className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                                             ) : (
@@ -501,11 +500,10 @@ export default function ProfilePage() {
                                                         {/* Entry Info */}
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                                <Badge variant="outline" className={`rounded-sm text-[9px] font-noto-bold uppercase tracking-widest px-1.5 py-0 h-4 border ${
-                                                                    entry.status === 'success'
+                                                                <Badge variant="outline" className={`rounded-sm text-[9px] font-noto-bold uppercase tracking-widest px-1.5 py-0 h-4 border ${entry.status === 'success'
                                                                         ? 'border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
                                                                         : 'border-red-500/30 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                                                                }`}>
+                                                                    }`}>
                                                                     {entry.status}
                                                                 </Badge>
                                                                 <span className="text-xs font-noto-medium text-foreground truncate">
