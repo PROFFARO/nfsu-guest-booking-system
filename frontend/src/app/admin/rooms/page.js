@@ -628,7 +628,7 @@ export default function RoomManagementPage() {
                                     </div>
                                     <div>
                                         <p className="font-noto-bold text-base text-foreground uppercase tracking-tight">Bulk Actions Active</p>
-                                        <p className="text-[11px] font-noto-medium text-muted-foreground mt-0.5 tracking-wide">Managing {selectedRoomIds.length} units from inventory.</p>
+                                        <p className="text-[11px] font-noto-medium text-muted-foreground mt-0.5 tracking-wide">Managing {selectedRoomIds.length} {selectedRoomIds.length === 1 ? 'unit' : 'units'} from inventory.</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
@@ -908,13 +908,20 @@ export default function RoomManagementPage() {
                     <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-red-600 dark:text-red-500 uppercase tracking-tight">
-                                <AlertTriangle className="h-7 w-7" /> Mass Deactivation
+                                <AlertTriangle className="h-7 w-7" /> {selectedRoomIds.length === 1 ? 'Unit Deactivation' : 'Bulk Deactivation'}
                             </DialogTitle>
                             <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
-                                CRITICAL: You are about to deactivate <strong className="text-foreground">{selectedRoomIds.length}</strong> room units simultaneously.
-                                This will remove these records from the active inventory and terminate their availability. This operation should be treated with utmost scrutiny.
+                                CRITICAL: You are about to deactivate <strong className="text-foreground">{selectedRoomIds.length}</strong> room {selectedRoomIds.length === 1 ? 'unit' : 'units'} from the inventory.
+                                This will remove the following records from the active pool:
                             </DialogDescription>
                         </DialogHeader>
+                        <div className="flex flex-wrap gap-2 mt-4 max-h-[100px] overflow-y-auto p-1">
+                            {rooms.filter(r => selectedRoomIds.includes(r._id)).map(r => (
+                                <Badge key={r._id} variant="outline" className="border-red-200 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 font-noto-bold uppercase tracking-wider text-[10px]">
+                                    {r.roomNumber}
+                                </Badge>
+                            ))}
+                        </div>
                         <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20 rounded-md p-4 mt-4">
                             <p className="font-noto-bold text-xs text-red-600 dark:text-red-400 uppercase tracking-widest flex items-center gap-2">
                                 <AlertTriangle className="h-3.5 w-3.5" /> High Impact Action
@@ -925,7 +932,7 @@ export default function RoomManagementPage() {
                         </div>
                         <DialogFooter className="gap-3 pt-6 mt-4">
                             <DialogClose asChild>
-                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Abort Operation</Button>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Go Back</Button>
                             </DialogClose>
                             <Button
                                 variant="destructive"
@@ -934,7 +941,7 @@ export default function RoomManagementPage() {
                                 className="rounded-md bg-red-600 hover:bg-red-700 text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg shadow-red-500/20"
                             >
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Confirm Mass Deactivation
+                                {selectedRoomIds.length === 1 ? 'Acknowledge Deactivation' : 'Confirm Bulk Deactivation'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -945,13 +952,19 @@ export default function RoomManagementPage() {
                     <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-purple-600 dark:text-purple-500 uppercase tracking-tight">
-                                <AlertTriangle className="h-7 w-7" /> Mass Suspension
+                                <AlertTriangle className="h-7 w-7" /> {selectedRoomIds.length === 1 ? 'Unit Suspension' : 'Bulk Suspension'}
                             </DialogTitle>
                             <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
-                                You are about to suspend <strong className="text-foreground">{selectedRoomIds.length}</strong> room units for a specific duration.
-                                These units will be reserved for official purposes and hidden from public booking.
+                                You are about to suspend <strong className="text-foreground">{selectedRoomIds.length}</strong> room {selectedRoomIds.length === 1 ? 'unit' : 'units'} for a specific duration.
                             </DialogDescription>
                         </DialogHeader>
+                        <div className="flex flex-wrap gap-2 mt-4 max-h-[80px] overflow-y-auto p-1">
+                            {rooms.filter(r => selectedRoomIds.includes(r._id)).map(r => (
+                                <Badge key={r._id} variant="outline" className="border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 font-noto-bold uppercase tracking-wider text-[10px]">
+                                    {r.roomNumber}
+                                </Badge>
+                            ))}
+                        </div>
                         <div className="space-y-6 mt-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -986,7 +999,7 @@ export default function RoomManagementPage() {
                         </div>
                         <DialogFooter className="gap-3 pt-6 mt-4">
                             <DialogClose asChild>
-                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Abort</Button>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Go Back</Button>
                             </DialogClose>
                             <Button
                                 onClick={handleBulkBlock}
@@ -994,7 +1007,7 @@ export default function RoomManagementPage() {
                                 className="rounded-md bg-purple-600 hover:bg-purple-700 text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg shadow-purple-500/20"
                             >
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Suspend Units
+                                {selectedRoomIds.length === 1 ? 'Suspend Unit' : 'Suspend Selected Units'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
