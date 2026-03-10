@@ -547,16 +547,21 @@ body.translated-rtl {
     @apply border-2 border-[#004A99] dark:border-cyan-800 rounded-lg shadow-2xl;
   }
 
-  /* Custom Scrollbar */
+  /* Custom Scrollbar - Refined & Subtle */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--background);
+    background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 10px;
+    opacity: 0.5;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
   }
 
   /* Table Bordering System for Leadger */

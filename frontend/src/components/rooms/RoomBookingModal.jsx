@@ -136,7 +136,10 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-[100vw] sm:max-w-[98vw] lg:max-w-7xl w-full h-[100dvh] sm:h-[95vh] lg:h-[90vh] p-0 overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl !max-w-none sm:!max-w-[98vw] lg:!max-w-7xl">
+            <DialogContent
+                showCloseButton={true}
+                className="!fixed !inset-0 !z-[70] !p-0 !m-0 !max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[98vw] lg:!w-full lg:max-w-7xl sm:!h-[95vh] lg:!h-[90vh] overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl"
+            >
                 <DialogTitle className="sr-only">Room {room?.roomNumber} Requisition</DialogTitle>
                 <DialogDescription className="sr-only">Official Room Requisition Portal</DialogDescription>
 
@@ -146,7 +149,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                         <Skeleton className="h-10 w-48 sm:w-64" />
                     </div>
                 ) : room ? (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-8 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 sm:p-8 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 relative overflow-hidden">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-8 w-full sm:w-auto">
                             <div className="w-full sm:w-auto">
                                 <h2 className="text-xl sm:text-3xl font-noto-bold tracking-tighter text-[#004A99] dark:text-cyan-500 uppercase">Unit {room.roomNumber}</h2>
@@ -176,7 +179,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                 ) : null}
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-y-auto p-3 sm:p-10 custom-scrollbar bg-background">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar bg-background">
                     {loading ? (
                         <div className="grid gap-10 lg:grid-cols-2">
                             <Skeleton className="h-[500px] w-full rounded-md" />
@@ -344,8 +347,8 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                 </div>
 
                                                 {/* Requisition Summary Table */}
-                                                <div className="pt-6 sm:pt-8 border-t-2 border-border">
-                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-3 sm:p-6 space-y-4">
+                                                <div className="pt-8 sm:pt-8 border-t-2 border-border">
+                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-4 sm:p-6 space-y-4 rounded-xl">
                                                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">
                                                             <span>Duration</span>
                                                             <span className="text-foreground text-xs uppercase">{nights || '—'} Night(s)</span>

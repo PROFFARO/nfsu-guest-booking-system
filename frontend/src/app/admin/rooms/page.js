@@ -297,21 +297,21 @@ export default function RoomManagementPage() {
 
     // --- Room Form Renderer ---
     const renderRoomForm = (onSubmit, submitLabel) => (
-        <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                    <Label htmlFor="roomNumber" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Number *</Label>
+        <div className="grid gap-6 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="roomNumber" className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Room Number *</Label>
                     <Input
                         id="roomNumber"
                         placeholder="e.g. 101"
                         value={form.roomNumber}
                         onChange={(e) => setForm({ ...form, roomNumber: e.target.value })}
-                        className={`rounded-sm border-border bg-background h-10 ${errors.roomNumber ? 'border-red-500' : ''}`}
+                        className={`rounded-md border-2 border-border bg-background h-12 px-4 focus:border-[#0056b3] transition-all ${errors.roomNumber ? 'border-red-500' : ''}`}
                     />
                     {errors.roomNumber && <p className="text-[11px] font-noto-medium text-red-500">{errors.roomNumber}</p>}
                 </div>
-                <div className="space-y-1.5">
-                    <Label htmlFor="pricePerNight" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Price / Night (₹) *</Label>
+                <div className="space-y-2">
+                    <Label htmlFor="pricePerNight" className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Price / Night (₹) *</Label>
                     <Input
                         id="pricePerNight"
                         type="number"
@@ -319,58 +319,58 @@ export default function RoomManagementPage() {
                         min="0"
                         value={form.pricePerNight}
                         onChange={(e) => setForm({ ...form, pricePerNight: e.target.value })}
-                        className={`rounded-sm border-border bg-background h-10 ${errors.pricePerNight ? 'border-red-500' : ''}`}
+                        className={`rounded-md border-2 border-border bg-background h-12 px-4 focus:border-[#0056b3] transition-all ${errors.pricePerNight ? 'border-red-500' : ''}`}
                     />
                     {errors.pricePerNight && <p className="text-[11px] font-noto-medium text-red-500">{errors.pricePerNight}</p>}
                 </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Type *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Room Type *</Label>
                     <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.type ? 'border-red-500' : ''}`}>
+                        <SelectTrigger className={`rounded-md border-2 border-border bg-background h-12 focus:ring-0 focus:border-[#0056b3] transition-all ${errors.type ? 'border-red-500' : ''}`}>
                             <SelectValue placeholder="Select type" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-md border-2 border-border">
                             <SelectItem value="single">Single</SelectItem>
                             <SelectItem value="double">Double</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Floor *</Label>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Floor *</Label>
                     <Select value={form.floor} onValueChange={(v) => setForm({ ...form, floor: v })}>
-                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.floor ? 'border-red-500' : ''}`}>
+                        <SelectTrigger className={`rounded-md border-2 border-border bg-background h-12 focus:ring-0 focus:border-[#0056b3] transition-all ${errors.floor ? 'border-red-500' : ''}`}>
                             <SelectValue placeholder="Select floor" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-md border-2 border-border">
                             {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f}>Floor {f}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Block *</Label>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Block *</Label>
                     <Select value={form.block} onValueChange={(v) => setForm({ ...form, block: v })}>
-                        <SelectTrigger className={`rounded-sm border-border bg-background h-10 ${errors.block ? 'border-red-500' : ''}`}>
+                        <SelectTrigger className={`rounded-md border-2 border-border bg-background h-12 focus:ring-0 focus:border-[#0056b3] transition-all ${errors.block ? 'border-red-500' : ''}`}>
                             <SelectValue placeholder="Select block" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-md border-2 border-border">
                             {['A', 'B', 'C', 'D', 'E', 'F'].map(b => <SelectItem key={b} value={b}>Block {b}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
             </div>
-            <div className="space-y-1.5">
-                <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Facilities</Label>
-                <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
+                <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Facilities</Label>
+                <div className="flex flex-wrap gap-2.5">
                     {FACILITIES.map(fac => (
                         <button
                             key={fac}
                             type="button"
                             onClick={() => toggleFacility(fac)}
-                            className={`rounded-sm border px-3 py-1.5 text-[11px] font-noto-medium uppercase tracking-wider transition-colors ${form.facilities.includes(fac)
-                                ? 'border-[#0056b3] bg-[#0056b3]/10 text-[#0056b3] dark:border-cyan-500 dark:bg-cyan-500/10 dark:text-cyan-400'
-                                : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                            className={`rounded-md border-2 px-4 py-2 text-[10px] font-noto-bold uppercase tracking-widest transition-all ${form.facilities.includes(fac)
+                                ? 'border-[#0056b3] bg-[#0056b3]/10 text-[#0056b3] dark:border-cyan-500 dark:bg-cyan-500/10 dark:text-cyan-400 shadow-sm'
+                                : 'border-slate-200 dark:border-slate-800 bg-background text-muted-foreground hover:bg-muted hover:border-slate-300'
                                 }`}
                         >
                             {fac}
@@ -378,37 +378,37 @@ export default function RoomManagementPage() {
                     ))}
                 </div>
             </div>
-            <div className="space-y-1.5">
-                <Label htmlFor="description" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Description</Label>
+            <div className="space-y-2">
+                <Label htmlFor="description" className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Description</Label>
                 <Textarea
                     id="description"
-                    placeholder="Optional room description (max 500 chars)"
+                    placeholder="Provide a detailed room description..."
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     maxLength={500}
-                    rows={3}
-                    className={`rounded-sm border-border bg-background ${errors.description ? 'border-red-500' : ''}`}
+                    rows={4}
+                    className={`rounded-md border-2 border-border bg-background p-4 focus:border-[#0056b3] transition-all resize-none ${errors.description ? 'border-red-500' : ''}`}
                 />
-                <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.description.length}/500</p>
+                <p className="text-[10px] text-muted-foreground font-noto-bold uppercase tracking-tighter text-right opacity-60">{form.description.length} / 500</p>
             </div>
-            <div className="space-y-1.5">
-                <Label htmlFor="notes" className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Internal Notes</Label>
+            <div className="space-y-2">
+                <Label htmlFor="notes" className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Staff Internal Notes</Label>
                 <Textarea
                     id="notes"
-                    placeholder="Staff-only notes (max 1000 chars)"
+                    placeholder="Administrative or maintenance notes..."
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     maxLength={1000}
                     rows={2}
-                    className="rounded-sm border-border bg-background"
+                    className="rounded-md border-2 border-border bg-background p-4 focus:border-[#0056b3] transition-all resize-none"
                 />
-                <p className="text-[10px] text-muted-foreground font-noto-medium text-right">{form.notes.length}/1000</p>
+                <p className="text-[10px] text-muted-foreground font-noto-bold uppercase tracking-tighter text-right opacity-60">{form.notes.length} / 1000</p>
             </div>
 
             <div className="space-y-3 pt-2">
-                <Label className="text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">Room Images</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="h-40 border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center relative bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer group">
+                <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">Room Media Inventory</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="h-44 border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center relative bg-muted/20 hover:bg-muted/40 hover:border-[#0056b3] transition-all cursor-pointer group overflow-hidden">
                         <input
                             type="file"
                             multiple
@@ -421,21 +421,21 @@ export default function RoomManagementPage() {
                             }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         />
-                        <div className="text-center p-4">
-                            <Plus className="h-8 w-8 mx-auto text-muted-foreground/60 mb-2 group-hover:text-primary transition-colors" />
-                            <p className="text-sm font-noto-medium text-foreground">Add Images</p>
-                            <p className="text-[10px] text-muted-foreground mt-1">JPEG, PNG, WEBP allowed</p>
+                        <div className="text-center p-6">
+                            <Plus className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3 group-hover:text-[#0056b3] transition-colors" />
+                            <p className="text-xs font-noto-bold text-foreground">Add Institutional Assets</p>
+                            <p className="text-[9px] font-noto-medium text-muted-foreground mt-2 uppercase tracking-widest">JPEG, PNG, WEBP (Max 5MB)</p>
                         </div>
                     </div>
-                    <div className="h-40 rounded-sm overflow-hidden bg-muted/10 border border-border">
+                    <div className="h-44 rounded-xl overflow-hidden bg-muted/10 border-2 border-slate-200 dark:border-slate-800 shadow-inner">
                         <ImageSlider images={form.images} autoPlay className="h-full w-full" />
                     </div>
                 </div>
                 {form.images?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-wrap gap-2.5 mt-2">
                         {form.images.map((img, idx) => (
-                            <div key={idx} className="relative group bg-muted rounded-sm px-2 py-1 flex items-center gap-2 border border-border">
-                                <span className="text-[10px] max-w-25 truncate font-noto-medium">
+                            <div key={idx} className="relative group bg-muted/30 rounded-md px-3 py-2 flex items-center gap-3 border-2 border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:bg-muted">
+                                <span className="text-[10px] max-w-[120px] truncate font-noto-bold text-muted-foreground uppercase tracking-tight">
                                     {img instanceof File ? img.name : img.filename}
                                 </span>
                                 <button
@@ -445,20 +445,20 @@ export default function RoomManagementPage() {
                                         e.stopPropagation();
                                         setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
                                     }}
-                                    className="text-red-500 hover:text-red-700 opacity-50 group-hover:opacity-100 focus:outline-none"
+                                    className="text-red-500 hover:text-red-700 opacity-60 group-hover:opacity-100 focus:outline-none transition-opacity"
                                 >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
-            <DialogFooter className="gap-2 pt-4 border-t border-border mt-2">
+            <DialogFooter className="gap-3 pt-6 border-t-2 border-slate-100 dark:border-slate-800 mt-6 flex-col sm:flex-row">
                 <DialogClose asChild>
-                    <Button variant="outline" className="rounded-sm font-noto-medium h-9 px-4">Cancel</Button>
+                    <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-[0.2em] h-12 flex-1 sm:flex-none">Cancel</Button>
                 </DialogClose>
-                <Button onClick={onSubmit} disabled={saving} className="rounded-sm bg-[#0056b3] text-white hover:bg-[#004494] font-noto-medium h-9 px-6 shadow-sm">
+                <Button onClick={onSubmit} disabled={saving} className="rounded-md bg-[#0056b3] text-white hover:bg-[#004494] font-noto-bold text-[10px] uppercase tracking-[0.2em] h-12 px-8 flex-1 sm:flex-none shadow-lg">
                     {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {submitLabel}
                 </Button>
@@ -661,53 +661,57 @@ export default function RoomManagementPage() {
 
                 {/* Create Room Dialog */}
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border-border bg-card shadow-md">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
-                                <Plus className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Add New Room
+                    <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
+                        <DialogHeader className="p-6 pb-0">
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                <Plus className="h-7 w-7" /> Add New Unit
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
-                                Fill in the details to create a new room. Fields marked * are required.
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-2">
+                                Register a new unit into the official accommodations inventory.
                             </DialogDescription>
                         </DialogHeader>
-                        {renderRoomForm(handleCreate, "Create Room")}
+                        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                            {renderRoomForm(handleCreate, "Register Unit")}
+                        </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Edit Room Dialog */}
                 <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border-border bg-card shadow-md">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
-                                <Pencil className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" /> Edit Room {selectedRoom?.roomNumber}
+                    <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
+                        <DialogHeader className="p-6 pb-0">
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                <Pencil className="h-6 w-6" /> Edit Unit {selectedRoom?.roomNumber}
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
-                                Update the room information. Fields marked * are required.
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-2">
+                                Update the official records for this unit.
                             </DialogDescription>
                         </DialogHeader>
-                        {renderRoomForm(handleUpdate, "Save Changes")}
+                        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                            {renderRoomForm(handleUpdate, "Acknowledge Update")}
+                        </div>
                     </DialogContent>
                 </Dialog>
 
                 {/* Delete Confirmation Dialog */}
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                    <DialogContent className="max-w-sm rounded-sm border-border bg-card shadow-md">
+                    <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-red-600 dark:text-red-500">
-                                <AlertTriangle className="h-5 w-5" /> Delete Room
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-red-600 dark:text-red-500 uppercase tracking-tight">
+                                <AlertTriangle className="h-7 w-7" /> Deactivate Unit
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
-                                Are you sure you want to delete room <strong className="text-foreground">{selectedRoom?.roomNumber}</strong> (Block {selectedRoom?.block}, Floor {selectedRoom?.floor})?
-                                This will deactivate the room and it won&apos;t appear in listings.
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
+                                You are about to deactivate room <strong className="text-foreground">{selectedRoom?.roomNumber}</strong>.
+                                This record will be moved to the archive and will no longer be available for public requisition.
                             </DialogDescription>
                         </DialogHeader>
-                        <DialogFooter className="gap-2 pt-4">
+                        <DialogFooter className="gap-3 pt-6 mt-4">
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Abort</Button>
                             </DialogClose>
-                            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+                            <Button variant="destructive" onClick={handleDelete} disabled={saving} className="rounded-md bg-red-600 hover:bg-red-700 text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg">
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Delete Room
+                                Confirm Deletion
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -715,34 +719,42 @@ export default function RoomManagementPage() {
 
                 {/* Maintenance Scheduling Dialog */}
                 <Dialog open={maintOpen} onOpenChange={setMaintOpen}>
-                    <DialogContent className="max-w-sm rounded-sm border-border bg-card shadow-md">
+                    <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 font-noto-bold text-xl text-foreground">
-                                <Wrench className="h-5 w-5 text-slate-500" /> Schedule Maintenance
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                <Wrench className="h-7 w-7" /> Protocol Scheduled
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-1">
-                                Set maintenance window for Room <strong>{selectedRoom?.roomNumber}</strong> (Block {selectedRoom?.block}, Floor {selectedRoom?.floor})
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3">
+                                Define the maintenance window for Unit <strong>{selectedRoom?.roomNumber}</strong>.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 mt-4">
-                            <div>
-                                <Label className="text-xs font-noto-bold uppercase tracking-widest">Start Date *</Label>
-                                <Input type="date" value={maintForm.startDate} onChange={(e) => setMaintForm(p => ({ ...p, startDate: e.target.value }))} className="mt-1 rounded-sm border-2 border-border" />
+                        <div className="space-y-6 mt-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Start Date *</Label>
+                                    <Input type="date" value={maintForm.startDate} onChange={(e) => setMaintForm(p => ({ ...p, startDate: e.target.value }))} className="rounded-md border-2 border-border h-11" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">End Date *</Label>
+                                    <Input type="date" value={maintForm.endDate} onChange={(e) => setMaintForm(p => ({ ...p, endDate: e.target.value }))} className="rounded-md border-2 border-border h-11" />
+                                </div>
                             </div>
-                            <div>
-                                <Label className="text-xs font-noto-bold uppercase tracking-widest">End Date *</Label>
-                                <Input type="date" value={maintForm.endDate} onChange={(e) => setMaintForm(p => ({ ...p, endDate: e.target.value }))} className="mt-1 rounded-sm border-2 border-border" />
-                            </div>
-                            <div>
-                                <Label className="text-xs font-noto-bold uppercase tracking-widest">Reason</Label>
-                                <Textarea value={maintForm.reason} onChange={(e) => setMaintForm(p => ({ ...p, reason: e.target.value }))} placeholder="e.g. Plumbing repair, deep cleaning..." className="mt-1 rounded-sm border-2 border-border" />
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Reason / Directive</Label>
+                                <Textarea
+                                    value={maintForm.reason}
+                                    onChange={(e) => setMaintForm(p => ({ ...p, reason: e.target.value }))}
+                                    placeholder="e.g. Plumbing deep-clean, lighting audit..."
+                                    className="rounded-md border-2 border-border p-4 resize-none"
+                                    rows={3}
+                                />
                             </div>
                         </div>
-                        <DialogFooter className="gap-2 pt-4">
+                        <DialogFooter className="gap-3 pt-6 mt-4">
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Cancel</Button>
                             </DialogClose>
-                            <Button onClick={handleScheduleMaintenance} disabled={saving} className="bg-[#0056b3] hover:bg-[#004494] text-white rounded-sm">
+                            <Button onClick={handleScheduleMaintenance} disabled={saving} className="bg-[#0056b3] hover:bg-[#004494] text-white rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg">
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Schedule
                             </Button>
