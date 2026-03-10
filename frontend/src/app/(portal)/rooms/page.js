@@ -193,6 +193,7 @@ export default function RoomBrowsePage() {
                                 <SelectItem value="vacant">Vacant / Available</SelectItem>
                                 <SelectItem value="booked">Booked / Occupied</SelectItem>
                                 <SelectItem value="maintenance">Maintenance</SelectItem>
+                                <SelectItem value="suspended">Suspended / Reserved</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -281,7 +282,9 @@ export default function RoomBrowsePage() {
                                                                                         ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
                                                                                         : room.status === 'held'
                                                                                             ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/40'
-                                                                                            : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
+                                                                                            : room.status === 'suspended'
+                                                                                                ? 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-800/40'
+                                                                                                : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
                                                                                     }`}
                                                                             >
                                                                                 <div className="flex justify-between items-start mb-2">
@@ -292,13 +295,15 @@ export default function RoomBrowsePage() {
                                                                                     <div className={`h-2.5 w-2.5 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' :
                                                                                         room.status === 'booked' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' :
                                                                                             room.status === 'held' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' :
-                                                                                                'bg-slate-400'
+                                                                                                room.status === 'suspended' ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]' :
+                                                                                                    'bg-slate-400'
                                                                                         }`} />
                                                                                 </div>
                                                                                 <div className={`text-[8px] font-noto-bold uppercase tracking-widest mt-4 opacity-70 ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
                                                                                     room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
-                                                                                        'text-muted-foreground'
-                                                                                    }`}>UNIT RECORD</div>
+                                                                                        room.status === 'suspended' ? 'text-purple-700/60 dark:text-purple-400/60' :
+                                                                                            'text-muted-foreground'
+                                                                                    }`}>{room.status === 'suspended' ? 'BLOCKED' : 'UNIT RECORD'}</div>
                                                                             </button>
                                                                         </div>
                                                                     ))
@@ -351,7 +356,9 @@ export default function RoomBrowsePage() {
                                                                                         ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
                                                                                         : room.status === 'held'
                                                                                             ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/40'
-                                                                                            : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
+                                                                                            : room.status === 'suspended'
+                                                                                                ? 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-800/40'
+                                                                                                : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
                                                                                     }`}
                                                                             >
                                                                                 <div className="flex justify-between items-start mb-2">
@@ -362,7 +369,8 @@ export default function RoomBrowsePage() {
                                                                                     <div className={`h-2 w-2 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                                                                                         room.status === 'booked' ? 'bg-red-500' :
                                                                                             room.status === 'held' ? 'bg-amber-500' :
-                                                                                                'bg-slate-400'
+                                                                                                room.status === 'suspended' ? 'bg-purple-500 font-noto-bold' :
+                                                                                                    'bg-slate-400'
                                                                                         }`} />
                                                                                 </div>
                                                                                 <div className={`text-[7px] font-noto-bold uppercase tracking-widest mt-2 opacity-60 font-noto-black ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
@@ -395,7 +403,8 @@ export default function RoomBrowsePage() {
                         { label: 'Available / Vacant', dot: 'bg-emerald-500', fill: 'bg-white dark:bg-slate-900 border-slate-200' },
                         { label: 'Occupied / Booked', dot: 'bg-red-500', fill: 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60' },
                         { label: 'Requisition Held', dot: 'bg-amber-500', fill: 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60' },
-                        { label: 'Out of Order', dot: 'bg-slate-400', fill: 'bg-slate-100 dark:bg-slate-800/30 border-slate-200/60' }
+                        { label: 'Official Block', dot: 'bg-purple-500', fill: 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-200/60' },
+                        { label: 'Maintenance / Service', dot: 'bg-slate-400', fill: 'bg-slate-100 dark:bg-slate-800/30 border-slate-200/60' }
                     ].map(item => (
                         <div key={item.label} className="flex items-center gap-3 group transition-all">
                             <div className={`h-8 w-12 rounded-md ${item.fill} border flex items-center justify-center relative overflow-hidden shadow-sm px-2`}>

@@ -659,13 +659,68 @@ router.delete('/bulk', [
     });
   }
 
-  res.json({
-    status: 'success',
-    message: `${deletedCount.deletedCount} items deleted successfully`,
-    data: { count: deletedCount.deletedCount }
-  });
+  res.json({ status: 'success', message: `${deletedCount.deletedCount} rooms deleted successfully` });
 }));
 
+// @route   POST /api/rooms/bulk-block
+// @desc    Block multiple rooms for a period (Admin/Staff only)
+// @access  Private (Admin/Staff)
+router.post('/bulk-block', [
+  authMiddleware,
+  staffMiddleware,
+  body('ids').isArray().withMessage('Room IDs must be an array'),
+  body('startDate').isISO8601().withMessage('Valid start date is required'),
+  body('endDate').isISO8601().withMessage('Valid end date is required'),
+  body('reason').optional().isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { ids, startDate, endDate, reason } = req.body;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (start >= end) {
+    return res.status(400).json({ status: 'error', message: 'End date must be after start date' });
+  }
+
+  const result = await Room.updateMany(
+    { _id: { $in: ids } },
+    {
+      $set: {
+        status: 'suspended',
+        holdBy: null,
+        holdUntil: null,
+        suspensionRecord: {
+          startDate: start,
+          endDate: end,
+          reason: reason || 'Mass block for official requisition',
+          suspendedBy: req.user._id
+        }
+      }
+    }
+  );
+
+  // Broadcast updates and log audit
+  for (const id of ids) {
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: id, status: 'suspended' }); } catch { }
+  }
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_BULK_BLOCK',
+    details: { roomIds: ids, count: ids.length, startDate, endDate, reason },
+    req
+  });
+
+  res.json({
+    status: 'success',
+    message: `Successfully blocked ${result.modifiedCount} rooms`,
+    data: { modifiedCount: result.modifiedCount }
+  });
+}));
 // @route   DELETE /api/rooms/:id
 // @desc    Delete room (Admin/Staff only)
 // @access  Private (Admin/Staff)
@@ -706,7 +761,7 @@ router.put('/:id/status', [
   authMiddleware,
   staffMiddleware,
   param('id').isMongoId().withMessage('Invalid room ID'),
-  body('status').isIn(['vacant', 'booked', 'held', 'maintenance']).withMessage('Invalid status')
+  body('status').isIn(['vacant', 'booked', 'held', 'maintenance', 'suspended']).withMessage('Invalid status')
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);

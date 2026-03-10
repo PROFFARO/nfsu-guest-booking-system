@@ -14,7 +14,7 @@ const roomSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['vacant', 'booked', 'held', 'maintenance'],
+    enum: ['vacant', 'booked', 'held', 'maintenance', 'suspended'],
     default: 'vacant'
   },
   // Temporary hold metadata for real-time selection and checkout
@@ -90,6 +90,13 @@ const roomSchema = new mongoose.Schema({
     endDate: { type: Date, default: null },
     reason: { type: String, maxlength: [500, 'Maintenance reason cannot exceed 500 characters'], default: '' },
     scheduledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  },
+  // Suspension / Block records
+  suspensionRecord: {
+    startDate: { type: Date, default: null },
+    endDate: { type: Date, default: null },
+    reason: { type: String, maxlength: [500, 'Suspension reason cannot exceed 500 characters'], default: '' },
+    suspendedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
   }
 }, {
   timestamps: true
@@ -118,16 +125,22 @@ roomSchema.virtual('roomIdentifier').get(function () {
 roomSchema.methods.canBeBooked = function () {
   const now = new Date();
   const notEffectivelyHeld = this.status !== 'held' || (this.holdUntil && this.holdUntil < now);
-  return this.isActive && (this.status === 'vacant' || (this.status === 'held' && notEffectivelyHeld));
+  // Room must be active and not suspended to be bookable
+  return this.isActive && this.status !== 'suspended' && (this.status === 'vacant' || (this.status === 'held' && notEffectivelyHeld));
 };
 
 // Method to update room status
 roomSchema.methods.updateStatus = function (newStatus) {
-  if (['vacant', 'booked', 'held', 'maintenance'].includes(newStatus)) {
+  if (['vacant', 'booked', 'held', 'maintenance', 'suspended'].includes(newStatus)) {
     this.status = newStatus;
     if (newStatus !== 'held') {
       this.holdBy = null;
       this.holdUntil = null;
+    }
+    if (newStatus !== 'suspended') {
+      // If moving away from suspended, clear the record if needed
+      // but usually we might want to keep it as history? 
+      // For now, let's keep it consistent with holdBy logic
     }
     return this.save();
   }

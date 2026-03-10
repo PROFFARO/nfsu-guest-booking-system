@@ -171,7 +171,8 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                         <div className={`mt-3 sm:mt-0 border-2 px-3 sm:px-6 py-1 rounded-md text-[8px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
                             room.status === 'booked' ? 'status-booked-text status-booked-border' :
                                 room.status === 'held' ? 'status-held-text status-held-border' :
-                                    'status-maintenance-text status-maintenance-border'
+                                    room.status === 'suspended' ? 'border-purple-200 text-purple-600 bg-purple-50' :
+                                        'status-maintenance-text status-maintenance-border'
                             }`}>
                             STATUS: {room.status}
                         </div>

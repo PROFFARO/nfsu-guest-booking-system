@@ -27,6 +27,7 @@ const statusColors = {
     booked: 'bg-red-500/10 text-red-500 border-red-500/20',
     held: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     maintenance: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    suspended: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 
 const FACILITIES = ['Gym', 'WiFi', 'AC', 'TV', 'Refrigerator', 'Balcony', 'Parking'];
@@ -76,6 +77,10 @@ export default function RoomManagementPage() {
     // Bulk delete state
     const [selectedRoomIds, setSelectedRoomIds] = useState([]);
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+    // Bulk block state
+    const [bulkBlockOpen, setBulkBlockOpen] = useState(false);
+    const [blockForm, setBlockForm] = useState({ startDate: '', endDate: '', reason: '' });
 
     const fetchRooms = async () => {
         setLoading(true);
@@ -314,6 +319,27 @@ export default function RoomManagementPage() {
             fetchRooms();
         } catch (err) {
             toast.error(err.message || 'Failed to delete rooms');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleBulkBlock = async () => {
+        if (!blockForm.startDate || !blockForm.endDate) {
+            return toast.error('Durational parameters are required');
+        }
+        setSaving(true);
+        try {
+            await api.rooms.bulkBlock({
+                ids: selectedRoomIds,
+                ...blockForm
+            });
+            toast.success(`${selectedRoomIds.length} units have been suspended`);
+            setSelectedRoomIds([]);
+            setBulkBlockOpen(false);
+            fetchRooms();
+        } catch (err) {
+            toast.error(err.message || 'Failed to execute mass blocking');
         } finally {
             setSaving(false);
         }
@@ -601,24 +627,35 @@ export default function RoomManagementPage() {
                                         {selectedRoomIds.length}
                                     </div>
                                     <div>
-                                        <p className="font-noto-bold text-base text-foreground uppercase tracking-tight">Delete Active Room(s)</p>
+                                        <p className="font-noto-bold text-base text-foreground uppercase tracking-tight">Bulk Actions Active</p>
                                         <p className="text-[11px] font-noto-medium text-muted-foreground mt-0.5 tracking-wide">Managing {selectedRoomIds.length} units from inventory.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setSelectedRoomIds([])}
-                                        className="flex-1 md:flex-none h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-background border-border hover:bg-muted"
+                                        className="h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-background border-border hover:bg-muted"
                                     >
                                         Cancel
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setBlockForm({ startDate: '', endDate: '', reason: '' });
+                                            setBulkBlockOpen(true);
+                                        }}
+                                        className="h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] border-purple-500 text-purple-600 hover:bg-purple-600 hover:text-white shadow-md shadow-purple-500/10"
+                                    >
+                                        <AlertTriangle className="mr-2 h-4 w-4" /> Bulk Block
                                     </Button>
                                     <Button
                                         variant="destructive"
                                         size="sm"
                                         onClick={() => setBulkDeleteOpen(true)}
-                                        className="flex-1 md:flex-none h-11 px-6 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20"
+                                        className="h-11 px-6 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20"
                                     >
                                         <Trash2 className="mr-2 h-4 w-4" /> Bulk Delete
                                     </Button>
@@ -703,7 +740,9 @@ export default function RoomManagementPage() {
                                                 <Select value={room.status} onValueChange={(v) => handleStatusChange(room._id, v)}>
                                                     <SelectTrigger className={`w-[130px] h-8 text-xs font-noto-bold uppercase tracking-wider rounded-sm border-transparent ${room.status === 'vacant' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' :
                                                         room.status === 'booked' ? 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400' :
-                                                            room.status === 'held' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-400'
+                                                            room.status === 'held' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400' :
+                                                                room.status === 'suspended' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400' :
+                                                                    'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-400'
                                                         }`}>
                                                         <SelectValue />
                                                     </SelectTrigger>
@@ -712,6 +751,7 @@ export default function RoomManagementPage() {
                                                         <SelectItem value="booked">Booked</SelectItem>
                                                         <SelectItem value="held">Held</SelectItem>
                                                         <SelectItem value="maintenance">Maintenance</SelectItem>
+                                                        <SelectItem value="suspended">Suspended</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </TableCell>
@@ -746,19 +786,21 @@ export default function RoomManagementPage() {
                 </Card>
 
                 {/* Pagination */}
-                {pagination && pagination.totalPages > 1 && (
-                    <div className="mt-6 flex items-center justify-center gap-2">
-                        <Button variant="outline" size="sm" disabled={!pagination.hasPrevPage} onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="px-4 text-sm text-muted-foreground">
-                            Page {pagination.currentPage} of {pagination.totalPages}
-                        </span>
-                        <Button variant="outline" size="sm" disabled={!pagination.hasNextPage} onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                )}
+                {
+                    pagination && pagination.totalPages > 1 && (
+                        <div className="mt-6 flex items-center justify-center gap-2">
+                            <Button variant="outline" size="sm" disabled={!pagination.hasPrevPage} onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="px-4 text-sm text-muted-foreground">
+                                Page {pagination.currentPage} of {pagination.totalPages}
+                            </span>
+                            <Button variant="outline" size="sm" disabled={!pagination.hasNextPage} onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )
+                }
 
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
@@ -893,6 +935,66 @@ export default function RoomManagementPage() {
                             >
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Confirm Mass Deactivation
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Mass Blocking / Suspension Dialog */}
+                <Dialog open={bulkBlockOpen} onOpenChange={setBulkBlockOpen}>
+                    <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-purple-600 dark:text-purple-500 uppercase tracking-tight">
+                                <AlertTriangle className="h-7 w-7" /> Mass Suspension
+                            </DialogTitle>
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
+                                You are about to suspend <strong className="text-foreground">{selectedRoomIds.length}</strong> room units for a specific duration.
+                                These units will be reserved for official purposes and hidden from public booking.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-6 mt-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Start Date *</Label>
+                                    <Input
+                                        type="date"
+                                        value={blockForm.startDate}
+                                        onChange={(e) => setBlockForm(p => ({ ...p, startDate: e.target.value }))}
+                                        className="rounded-md border-2 border-border h-11"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">End Date *</Label>
+                                    <Input
+                                        type="date"
+                                        value={blockForm.endDate}
+                                        onChange={(e) => setBlockForm(p => ({ ...p, endDate: e.target.value }))}
+                                        className="rounded-md border-2 border-border h-11"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Reason / Directive</Label>
+                                <Textarea
+                                    value={blockForm.reason}
+                                    onChange={(e) => setBlockForm(p => ({ ...p, reason: e.target.value }))}
+                                    placeholder="e.g. Batch Requisition for official delegation..."
+                                    className="rounded-md border-2 border-border p-4 resize-none"
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter className="gap-3 pt-6 mt-4">
+                            <DialogClose asChild>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Abort</Button>
+                            </DialogClose>
+                            <Button
+                                onClick={handleBulkBlock}
+                                disabled={saving}
+                                className="rounded-md bg-purple-600 hover:bg-purple-700 text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg shadow-purple-500/20"
+                            >
+                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Suspend Units
                             </Button>
                         </DialogFooter>
                     </DialogContent>
