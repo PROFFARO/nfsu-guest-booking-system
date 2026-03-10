@@ -136,36 +136,36 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-[100vw] sm:max-w-[98vw] lg:max-w-7xl w-full h-[100dvh] sm:h-[95vh] lg:h-[90vh] p-0 overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl">
+            <DialogContent className="max-w-[100vw] sm:max-w-[98vw] lg:max-w-7xl w-full h-[100dvh] sm:h-[95vh] lg:h-[90vh] p-0 overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl !max-w-none sm:!max-w-[98vw] lg:!max-w-7xl">
                 <DialogTitle className="sr-only">Room {room?.roomNumber} Requisition</DialogTitle>
                 <DialogDescription className="sr-only">Official Room Requisition Portal</DialogDescription>
 
                 {/* Header Area */}
                 {loading ? (
-                    <div className="p-6 sm:p-8 border-b border-border bg-muted/5 shrink-0">
+                    <div className="p-4 sm:p-8 border-b border-border bg-muted/5 shrink-0">
                         <Skeleton className="h-10 w-48 sm:w-64" />
                     </div>
                 ) : room ? (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 sm:p-8 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 relative overflow-hidden">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-8 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-8 w-full sm:w-auto">
                             <div className="w-full sm:w-auto">
                                 <h2 className="text-xl sm:text-3xl font-noto-bold tracking-tighter text-[#004A99] dark:text-cyan-500 uppercase">Unit {room.roomNumber}</h2>
                             </div>
                             <div className="hidden sm:block h-10 w-[2px] bg-border/40" />
-                            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-6 text-[9px] sm:text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest">
                                 <span className="flex items-center gap-2">
-                                    <MapPin className="h-3.5 w-3.5 sm:h-4 w-4 text-[#004A99] dark:text-cyan-500" />
+                                    <MapPin className="h-3 w-3 sm:h-4 w-4 text-[#004A99] dark:text-cyan-500" />
                                     Floor {room.floor} • Block {room.block}
                                 </span>
                                 {room.numReviews > 0 && (
                                     <span className="flex items-center gap-2 text-amber-600 sm:border-l sm:border-border/40 sm:pl-6">
-                                        <Star className="h-3.5 w-3.5 sm:h-4 w-4 fill-amber-500 text-amber-500" />
+                                        <Star className="h-3 w-3 sm:h-4 w-4 fill-amber-500 text-amber-500" />
                                         {room.rating.toFixed(1)} / 5.0
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className={`mt-4 sm:mt-0 border-2 px-4 sm:px-6 py-1 rounded-md text-[9px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
+                        <div className={`mt-3 sm:mt-0 border-2 px-3 sm:px-6 py-1 rounded-md text-[8px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
                             room.status === 'booked' ? 'status-booked-text status-booked-border' :
                                 room.status === 'held' ? 'status-held-text status-held-border' :
                                     'status-maintenance-text status-maintenance-border'
@@ -242,11 +242,11 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                         <span className="text-[9px] font-noto-bold text-muted-foreground uppercase">{reviews.length} Files</span>
                                     </div>
                                     {reviews.length === 0 ? (
-                                        <div className="p-6 text-center border-2 border-dashed border-border/40 bg-muted/5">
+                                        <div className="p-4 text-center border-2 border-dashed border-border/40 bg-muted/5">
                                             <p className="text-[10px] font-noto-bold text-muted-foreground uppercase italic tracking-widest">No records found</p>
                                         </div>
                                     ) : (
-                                        <div className="relative group">
+                                        <div className="relative group w-full overflow-hidden">
                                             <ReviewCarousel reviews={reviews} />
                                         </div>
                                     )}
@@ -255,8 +255,8 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
                             {/* Right Column: Requisition Form (Column Span 7) */}
                             <div className="lg:col-span-7 w-full">
-                                <div className="border border-border/60 rounded-xl bg-card p-4 sm:p-10 shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-[#004A99]" />
+                                <div className="border-0 sm:border border-border/60 rounded-none sm:rounded-xl bg-card p-4 sm:p-10 shadow-none sm:shadow-2xl relative overflow-hidden">
+                                    <div className="hidden sm:block absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-[#004A99]" />
 
                                     <h3 className="text-xl sm:text-2xl font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-tighter mb-6 sm:mb-8 flex items-center gap-3">
                                         Formal Room Requisition
@@ -345,19 +345,19 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
                                                 {/* Requisition Summary Table */}
                                                 <div className="pt-6 sm:pt-8 border-t-2 border-border">
-                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-4 sm:p-6 space-y-4">
+                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-3 sm:p-6 space-y-4">
                                                         <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">
-                                                            <span>Requisition Duration</span>
-                                                            <span className="text-foreground text-xs sm:text-sm uppercase">{nights || '—'} Night(s)</span>
+                                                            <span>Duration</span>
+                                                            <span className="text-foreground text-xs uppercase">{nights || '—'} Night(s)</span>
                                                         </div>
                                                         <div className="h-[1px] bg-border/40" />
-                                                        <div className="flex justify-between items-end">
-                                                            <div>
-                                                                <p className="text-[10px] font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-widest pl-0.5">Estimated Cumulative Tariff</p>
-                                                                <p className="text-sm font-noto-medium text-muted-foreground mt-1">Inclusive of all official amenities</p>
+                                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+                                                            <div className="w-full sm:w-auto">
+                                                                <p className="text-[10px] font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-widest pl-0.5">Estimated Tariff</p>
+                                                                <p className="text-[10px] sm:text-sm font-noto-medium text-muted-foreground mt-1">Inclusive of official amenities</p>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <span className="text-3xl font-noto-bold text-[#004A99] dark:text-cyan-500">₹{totalAmount.toLocaleString('en-IN') || '—'}</span>
+                                                            <div className="w-full sm:w-auto text-left sm:text-right">
+                                                                <span className="text-2xl sm:text-3xl font-noto-bold text-[#004A99] dark:text-cyan-500">₹{totalAmount.toLocaleString('en-IN') || '—'}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -375,22 +375,22 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                 </div>
                                             </form>
                                         ) : (
-                                            <div className="py-20 text-center border-2 border-dashed border-border/60 bg-muted/5 flex flex-col items-center justify-center">
-                                                <div className="h-14 w-14 rounded-full bg-[#004A99]/10 flex items-center justify-center mb-6">
-                                                    <Info className="h-7 w-7 text-[#004A99]" />
+                                            <div className="py-12 sm:py-20 text-center border-2 border-dashed border-border/60 bg-muted/5 flex flex-col items-center justify-center p-4">
+                                                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-[#004A99]/10 flex items-center justify-center mb-4 sm:mb-6">
+                                                    <Info className="h-6 w-6 sm:h-7 sm:w-7 text-[#004A99]" />
                                                 </div>
-                                                <p className="text-lg font-noto-bold text-foreground uppercase tracking-tight mb-2">Unauthorized Access</p>
-                                                <p className="text-sm font-noto-medium text-muted-foreground max-w-sm mb-10">Authentication via the official identity portal is required to initiate a room requisition.</p>
-                                                <Button className="rounded-md bg-[#004A99] hover:bg-[#003875] text-white font-noto-bold uppercase tracking-[0.2em] text-xs h-12 px-12 transition-all shadow-lg" asChild>
+                                                <p className="text-base sm:text-lg font-noto-bold text-foreground uppercase tracking-tight mb-2">Unauthorized Access</p>
+                                                <p className="text-xs sm:text-sm font-noto-medium text-muted-foreground max-w-sm mb-8 sm:mb-10">Authentication via the official identity portal is required to initiate a room requisition.</p>
+                                                <Button className="w-full sm:w-auto rounded-md bg-[#004A99] hover:bg-[#003875] text-white font-noto-bold uppercase tracking-[0.2em] text-[10px] sm:text-xs h-12 px-12 transition-all shadow-lg" asChild>
                                                     <a href="/login">Portal Login</a>
                                                 </Button>
                                             </div>
                                         )
                                     ) : (
-                                        <div className="py-20 text-center border-2 border-dashed border-red-200 bg-red-50/10 flex flex-col items-center justify-center">
-                                            <AlertCircle className="h-12 w-12 text-red-500 mb-6 opacity-60" />
-                                            <p className="text-lg font-noto-bold text-red-700 uppercase tracking-tight mb-2">Resource Unavailable</p>
-                                            <p className="text-sm font-noto-medium text-muted-foreground max-w-sm">This unit is currently registered as <span className="font-bold text-foreground uppercase">"{room.status}"</span> and is ineligible for new requisition entries at this time.</p>
+                                        <div className="py-12 sm:py-20 text-center border-2 border-dashed border-red-200 bg-red-50/10 flex flex-col items-center justify-center p-4">
+                                            <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-red-500 mb-4 sm:mb-6 opacity-60" />
+                                            <p className="text-base sm:text-lg font-noto-bold text-red-700 uppercase tracking-tight mb-2">Resource Unavailable</p>
+                                            <p className="text-xs sm:text-sm font-noto-medium text-muted-foreground max-w-sm">This unit is currently registered as <span className="font-bold text-foreground uppercase">"{room.status}"</span> and is ineligible for new requisition entries at this time.</p>
                                         </div>
                                     )}
                                 </div>
