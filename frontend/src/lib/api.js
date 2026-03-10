@@ -160,8 +160,10 @@ export const api = {
             return request(`/users${qs ? `?${qs}` : ''}`);
         },
         getById: (id) => request(`/users/${id}`),
+        create: (body) => request('/users', { method: 'POST', body: JSON.stringify(body) }),
         update: (id, body) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-        deactivate: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+        delete: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+        deactivate: (id) => request(`/users/${id}`, { method: 'PUT', body: JSON.stringify({ isActive: false }) }),
         activate: (id) => request(`/users/${id}/activate`, { method: 'PUT' }),
         resetPassword: (id, newPassword) => request(`/users/${id}/reset-password`, { method: 'PUT', body: JSON.stringify({ newPassword }) }),
         stats: () => request('/users/stats'),

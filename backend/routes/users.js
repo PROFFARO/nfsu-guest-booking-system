@@ -6,6 +6,42 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 
 const router = express.Router();
 
+// @route   POST /api/users
+// @desc    Create new user (Admin only)
+// @access  Private (Admin)
+router.post('/', [
+  authMiddleware,
+  adminMiddleware,
+  body('name').trim().isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters'),
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
+  body('phone').matches(/^[0-9]{10}$/).withMessage('Valid 10-digit phone number is required'),
+  body('role').optional().isIn(['user', 'admin', 'staff']).withMessage('Invalid role'),
+  body('isActive').optional().isBoolean()
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { name, email, password, phone, role, isActive } = req.body;
+
+  // Check if user exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ status: 'error', message: 'User with this email already exists' });
+  }
+
+  const user = new User({ name, email, password, phone, role: role || 'user', isActive: isActive !== undefined ? isActive : true });
+  await user.save();
+
+  res.status(201).json({
+    status: 'success',
+    message: 'Personnel created successfully',
+    data: { user: user.toJSON() }
+  });
+}));
+
 // @route   GET /api/users
 // @desc    Get all users (Admin only)
 // @access  Private (Admin)
@@ -145,21 +181,48 @@ router.put('/:id', [
     });
   }
 
-  // Prevent admin from changing their own role to non-admin
-  if (req.params.id === req.user._id.toString() && req.body.role && req.body.role !== 'admin') {
+  // --- Strict Administrative Role Policy ---
+  // 1. Prevent changing own role (already protected by database logic usually, but let's be explicit)
+  // 2. Prevent changing ANY existing admin's role
+  // 3. Prevent changing ANY existing staff's role
+  // We only allow promoting standard 'user' roles to higher clearances.
+  if (req.body.role && req.body.role !== user.role) {
+      if (user.role === 'admin') {
+          return res.status(403).json({
+              status: 'error',
+              message: 'Modification of Administrator roles is strictly prohibited for security integrity.'
+          });
+      }
+      if (user.role === 'staff') {
+          return res.status(403).json({
+              status: 'error',
+              message: 'Modification of Staff roles is strictly prohibited to prevent operational discrepancies.'
+          });
+      }
+  }
+
+  // Prevent admin from deactivating themselves via PUT (DELETE already handles this)
+  if (req.params.id === req.user._id.toString() && req.body.isActive === false) {
     return res.status(400).json({
       status: 'error',
-      message: 'You cannot change your own role from admin'
+      message: 'You cannot deactivate your own account'
     });
   }
 
-  // Update user
-  Object.assign(user, req.body);
+  // --- Privacy & Security Policy ---
+  // Admins are restricted from modifying personal identification (Name, Email, Phone) 
+  // to preserve user privacy. Only clearance level and status are manageable.
+  const updateData = {};
+  if (req.body.role !== undefined) updateData.role = req.body.role;
+  if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
+
+  // Use updateData instead of req.body to prevent mass assignment of restricted fields
+  Object.assign(user, updateData);
   await user.save();
 
   res.json({
     status: 'success',
-    message: 'User updated successfully',
+    message: 'Operational status/clearance updated successfully',
     data: {
       user: user.toJSON()
     }
@@ -183,21 +246,30 @@ router.delete('/:id', [
     });
   }
 
-  // Prevent admin from deactivating themselves
+  // Prevent admin from deleting themselves
   if (req.params.id === req.user._id.toString()) {
     return res.status(400).json({
       status: 'error',
-      message: 'You cannot deactivate your own account'
+      message: 'Self-termination of accounts is prohibited.'
     });
   }
 
-  // Soft delete - mark as inactive
-  user.isActive = false;
-  await user.save();
+  // --- Strict Deletion Policy ---
+  // Only standard 'user' roles can be permanently removed from the database.
+  // Personnel with 'staff' or 'admin' clearance must remain for audit/logical integrity.
+  if (user.role !== 'user') {
+    return res.status(403).json({
+      status: 'error',
+      message: 'Permanent deletion is restricted to standard user accounts only.'
+    });
+  }
+
+  // Hard delete for standard users
+  await User.findByIdAndDelete(req.params.id);
 
   res.json({
     status: 'success',
-    message: 'User deactivated successfully'
+    message: 'User account has been permanently removed from the database.'
   });
 }));
 

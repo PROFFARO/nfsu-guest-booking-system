@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound, RotateCcw, RefreshCw } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Search, UserX, UserCheck, KeyRound, RotateCcw, RefreshCw, UserPlus, Trash2, User, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -32,6 +32,13 @@ export default function UserManagementPage() {
     const [roleFilter, setRoleFilter] = useState('');
     const [page, setPage] = useState(1);
     const [newPassword, setNewPassword] = useState('');
+
+    // CRUD States
+    const [createOpen, setCreateOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', role: 'user' });
+    const [saving, setSaving] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -102,6 +109,37 @@ export default function UserManagementPage() {
         } catch (err) { toast.error(err.message || 'Failed to reset password'); }
     };
 
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            await api.users.create(form);
+            toast.success('Personnel registered successfully');
+            setCreateOpen(false);
+            setForm({ name: '', email: '', phone: '', password: '', role: 'user' });
+            fetchUsers();
+        } catch (err) {
+            toast.error(err.message || 'Registration failed');
+        } finally { setSaving(false); }
+    };
+
+    const handleDeleteUser = async () => {
+        setSaving(true);
+        try {
+            await api.users.delete(selectedUser._id);
+            toast.success('User permanently deleted');
+            setDeleteOpen(false);
+            fetchUsers();
+        } catch (err) {
+            toast.error(err.message || 'Deletion failed');
+        } finally { setSaving(false); }
+    };
+
+    const openDelete = (u) => {
+        setSelectedUser(u);
+        setDeleteOpen(true);
+    };
+
     if (currentUser?.role !== 'admin') {
         return (
             <div className="flex items-center justify-center p-20">
@@ -113,11 +151,23 @@ export default function UserManagementPage() {
     return (
         <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                <div className="mb-6 border-b-2 border-border pb-4">
-                    <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Registered Personnel</h1>
-                    <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
-                        Official System Access Directory
-                    </p>
+                <div className="mb-6 border-b-2 border-border pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                    <div>
+                        <h1 className="text-2xl font-noto-bold text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">Registered Personnel</h1>
+                        <p className="mt-1 text-xs font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            Official System Access Directory
+                        </p>
+                    </div>
+                    <Button 
+                        onClick={() => {
+                            setForm({ name: '', email: '', phone: '', password: '', role: 'user' });
+                            setCreateOpen(true);
+                        }}
+                        className="rounded-sm bg-[#0056b3] hover:bg-[#004494] text-white font-noto-bold uppercase text-[10px] tracking-widest h-9 px-4 flex items-center gap-2"
+                    >
+                        <UserPlus className="h-4 w-4" />
+                        <span>Register Personnel</span>
+                    </Button>
                 </div>
 
                 <div className="mb-6 flex flex-col gap-4 bg-muted/5 p-3 rounded-sm border border-border/50 sm:bg-transparent sm:p-0 sm:border-0">
@@ -221,9 +271,13 @@ export default function UserManagementPage() {
                                                     {format(new Date(u.createdAt), 'dd MMM yyyy')}
                                                 </TableCell>
                                                 <TableCell className="py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Select value={u.role} onValueChange={(v) => handleRoleChange(u._id, v)}>
-                                                            <SelectTrigger className="w-[110px] h-8 rounded-sm border-2 border-border font-noto-bold text-[10px] uppercase tracking-wider">
+                                                     <div className="flex items-center justify-end gap-1.5">
+                                                        <Select 
+                                                            value={u.role} 
+                                                            onValueChange={(v) => handleRoleChange(u._id, v)}
+                                                            disabled={u.role === 'admin' || u.role === 'staff'}
+                                                        >
+                                                            <SelectTrigger className="w-[115px] h-8 rounded-sm border-2 border-border font-noto-bold text-[10px] uppercase tracking-wider disabled:opacity-50">
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent className="rounded-sm border-2 border-border">
@@ -236,13 +290,25 @@ export default function UserManagementPage() {
                                                         <Button
                                                             size="icon"
                                                             variant="outline"
-                                                            className={`h-8 w-8 rounded-sm border-2 ${u.isActive ? 'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground' : 'border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
+                                                            className={`h-8 w-8 rounded-sm border-2 ${u.isActive ? 'border-destructive/40 text-destructive/70 hover:bg-destructive hover:text-destructive-foreground' : 'border-emerald-600/40 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
                                                             onClick={() => handleToggleActive(u._id, u.isActive)}
                                                             disabled={u._id === currentUser?._id || u._id === currentUser?.id}
-                                                            title={u.isActive ? "Revoke Access" : "Reinstate Access"}
+                                                            title={u.isActive ? "Deactivate Account" : "Activate Account"}
                                                         >
                                                             {u.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                                                         </Button>
+
+                                                        {u.role === 'user' && (
+                                                            <Button
+                                                                size="icon"
+                                                                variant="outline"
+                                                                className="h-8 w-8 rounded-sm border-2 border-red-200 text-red-600 hover:bg-red-600 hover:text-white"
+                                                                onClick={() => openDelete(u)}
+                                                                title="Delete Permanently"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
 
                                                         <Dialog>
                                                             <DialogTrigger asChild>
@@ -301,6 +367,105 @@ export default function UserManagementPage() {
                         </Button>
                     </div>
                 )}
+
+                {/* Create Personnel Dialog */}
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                    <DialogContent className="rounded-sm border-2 border-border shadow-md max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="font-noto-bold text-foreground uppercase tracking-wide">Register New Personnel</DialogTitle>
+                            <DialogDescription className="text-xs font-noto-medium text-muted-foreground">
+                                Provision a new system user with specific administrative or standard clearance.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleCreateUser} className="space-y-4 mt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Full Name</Label>
+                                    <Input 
+                                        value={form.name} 
+                                        onChange={(e) => setForm({...form, name: e.target.value})}
+                                        placeholder="John Doe" 
+                                        required
+                                        className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Phone</Label>
+                                    <Input 
+                                        value={form.phone} 
+                                        onChange={(e) => setForm({...form, phone: e.target.value})}
+                                        placeholder="10 digit number" 
+                                        required
+                                        className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Email Address</Label>
+                                <Input 
+                                    type="email" 
+                                    value={form.email} 
+                                    onChange={(e) => setForm({...form, email: e.target.value})}
+                                    placeholder="email@example.com" 
+                                    required
+                                    className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Initial Password</Label>
+                                <Input 
+                                    type="password" 
+                                    value={form.password} 
+                                    onChange={(e) => setForm({...form, password: e.target.value})}
+                                    placeholder="Min 8 chars, 1 upper, 1 special" 
+                                    required
+                                    className="rounded-sm border-2 border-border h-10 font-noto-medium text-sm focus-visible:ring-0 focus-visible:border-[#0056b3] transition-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">Access Clearance</Label>
+                                <Select value={form.role} onValueChange={(v) => setForm({...form, role: v})}>
+                                    <SelectTrigger className="w-full h-10 rounded-sm border-2 border-border font-noto-bold text-xs uppercase tracking-wide">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-sm border-2 border-border">
+                                        <SelectItem value="user" className="font-noto-medium text-xs uppercase tracking-wide">Standard User</SelectItem>
+                                        <SelectItem value="staff" className="font-noto-medium text-xs uppercase tracking-wide">Staff Personnel</SelectItem>
+                                        <SelectItem value="admin" className="font-noto-medium text-xs uppercase tracking-wide">Administrator</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <DialogFooter className="mt-6 gap-3">
+                                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="rounded-sm border-2 border-border font-noto-bold uppercase text-xs tracking-wide">Cancel</Button>
+                                <Button type="submit" disabled={saving} className="rounded-sm font-noto-bold uppercase text-xs tracking-wide bg-[#0056b3] hover:bg-[#004494] text-white">
+                                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Register Personnel'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Deletion Confirmation Dialog */}
+                <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                    <DialogContent className="rounded-sm border-2 border-red-200 shadow-md max-w-sm">
+                        <DialogHeader>
+                            <div className="flex items-center gap-3 text-red-600 mb-2">
+                                <AlertTriangle className="h-6 w-6" />
+                                <DialogTitle className="font-noto-bold uppercase tracking-wide">Critical Directive</DialogTitle>
+                            </div>
+                            <DialogDescription className="text-xs font-noto-medium text-foreground">
+                                You are about to <span className="text-red-600 font-noto-bold">PERMANENTLY REMOVE</span> <span className="font-noto-bold uppercase">{selectedUser?.name}</span> from the central database. This action is irreversible. All associated guest history for this specific account ID will be disconnected.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="mt-6 gap-3">
+                            <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} className="rounded-sm border-2 border-border font-noto-bold uppercase text-[10px] tracking-wide">Cancel</Button>
+                            <Button onClick={handleDeleteUser} disabled={saving} className="rounded-sm font-noto-bold uppercase text-[10px] tracking-wide bg-red-600 hover:bg-red-700 text-white">
+                                {saving ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                                Confirm Deletion
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </motion.div>
         </div>
     );
