@@ -308,8 +308,8 @@ export default function RoomBrowsePage() {
                                                                         </div>
                                                                     ))
                                                                 ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center opacity-10">
-                                                                        <span className="text-[9px] font-noto-bold uppercase tracking-widest text-slate-300">N/A</span>
+                                                                    <div className="w-full h-full flex items-center justify-center opacity-30">
+                                                                        <span className="text-[9px] font-noto-bold uppercase tracking-widest text-muted-foreground">N/A</span>
                                                                     </div>
                                                                 )}
                                                             </div>
