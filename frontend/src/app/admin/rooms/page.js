@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from '@/components/ui/dialog';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageSlider } from '@/components/ui/ImageSlider';
@@ -46,7 +46,7 @@ const emptyRoomForm = {
 export default function RoomManagementPage() {
     const { user } = useAuth();
     const { socket } = useSocket();
-    const isAdmin = user?.role === 'admin';
+    const canManage = user?.role === 'admin' || user?.role === 'staff';
 
     const [rooms, setRooms] = useState([]);
     const [pagination, setPagination] = useState(null);
@@ -72,6 +72,10 @@ export default function RoomManagementPage() {
     // Maintenance dialog state
     const [maintOpen, setMaintOpen] = useState(false);
     const [maintForm, setMaintForm] = useState({ startDate: '', endDate: '', reason: '' });
+
+    // Bulk delete state
+    const [selectedRoomIds, setSelectedRoomIds] = useState([]);
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
     const fetchRooms = async () => {
         setLoading(true);
@@ -275,13 +279,44 @@ export default function RoomManagementPage() {
     const handleDelete = async () => {
         setSaving(true);
         try {
-            await api.rooms.delete(selectedRoom._id);
+            await api.rooms.delete(selectedRoomIds[0] || selectedRoom._id);
             toast.success('Room deleted successfully');
             setDeleteOpen(false);
             fetchRooms();
         } catch (err) {
             toast.error(err.message || 'Failed to delete room');
         } finally { setSaving(false); }
+    };
+
+    const toggleSelection = (roomId) => {
+        setSelectedRoomIds(prev =>
+            prev.includes(roomId)
+                ? prev.filter(id => id !== roomId)
+                : [...prev, roomId]
+        );
+    };
+
+    const toggleAllSelection = () => {
+        if (selectedRoomIds.length === rooms.length && rooms.length > 0) {
+            setSelectedRoomIds([]);
+        } else {
+            setSelectedRoomIds(rooms.map(r => r._id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        setSaving(true);
+        try {
+            await api.rooms.bulkDelete(selectedRoomIds);
+            toast.success(`${selectedRoomIds.length} rooms deleted successfully`);
+            setSelectedRoomIds([]);
+            setBulkDeleteOpen(false);
+            fetchRooms();
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete rooms');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value === 'all' ? '' : value, page: 1 }));
@@ -467,7 +502,7 @@ export default function RoomManagementPage() {
     );
 
     return (
-        <div className="p-3 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-hidden box-border">
+        <div className="p-2 sm:p-4 md:p-6 max-w-full mx-auto space-y-4 sm:space-y-6 overflow-x-hidden box-border">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -551,6 +586,48 @@ export default function RoomManagementPage() {
                     </div>
                 </div>
 
+                {/* Bulk Actions Bar */}
+                <AnimatePresence>
+                    {canManage && selectedRoomIds.length > 0 && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <div className="bg-[#0056b3]/5 dark:bg-cyan-500/5 border border-[#0056b3]/20 dark:border-cyan-500/20 rounded-md p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-5 shadow-sm">
+                                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                                    <div className="bg-[#0056b3] dark:bg-cyan-600 text-white rounded-full h-12 w-12 shrink-0 flex items-center justify-center font-noto-bold text-lg shadow-lg">
+                                        {selectedRoomIds.length}
+                                    </div>
+                                    <div>
+                                        <p className="font-noto-bold text-base text-foreground uppercase tracking-tight">Delete Active Room(s)</p>
+                                        <p className="text-[11px] font-noto-medium text-muted-foreground mt-0.5 tracking-wide">Managing {selectedRoomIds.length} units from inventory.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedRoomIds([])}
+                                        className="flex-1 md:flex-none h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-background border-border hover:bg-muted"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setBulkDeleteOpen(true)}
+                                        className="flex-1 md:flex-none h-11 px-6 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20"
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" /> Bulk Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Table */}
                 <Card className="border border-border bg-card shadow-sm rounded-sm">
                     <CardContent className="p-0 overflow-x-auto">
@@ -568,6 +645,18 @@ export default function RoomManagementPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow className="border-border">
+                                        {canManage && (
+                                            <TableHead className="w-[50px] font-noto-bold">
+                                                <div className="flex items-center justify-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-border bg-background transition-all accent-[#0056b3]"
+                                                        checked={selectedRoomIds.length === rooms.length && rooms.length > 0}
+                                                        onChange={toggleAllSelection}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                        )}
                                         <TableHead className="font-noto-bold text-muted-foreground w-[100px]">Room</TableHead>
                                         <TableHead className="font-noto-bold text-muted-foreground">Type</TableHead>
                                         <TableHead className="font-noto-bold text-muted-foreground">Floor</TableHead>
@@ -580,7 +669,19 @@ export default function RoomManagementPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {rooms.map((room) => (
-                                        <TableRow key={room._id} className="border-border">
+                                        <TableRow key={room._id} className={`border-border transition-colors ${selectedRoomIds.includes(room._id) ? 'bg-muted/50' : ''}`}>
+                                            {canManage && (
+                                                <TableCell className="text-center">
+                                                    <div className="flex items-center justify-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 rounded border-border bg-background transition-all accent-[#0056b3]"
+                                                            checked={selectedRoomIds.includes(room._id)}
+                                                            onChange={() => toggleSelection(room._id)}
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                            )}
                                             <TableCell className="font-noto-bold text-sm text-foreground">{room.roomNumber}</TableCell>
                                             <TableCell className="capitalize font-noto-medium text-sm text-muted-foreground">{room.type}</TableCell>
                                             <TableCell className="font-noto-medium text-sm text-muted-foreground">{room.floor}</TableCell>
@@ -629,7 +730,7 @@ export default function RoomManagementPage() {
                                                             <Wrench className="h-3 w-3" /> Maint.
                                                         </Button>
                                                     )}
-                                                    {isAdmin && (
+                                                    {canManage && (
                                                         <Button variant="destructive" size="sm" onClick={() => openDelete(room)} className="h-7 px-2 text-xs font-noto-medium gap-1 rounded-sm bg-red-600 hover:bg-red-700 text-white">
                                                             <Trash2 className="h-3 w-3" /> Delete
                                                         </Button>
@@ -659,35 +760,33 @@ export default function RoomManagementPage() {
                     </div>
                 )}
 
-                {/* Create Room Dialog */}
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
-                        <DialogHeader className="p-6 pb-0">
-                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
-                                <Plus className="h-7 w-7" /> Add New Unit
+                    <DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
+                        <DialogHeader className="p-4 sm:p-6 pb-0">
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-xl sm:text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                <Plus className="h-6 w-6 sm:h-7 sm:w-7" /> Add New Unit
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-2">
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-xs sm:text-sm mt-2">
                                 Register a new unit into the official accommodations inventory.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar">
                             {renderRoomForm(handleCreate, "Register Unit")}
                         </div>
                     </DialogContent>
                 </Dialog>
 
-                {/* Edit Room Dialog */}
                 <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                    <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
-                        <DialogHeader className="p-6 pb-0">
-                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
-                                <Pencil className="h-6 w-6" /> Edit Unit {selectedRoom?.roomNumber}
+                    <DialogContent className="sm:max-w-2xl max-h-[95vh] overflow-hidden flex flex-col p-0 rounded-2xl border-2 border-border bg-card shadow-2xl">
+                        <DialogHeader className="p-4 sm:p-6 pb-0">
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-xl sm:text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                <Pencil className="h-5 w-5 sm:h-6 sm:w-6" /> Edit Unit {selectedRoom?.roomNumber}
                             </DialogTitle>
-                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-2">
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-xs sm:text-sm mt-2">
                                 Update the official records for this unit.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 custom-scrollbar">
                             {renderRoomForm(handleUpdate, "Acknowledge Update")}
                         </div>
                     </DialogContent>
@@ -757,6 +856,43 @@ export default function RoomManagementPage() {
                             <Button onClick={handleScheduleMaintenance} disabled={saving} className="bg-[#0056b3] hover:bg-[#004494] text-white rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg">
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Schedule
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Bulk Delete Confirmation Dialog */}
+                <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                    <DialogContent className="sm:max-w-md rounded-2xl border-2 border-border bg-card shadow-2xl p-8">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-red-600 dark:text-red-500 uppercase tracking-tight">
+                                <AlertTriangle className="h-7 w-7" /> Mass Deactivation
+                            </DialogTitle>
+                            <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
+                                CRITICAL: You are about to deactivate <strong className="text-foreground">{selectedRoomIds.length}</strong> room units simultaneously.
+                                This will remove these records from the active inventory and terminate their availability. This operation should be treated with utmost scrutiny.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20 rounded-md p-4 mt-4">
+                            <p className="font-noto-bold text-xs text-red-600 dark:text-red-400 uppercase tracking-widest flex items-center gap-2">
+                                <AlertTriangle className="h-3.5 w-3.5" /> High Impact Action
+                            </p>
+                            <p className="text-[11px] text-red-500/80 font-noto-medium mt-1">
+                                This action is logged in the central auditing ledger. Please ensure you have verification for this bulk operation.
+                            </p>
+                        </div>
+                        <DialogFooter className="gap-3 pt-6 mt-4">
+                            <DialogClose asChild>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6">Abort Operation</Button>
+                            </DialogClose>
+                            <Button
+                                variant="destructive"
+                                onClick={handleBulkDelete}
+                                disabled={saving}
+                                className="rounded-md bg-red-600 hover:bg-red-700 text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 shadow-lg shadow-red-500/20"
+                            >
+                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Confirm Mass Deactivation
                             </Button>
                         </DialogFooter>
                     </DialogContent>

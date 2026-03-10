@@ -94,6 +94,7 @@ export const api = {
             return request(`/rooms/${id}`, { method: 'PUT', body: isFormData ? data : JSON.stringify(data) });
         },
         delete: (id) => request(`/rooms/${id}`, { method: 'DELETE' }),
+        bulkDelete: (ids) => request('/rooms/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) }),
         updateStatus: (id, status) => request(`/rooms/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
         scheduleMaintenance: (id, body) => request(`/rooms/${id}/maintenance`, { method: 'POST', body: JSON.stringify(body) }),
         clearMaintenance: (id) => request(`/rooms/${id}/maintenance`, { method: 'DELETE' }),

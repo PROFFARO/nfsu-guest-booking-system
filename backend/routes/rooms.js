@@ -625,12 +625,53 @@ router.put('/:id', [
   });
 }));
 
-// @route   DELETE /api/rooms/:id
-// @desc    Delete room (Admin only)
+// @route   DELETE /api/rooms/bulk
+// @desc    Delete multiple rooms (Admin only)
 // @access  Private (Admin)
+router.delete('/bulk', [
+  authMiddleware,
+  staffMiddleware,
+  body('ids').isArray().withMessage('Room IDs must be an array')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { ids } = req.body;
+
+  // Fetch rooms before deleting for audit logging
+  const rooms = await Room.find({ _id: { $in: ids } });
+
+  if (rooms.length === 0) {
+    return res.status(404).json({ status: 'error', message: 'No rooms found for deletion' });
+  }
+
+  const deletedCount = await Room.deleteMany({ _id: { $in: ids } });
+
+  // Log audit events for each deleted room
+  for (const room of rooms) {
+    await logEvent({
+      userId: req.user._id,
+      action: 'ROOM_DELETE',
+      details: { roomId: room._id, roomNumber: room.roomNumber, bulk: true },
+      req
+    });
+  }
+
+  res.json({
+    status: 'success',
+    message: `${deletedCount.deletedCount} items deleted successfully`,
+    data: { count: deletedCount.deletedCount }
+  });
+}));
+
+// @route   DELETE /api/rooms/:id
+// @desc    Delete room (Admin/Staff only)
+// @access  Private (Admin/Staff)
 router.delete('/:id', [
   authMiddleware,
-  adminMiddleware,
+  staffMiddleware,
   param('id').isMongoId().withMessage('Invalid room ID')
 ], asyncHandler(async (req, res) => {
   const room = await Room.findById(req.params.id);
