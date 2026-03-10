@@ -575,38 +575,38 @@ export default function RoomManagementPage() {
                     {/* Bottom Row: Dropdowns */}
                     <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full">
                         <Select value={filters.type || 'all'} onValueChange={(v) => updateFilter('type', v)}>
-                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="TYPE" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-wider"><SelectValue placeholder="TYPE" /></SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
-                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Types</SelectItem>
-                                <SelectItem value="single" className="font-noto-bold text-xs uppercase tracking-widest">Single</SelectItem>
-                                <SelectItem value="double" className="font-noto-bold text-xs uppercase tracking-widest">Double</SelectItem>
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-wider">All Types</SelectItem>
+                                <SelectItem value="single" className="font-noto-bold text-xs uppercase tracking-wider">Single</SelectItem>
+                                <SelectItem value="double" className="font-noto-bold text-xs uppercase tracking-wider">Double</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Select value={filters.floor || 'all'} onValueChange={(v) => updateFilter('floor', v)}>
-                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="FLOOR" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-wider"><SelectValue placeholder="FLOOR" /></SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
-                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Floors</SelectItem>
-                                {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f} className="font-noto-bold text-xs uppercase tracking-widest">Floor {f}</SelectItem>)}
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-wider">All Floors</SelectItem>
+                                {['1', '2', '3', '4', '5', '6'].map(f => <SelectItem key={f} value={f} className="font-noto-bold text-xs uppercase tracking-wider">Floor {f}</SelectItem>)}
                             </SelectContent>
                         </Select>
 
                         <Select value={filters.block || 'all'} onValueChange={(v) => updateFilter('block', v)}>
-                            <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="BLOCK" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-wider"><SelectValue placeholder="BLOCK" /></SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
-                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Blocks</SelectItem>
-                                {['A', 'B', 'C', 'D', 'E', 'F'].map(b => <SelectItem key={b} value={b} className="font-noto-bold text-xs uppercase tracking-widest">Block {b}</SelectItem>)}
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-wider">All Blocks</SelectItem>
+                                {['A', 'B', 'C', 'D', 'E', 'F'].map(b => <SelectItem key={b} value={b} className="font-noto-bold text-xs uppercase tracking-wider">Block {b}</SelectItem>)}
                             </SelectContent>
                         </Select>
 
                         <Select value={filters.status || 'all'} onValueChange={(v) => updateFilter('status', v)}>
-                            <SelectTrigger className="w-full sm:w-[140px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-widest"><SelectValue placeholder="STATUS" /></SelectTrigger>
+                            <SelectTrigger className="w-full sm:w-[160px] h-10 rounded-sm border-2 border-border bg-background font-noto-bold text-[10px] sm:text-xs uppercase tracking-wider"><SelectValue placeholder="STATUS" /></SelectTrigger>
                             <SelectContent className="border-2 border-border rounded-sm">
-                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-widest">All Status</SelectItem>
-                                <SelectItem value="vacant" className="font-noto-bold text-xs uppercase tracking-widest">Vacant</SelectItem>
-                                <SelectItem value="booked" className="font-noto-bold text-xs uppercase tracking-widest">Booked</SelectItem>
-                                <SelectItem value="held" className="font-noto-bold text-xs uppercase tracking-widest">Held</SelectItem>
-                                <SelectItem value="maintenance" className="font-noto-bold text-xs uppercase tracking-widest">Maintenance</SelectItem>
+                                <SelectItem value="all" className="font-noto-bold text-xs uppercase tracking-wider">All Status</SelectItem>
+                                <SelectItem value="vacant" className="font-noto-bold text-xs uppercase tracking-wider">Vacant</SelectItem>
+                                <SelectItem value="booked" className="font-noto-bold text-xs uppercase tracking-wider">Booked</SelectItem>
+                                <SelectItem value="held" className="font-noto-bold text-xs uppercase tracking-wider">Held</SelectItem>
+                                <SelectItem value="maintenance" className="font-noto-bold text-xs uppercase tracking-wider">Maintenance</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
