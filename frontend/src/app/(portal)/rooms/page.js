@@ -275,17 +275,30 @@ export default function RoomBrowsePage() {
                                                                                     setSelectedRoomId(room._id);
                                                                                     setIsModalOpen(true);
                                                                                 }}
-                                                                                className="calendar-card w-[115px] h-[80px] p-3 text-left transition-all hover:scale-105 hover:shadow-xl active:scale-95 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800/50 rounded-xl"
+                                                                                className={`calendar-card w-[115px] h-[80px] p-3 text-left transition-all hover:scale-105 hover:shadow-xl active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
+                                                                                    ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/50'
+                                                                                    : room.status === 'booked'
+                                                                                        ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
+                                                                                        : room.status === 'held'
+                                                                                            ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/40'
+                                                                                            : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
+                                                                                    }`}
                                                                             >
                                                                                 <div className="flex justify-between items-start mb-2">
-                                                                                    <span className="text-lg font-noto-bold text-foreground leading-none">{room.roomNumber}</span>
+                                                                                    <span className={`text-lg font-noto-bold leading-none ${room.status === 'booked' ? 'text-red-900 dark:text-red-400' :
+                                                                                        room.status === 'held' ? 'text-amber-900 dark:text-amber-400' :
+                                                                                            'text-foreground'
+                                                                                        }`}>{room.roomNumber}</span>
                                                                                     <div className={`h-2.5 w-2.5 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' :
-                                                                                        room.status === 'booked' ? 'bg-red-500' :
-                                                                                            room.status === 'held' ? 'bg-amber-500' :
+                                                                                        room.status === 'booked' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' :
+                                                                                            room.status === 'held' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' :
                                                                                                 'bg-slate-400'
                                                                                         }`} />
                                                                                 </div>
-                                                                                <div className="text-[8px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-4">UNIT RECORD</div>
+                                                                                <div className={`text-[8px] font-noto-bold uppercase tracking-widest mt-4 opacity-70 ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
+                                                                                    room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
+                                                                                        'text-muted-foreground'
+                                                                                    }`}>UNIT RECORD</div>
                                                                             </button>
                                                                         </div>
                                                                     ))
@@ -332,17 +345,30 @@ export default function RoomBrowsePage() {
                                                                                     setSelectedRoomId(room._id);
                                                                                     setIsModalOpen(true);
                                                                                 }}
-                                                                                className="calendar-card w-full h-[75px] p-3 text-left transition-all active:scale-95 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800/80 rounded-xl"
+                                                                                className={`calendar-card w-full h-[75px] p-3 text-left transition-all active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
+                                                                                    ? 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/80'
+                                                                                    : room.status === 'booked'
+                                                                                        ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
+                                                                                        : room.status === 'held'
+                                                                                            ? 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-800/40'
+                                                                                            : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
+                                                                                    }`}
                                                                             >
                                                                                 <div className="flex justify-between items-start mb-2">
-                                                                                    <span className="text-base font-noto-bold text-foreground leading-none">{room.roomNumber}</span>
+                                                                                    <span className={`text-base font-noto-bold leading-none ${room.status === 'booked' ? 'text-red-900 dark:text-red-400' :
+                                                                                        room.status === 'held' ? 'text-amber-900 dark:text-amber-400' :
+                                                                                            'text-foreground'
+                                                                                        }`}>{room.roomNumber}</span>
                                                                                     <div className={`h-2 w-2 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
                                                                                         room.status === 'booked' ? 'bg-red-500' :
                                                                                             room.status === 'held' ? 'bg-amber-500' :
                                                                                                 'bg-slate-400'
                                                                                         }`} />
                                                                                 </div>
-                                                                                <div className="text-[7px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-2 opacity-60 font-noto-black">RECORD</div>
+                                                                                <div className={`text-[7px] font-noto-bold uppercase tracking-widest mt-2 opacity-60 font-noto-black ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
+                                                                                    room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
+                                                                                        'text-muted-foreground'
+                                                                                    }`}>RECORD</div>
                                                                             </button>
                                                                         </div>
                                                                     ))}
@@ -363,17 +389,19 @@ export default function RoomBrowsePage() {
 
             {/* Bottom Legend Ledger */}
             {!loading && rooms.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-12 py-10 border-2 border-slate-300 dark:border-slate-800 bg-muted/5 px-8 rounded-2xl mt-12 shadow-md">
-                    <span className="text-[11px] font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-[0.4em] border-r-2 border-slate-300 dark:border-slate-800 pr-10 hidden sm:block">Room Status Inventory Legend</span>
+                <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 py-8 sm:py-10 border-2 border-slate-300 dark:border-slate-800 bg-muted/5 px-6 sm:px-8 rounded-2xl mt-12 shadow-md">
+                    <span className="text-[11px] font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-[0.4em] border-r-2 border-slate-300 dark:border-slate-800 pr-10 hidden lg:block">Status Legend</span>
                     {[
-                        { label: 'Available / Vacant', color: 'bg-emerald-500' },
-                        { label: 'Occupied / Booked', color: 'bg-red-500' },
-                        { label: 'Requisition Held', color: 'bg-amber-500' },
-                        { label: 'Out of Order', color: 'bg-slate-400' }
+                        { label: 'Available / Vacant', dot: 'bg-emerald-500', fill: 'bg-white dark:bg-slate-900 border-slate-200' },
+                        { label: 'Occupied / Booked', dot: 'bg-red-500', fill: 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60' },
+                        { label: 'Requisition Held', dot: 'bg-amber-500', fill: 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60' },
+                        { label: 'Out of Order', dot: 'bg-slate-400', fill: 'bg-slate-100 dark:bg-slate-800/30 border-slate-200/60' }
                     ].map(item => (
-                        <div key={item.label} className="flex items-center gap-4 group">
-                            <div className={`h-4 w-4 rounded-full ${item.color} shadow-sm transition-transform group-hover:scale-125`} />
-                            <span className="text-[11px] font-noto-bold text-foreground uppercase tracking-wider">{item.label}</span>
+                        <div key={item.label} className="flex items-center gap-3 group transition-all">
+                            <div className={`h-8 w-12 rounded-md ${item.fill} border flex items-center justify-center relative overflow-hidden shadow-sm px-2`}>
+                                <div className={`h-2 w-2 rounded-full ${item.dot} shadow-sm`} />
+                            </div>
+                            <span className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">{item.label}</span>
                         </div>
                     ))}
                 </div>
