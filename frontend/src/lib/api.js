@@ -96,6 +96,7 @@ export const api = {
         delete: (id) => request(`/rooms/${id}`, { method: 'DELETE' }),
         bulkDelete: (ids) => request('/rooms/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) }),
         bulkBlock: (body) => request('/rooms/bulk-block', { method: 'POST', body: JSON.stringify(body) }),
+        bulkStatusUpdate: (body) => request('/rooms/bulk-status', { method: 'PUT', body: JSON.stringify(body) }),
         updateStatus: (id, status) => request(`/rooms/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
         scheduleMaintenance: (id, body) => request(`/rooms/${id}/maintenance`, { method: 'POST', body: JSON.stringify(body) }),
         clearMaintenance: (id) => request(`/rooms/${id}/maintenance`, { method: 'DELETE' }),

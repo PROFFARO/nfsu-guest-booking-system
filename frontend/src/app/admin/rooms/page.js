@@ -18,7 +18,7 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose
 } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search, RefreshCw } from 'lucide-react';
+import { BedDouble, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Wrench, Search, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { ImageSlider } from '@/components/ui/ImageSlider';
 
@@ -82,6 +82,10 @@ export default function RoomManagementPage() {
     const [bulkBlockOpen, setBulkBlockOpen] = useState(false);
     const [blockForm, setBlockForm] = useState({ startDate: '', endDate: '', reason: '' });
 
+    // Bulk status update state
+    const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+    const [bulkStatusForm, setBulkStatusForm] = useState({ status: '', reason: '', startDate: '', endDate: '' });
+
     const fetchRooms = async () => {
         setLoading(true);
         try {
@@ -125,8 +129,25 @@ export default function RoomManagementPage() {
 
     // --- Handlers ---
     const handleStatusChange = async (roomId, newStatus) => {
+        // If maintenance/suspended, open the specific dialog instead of direct update
+        if (newStatus === 'maintenance') {
+            const r = rooms.find(it => it._id === roomId);
+            setSelectedRoom(r);
+            setMaintForm({ startDate: '', endDate: '', reason: '' });
+            setMaintOpen(true);
+            return;
+        }
+        if (newStatus === 'suspended') {
+            const r = rooms.find(it => it._id === roomId);
+            setSelectedRoom(r);
+            setBlockForm({ startDate: '', endDate: '', reason: '' });
+            setSelectedRoomIds([roomId]); // For consistency with handleBulkBlock
+            setBulkBlockOpen(true);
+            return;
+        }
+
         try {
-            await api.rooms.updateStatus(roomId, newStatus);
+            await api.rooms.updateStatus(roomId, { status: newStatus });
             toast.success('Room status updated');
             fetchRooms();
         } catch (err) {
@@ -340,6 +361,32 @@ export default function RoomManagementPage() {
             fetchRooms();
         } catch (err) {
             toast.error(err.message || 'Failed to execute mass blocking');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleBulkStatusUpdate = async () => {
+        if (!bulkStatusForm.status) {
+            return toast.error('Please select a target status');
+        }
+        if ((bulkStatusForm.status === 'maintenance' || bulkStatusForm.status === 'suspended') && (!bulkStatusForm.startDate || !bulkStatusForm.endDate)) {
+            return toast.error('Start and end dates are required for maintenance/suspended status');
+        }
+        setSaving(true);
+        try {
+            await api.rooms.bulkStatusUpdate({
+                ids: selectedRoomIds,
+                ...bulkStatusForm
+            });
+            const statusLabel = bulkStatusForm.status.charAt(0).toUpperCase() + bulkStatusForm.status.slice(1);
+            toast.success(`${selectedRoomIds.length} room(s) updated to "${statusLabel}"`);
+            setSelectedRoomIds([]);
+            setBulkStatusOpen(false);
+            setBulkStatusForm({ status: '', reason: '', startDate: '', endDate: '' });
+            fetchRooms();
+        } catch (err) {
+            toast.error(err.message || 'Failed to update room statuses');
         } finally {
             setSaving(false);
         }
@@ -607,6 +654,7 @@ export default function RoomManagementPage() {
                                 <SelectItem value="booked" className="font-noto-bold text-xs uppercase tracking-wider">Booked</SelectItem>
                                 <SelectItem value="held" className="font-noto-bold text-xs uppercase tracking-wider">Held</SelectItem>
                                 <SelectItem value="maintenance" className="font-noto-bold text-xs uppercase tracking-wider">Maintenance</SelectItem>
+                                <SelectItem value="suspended" className="font-noto-bold text-xs uppercase tracking-wider">Suspended</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -639,6 +687,17 @@ export default function RoomManagementPage() {
                                         className="h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] bg-background border-border hover:bg-muted"
                                     >
                                         Cancel
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setBulkStatusForm({ status: '', reason: '', startDate: '', endDate: '' });
+                                            setBulkStatusOpen(true);
+                                        }}
+                                        className="h-11 px-5 text-[10px] font-noto-bold uppercase tracking-[0.2em] border-[#0056b3] text-[#0056b3] hover:bg-[#0056b3] hover:text-white shadow-md shadow-[#0056b3]/10"
+                                    >
+                                        <ArrowUpDown className="mr-2 h-4 w-4" /> Update Status
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -737,23 +796,37 @@ export default function RoomManagementPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Select value={room.status} onValueChange={(v) => handleStatusChange(room._id, v)}>
-                                                    <SelectTrigger className={`w-[130px] h-8 text-xs font-noto-bold uppercase tracking-wider rounded-sm border-transparent ${room.status === 'vacant' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                                                        room.status === 'booked' ? 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400' :
-                                                            room.status === 'held' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400' :
-                                                                room.status === 'suspended' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400' :
-                                                                    'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-400'
-                                                        }`}>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent align="end" side="bottom">
-                                                        <SelectItem value="vacant">Vacant</SelectItem>
-                                                        <SelectItem value="booked">Booked</SelectItem>
-                                                        <SelectItem value="held">Held</SelectItem>
-                                                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                                                        <SelectItem value="suspended">Suspended</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <Select value={room.status} onValueChange={(v) => handleStatusChange(room._id, v)}>
+                                                        <SelectTrigger className={`w-[130px] h-8 text-xs font-noto-bold uppercase tracking-wider rounded-sm border-transparent ${room.status === 'vacant' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                                                            room.status === 'booked' ? 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400' :
+                                                                room.status === 'held' ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400' :
+                                                                    room.status === 'suspended' ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400' :
+                                                                        'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-400'
+                                                            }`}>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent align="end" side="bottom">
+                                                            <SelectItem value="vacant">Vacant</SelectItem>
+                                                            <SelectItem value="booked">Booked</SelectItem>
+                                                            <SelectItem value="held">Held</SelectItem>
+                                                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                                                            <SelectItem value="suspended">Suspended</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    {room.status === 'suspended' && room.suspensionRecord?.startDate && (
+                                                        <div className="flex flex-col text-[8px] font-noto-bold text-purple-600 dark:text-purple-400 uppercase leading-tight bg-purple-500/5 p-1 rounded">
+                                                            <span>From: {new Date(room.suspensionRecord.startDate).toLocaleDateString()}</span>
+                                                            <span>To: {room.suspensionRecord.endDate ? new Date(room.suspensionRecord.endDate).toLocaleDateString() : 'Indefinite'}</span>
+                                                        </div>
+                                                    )}
+                                                    {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                                                        <div className="flex flex-col text-[8px] font-noto-bold text-slate-500 dark:text-slate-400 uppercase leading-tight bg-slate-500/5 p-1 rounded">
+                                                            <span>From: {new Date(room.maintenanceSchedule.startDate).toLocaleDateString()}</span>
+                                                            <span>To: {room.maintenanceSchedule.endDate ? new Date(room.maintenanceSchedule.endDate).toLocaleDateString() : 'Indefinite'}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center justify-end gap-2">
@@ -1008,6 +1081,137 @@ export default function RoomManagementPage() {
                             >
                                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {selectedRoomIds.length === 1 ? 'Suspend Unit' : 'Suspend Selected Units'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Bulk Status Update Dialog */}
+                <Dialog open={bulkStatusOpen} onOpenChange={setBulkStatusOpen}>
+                    <DialogContent className="sm:max-w-lg rounded-2xl border-2 border-border bg-card shadow-2xl p-0 overflow-hidden">
+                        <div className="bg-gradient-to-r from-[#0056b3]/5 to-cyan-500/5 dark:from-[#0056b3]/10 dark:to-cyan-500/10 px-8 pt-8 pb-4">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-3 font-noto-bold text-2xl text-[#0056b3] dark:text-cyan-500 uppercase tracking-tight">
+                                    <ArrowUpDown className="h-7 w-7" /> Bulk Status Update
+                                </DialogTitle>
+                                <DialogDescription className="font-noto-medium text-muted-foreground text-sm mt-3 leading-relaxed">
+                                    Update the operational status for <strong className="text-foreground">{selectedRoomIds.length}</strong> selected room {selectedRoomIds.length === 1 ? 'unit' : 'units'}.
+                                </DialogDescription>
+                            </DialogHeader>
+                        </div>
+
+                        <div className="px-8 py-6 space-y-6">
+                            {/* Selected Rooms Preview */}
+                            <div className="flex flex-wrap gap-2 max-h-[80px] overflow-y-auto p-1">
+                                {rooms.filter(r => selectedRoomIds.includes(r._id)).map(r => (
+                                    <Badge key={r._id} variant="outline" className="border-[#0056b3]/20 bg-[#0056b3]/5 text-[#0056b3] dark:bg-cyan-900/20 dark:text-cyan-400 font-noto-bold uppercase tracking-wider text-[10px]">
+                                        {r.roomNumber}
+                                        <span className="ml-1.5 text-[8px] opacity-60">({r.status})</span>
+                                    </Badge>
+                                ))}
+                            </div>
+
+                            {/* Target Status Selector */}
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Target Status *</Label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {[
+                                        { value: 'vacant', label: 'Vacant', color: 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400', activeRing: 'ring-emerald-500' },
+                                        { value: 'booked', label: 'Booked', color: 'border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400', activeRing: 'ring-red-500' },
+                                        { value: 'held', label: 'Held', color: 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400', activeRing: 'ring-amber-500' },
+                                        { value: 'maintenance', label: 'Maintenance', color: 'border-slate-500 bg-slate-50 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300', activeRing: 'ring-slate-500' },
+                                        { value: 'suspended', label: 'Suspended', color: 'border-purple-500 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400', activeRing: 'ring-purple-500' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setBulkStatusForm(p => ({ ...p, status: opt.value }))}
+                                            className={`rounded-lg border-2 px-3 py-2.5 text-[10px] font-noto-bold uppercase tracking-widest transition-all ${
+                                                bulkStatusForm.status === opt.value
+                                                    ? `${opt.color} ring-2 ${opt.activeRing} shadow-md scale-[1.02]`
+                                                    : 'border-border bg-background text-muted-foreground hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Conditional Date Range for maintenance / suspended */}
+                            {(bulkStatusForm.status === 'maintenance' || bulkStatusForm.status === 'suspended') && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 overflow-hidden">
+                                    <div className={`rounded-lg border p-4 space-y-4 ${
+                                        bulkStatusForm.status === 'maintenance'
+                                            ? 'border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30'
+                                            : 'border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-900/20'
+                                    }`}>
+                                        <p className={`text-[10px] font-noto-bold uppercase tracking-widest flex items-center gap-2 ${
+                                            bulkStatusForm.status === 'maintenance' ? 'text-slate-600 dark:text-slate-400' : 'text-purple-600 dark:text-purple-400'
+                                        }`}>
+                                            {bulkStatusForm.status === 'maintenance' ? <Wrench className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                                            {bulkStatusForm.status === 'maintenance' ? 'Maintenance Window' : 'Suspension Period'}
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Start Date *</Label>
+                                                <Input type="date" value={bulkStatusForm.startDate} onChange={(e) => setBulkStatusForm(p => ({ ...p, startDate: e.target.value }))} className="rounded-md border-2 border-border h-11" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">End Date *</Label>
+                                                <Input type="date" value={bulkStatusForm.endDate} onChange={(e) => setBulkStatusForm(p => ({ ...p, endDate: e.target.value }))} className="rounded-md border-2 border-border h-11" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Reason */}
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-noto-bold uppercase tracking-[0.2em] text-muted-foreground">Reason / Directive (Optional)</Label>
+                                <Textarea
+                                    value={bulkStatusForm.reason}
+                                    onChange={(e) => setBulkStatusForm(p => ({ ...p, reason: e.target.value }))}
+                                    placeholder="e.g. Batch status update per administrative directive..."
+                                    className="rounded-md border-2 border-border p-4 resize-none"
+                                    rows={3}
+                                    maxLength={500}
+                                />
+                                <p className="text-[9px] text-muted-foreground font-noto-bold uppercase tracking-tighter text-right opacity-60">{bulkStatusForm.reason.length} / 500</p>
+                            </div>
+
+                            {/* Info Banner */}
+                            <div className="bg-[#0056b3]/5 dark:bg-cyan-900/10 border border-[#0056b3]/20 dark:border-cyan-500/20 rounded-md p-4">
+                                <p className="font-noto-bold text-xs text-[#0056b3] dark:text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                                    <ArrowUpDown className="h-3.5 w-3.5" /> Status Transition Notice
+                                </p>
+                                <p className="text-[11px] text-[#0056b3]/70 dark:text-cyan-500/60 font-noto-medium mt-1">
+                                    This action is logged in the central auditing ledger. All affected rooms will broadcast real-time status changes to guest-facing pages.
+                                </p>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="gap-3 px-8 pb-8 pt-2 flex-col sm:flex-row">
+                            <DialogClose asChild>
+                                <Button variant="outline" className="rounded-md font-noto-bold text-[10px] uppercase tracking-widest h-12 px-6 flex-1 sm:flex-none">Go Back</Button>
+                            </DialogClose>
+                            <Button
+                                onClick={handleBulkStatusUpdate}
+                                disabled={saving || !bulkStatusForm.status}
+                                className={`rounded-md text-white font-noto-bold text-[10px] uppercase tracking-widest h-12 px-8 flex-1 sm:flex-none shadow-lg transition-all ${
+                                    bulkStatusForm.status === 'vacant' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' :
+                                    bulkStatusForm.status === 'booked' ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' :
+                                    bulkStatusForm.status === 'held' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20' :
+                                    bulkStatusForm.status === 'maintenance' ? 'bg-slate-600 hover:bg-slate-700 shadow-slate-500/20' :
+                                    bulkStatusForm.status === 'suspended' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' :
+                                    'bg-[#0056b3] hover:bg-[#004494] shadow-[#0056b3]/20'
+                                }`}
+                            >
+                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {bulkStatusForm.status
+                                    ? `Set ${selectedRoomIds.length} Room${selectedRoomIds.length > 1 ? 's' : ''} to ${bulkStatusForm.status.charAt(0).toUpperCase() + bulkStatusForm.status.slice(1)}`
+                                    : 'Select a Status'
+                                }
                             </Button>
                         </DialogFooter>
                     </DialogContent>

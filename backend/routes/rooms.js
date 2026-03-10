@@ -20,7 +20,7 @@ const router = express.Router();
 // @access  Public
 router.get('/', [
   query('type').optional().isIn(['single', 'double']),
-  query('status').optional().isIn(['vacant', 'booked', 'held', 'maintenance']),
+  query('status').optional().isIn(['vacant', 'booked', 'held', 'maintenance', 'suspended']),
   query('floor').optional().isIn(['1', '2', '3', '4', '5', '6']),
   query('block').optional().isIn(['A', 'B', 'C', 'D', 'E', 'F']),
   query('minPrice').optional().isNumeric(),
@@ -335,23 +335,27 @@ router.get('/availability', [
       let availabilityMessage = '';
       let isAvailable = false;
 
-      if (isAvailableForDates) {
+      if (room.status === 'suspended') {
+        availabilityMessage = 'Suspended / Blocked';
+        isAvailable = false;
+      } else if (room.status === 'maintenance') {
+        availabilityMessage = 'Under maintenance';
+        isAvailable = false;
+      } else if (isAvailableForDates) {
         if (room.status === 'vacant') {
           availabilityMessage = 'Available';
           isAvailable = true;
         } else if (room.status === 'booked') {
-          // Check if the room will be available by the check-in date
           availabilityMessage = 'Currently booked but available for selected dates';
           isAvailable = true;
         } else if (room.status === 'held') {
           availabilityMessage = 'Currently held but available for selected dates';
           isAvailable = true;
         } else {
-          availabilityMessage = 'Under maintenance';
+          availabilityMessage = 'Unavailable';
           isAvailable = false;
         }
       } else {
-        // Room has conflicting bookings for the selected dates
         if (room.status === 'vacant') {
           availabilityMessage = 'Not available for selected dates';
           isAvailable = false;
@@ -362,7 +366,7 @@ router.get('/availability', [
           availabilityMessage = 'Held for selected dates';
           isAvailable = false;
         } else {
-          availabilityMessage = 'Under maintenance';
+          availabilityMessage = 'Unavailable';
           isAvailable = false;
         }
       }
@@ -393,7 +397,8 @@ router.get('/availability', [
     isAvailable: room.status === 'vacant',
     availabilityMessage: room.status === 'vacant' ? 'Available' :
       room.status === 'booked' ? 'Currently Booked' :
-        room.status === 'held' ? 'Temporarily Held' : 'Under Maintenance',
+        room.status === 'held' ? 'Temporarily Held' :
+          room.status === 'suspended' ? 'Suspended / Blocked' : 'Under Maintenance',
     currentStatus: room.status
   }));
 
@@ -404,6 +409,183 @@ router.get('/availability', [
       totalAvailable: roomsWithStatus.filter(r => r.isAvailable).length,
       totalRooms: roomsWithStatus.length
     }
+  });
+}));
+
+// Bulk operations (Always place before parameterized routes like /:id)
+
+// @route   DELETE /api/rooms/bulk
+// @desc    Delete multiple rooms (Admin only)
+// @access  Private (Admin)
+router.delete('/bulk', [
+  authMiddleware,
+  staffMiddleware,
+  body('ids').isArray().withMessage('Room IDs must be an array')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { ids } = req.body;
+
+  // Fetch rooms before deleting for audit logging
+  const rooms = await Room.find({ _id: { $in: ids } });
+
+  if (rooms.length === 0) {
+    return res.status(404).json({ status: 'error', message: 'No rooms found for deletion' });
+  }
+
+  const deletedCount = await Room.deleteMany({ _id: { $in: ids } });
+
+  // Log audit events for each deleted room
+  for (const room of rooms) {
+    await logEvent({
+      userId: req.user._id,
+      action: 'ROOM_DELETE',
+      details: { roomId: room._id, roomNumber: room.roomNumber, bulk: true },
+      req
+    });
+  }
+
+  res.json({ status: 'success', message: `${deletedCount.deletedCount} rooms deleted successfully` });
+}));
+
+// @route   POST /api/rooms/bulk-block
+// @desc    Block multiple rooms for a period (Admin/Staff only)
+// @access  Private (Admin/Staff)
+router.post('/bulk-block', [
+  authMiddleware,
+  staffMiddleware,
+  body('ids').isArray().withMessage('Room IDs must be an array'),
+  body('startDate').isISO8601().withMessage('Valid start date is required'),
+  body('endDate').isISO8601().withMessage('Valid end date is required'),
+  body('reason').optional({ values: 'falsy' }).isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { ids, startDate, endDate, reason } = req.body;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (start >= end) {
+    return res.status(400).json({ status: 'error', message: 'End date must be after start date' });
+  }
+
+  const result = await Room.updateMany(
+    { _id: { $in: ids } },
+    {
+      $set: {
+        status: 'suspended',
+        holdBy: null,
+        holdUntil: null,
+        suspensionRecord: {
+          startDate: start,
+          endDate: end,
+          reason: reason || 'Mass block for official requisition',
+          suspendedBy: req.user._id
+        }
+      }
+    }
+  );
+
+  // Broadcast updates and log audit
+  for (const id of ids) {
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: id, status: 'suspended' }); } catch { }
+  }
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_BULK_BLOCK',
+    details: { roomIds: ids, count: ids.length, startDate, endDate, reason },
+    req
+  });
+
+  res.json({
+    status: 'success',
+    message: `Successfully blocked ${result.modifiedCount} rooms`,
+    data: { modifiedCount: result.modifiedCount }
+  });
+}));
+
+// @route   PUT /api/rooms/bulk-status
+// @desc    Bulk update room status (Admin/Staff only)
+// @access  Private (Admin/Staff)
+router.put('/bulk-status', [
+  authMiddleware,
+  staffMiddleware,
+  body('ids').isArray({ min: 1 }).withMessage('Room IDs must be a non-empty array'),
+  body('ids.*').isMongoId().withMessage('Invalid room ID'),
+  body('status').isIn(['vacant', 'booked', 'held', 'maintenance', 'suspended']).withMessage('Invalid status'),
+  body('reason').optional({ values: 'falsy' }).isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters'),
+  body('startDate').optional({ values: 'falsy' }).isISO8601().withMessage('Valid start date is required'),
+  body('endDate').optional({ values: 'falsy' }).isISO8601().withMessage('Valid end date is required')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.error("Validation failed for bulk-status", errors.array());
+    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
+  }
+
+  const { ids, status, reason, startDate, endDate } = req.body;
+
+  // Build the update payload
+  const updatePayload = {
+    status,
+    holdBy: null,
+    holdUntil: null
+  };
+
+  // If maintenance, populate maintenanceSchedule
+  if (status === 'maintenance') {
+    updatePayload.maintenanceSchedule = {
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : null,
+      reason: reason || 'Bulk maintenance assignment',
+      scheduledBy: req.user._id
+    };
+  }
+
+  // If suspended, populate suspensionRecord
+  if (status === 'suspended') {
+    updatePayload.suspensionRecord = {
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : null,
+      reason: reason || 'Bulk suspension',
+      suspendedBy: req.user._id
+    };
+  }
+
+  // If setting to vacant, clear both schedule records
+  if (status === 'vacant') {
+    updatePayload.maintenanceSchedule = { startDate: null, endDate: null, reason: '', scheduledBy: null };
+    updatePayload.suspensionRecord = { startDate: null, endDate: null, reason: '', suspendedBy: null };
+  }
+
+  const result = await Room.updateMany(
+    { _id: { $in: ids } },
+    { $set: updatePayload }
+  );
+
+  // Broadcast real-time updates for each room
+  for (const id of ids) {
+    try { getIO().of('/').emit('roomStatusUpdated', { roomId: id, status }); } catch { }
+  }
+
+  await logEvent({
+    userId: req.user._id,
+    action: 'ROOM_BULK_STATUS_UPDATE',
+    details: { roomIds: ids, count: ids.length, newStatus: status, reason: reason || '', startDate, endDate },
+    req
+  });
+
+  res.json({
+    status: 'success',
+    message: `Successfully updated ${result.modifiedCount} rooms to '${status}'`,
+    data: { modifiedCount: result.modifiedCount }
   });
 }));
 
@@ -625,102 +807,7 @@ router.put('/:id', [
   });
 }));
 
-// @route   DELETE /api/rooms/bulk
-// @desc    Delete multiple rooms (Admin only)
-// @access  Private (Admin)
-router.delete('/bulk', [
-  authMiddleware,
-  staffMiddleware,
-  body('ids').isArray().withMessage('Room IDs must be an array')
-], asyncHandler(async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
-  }
 
-  const { ids } = req.body;
-
-  // Fetch rooms before deleting for audit logging
-  const rooms = await Room.find({ _id: { $in: ids } });
-
-  if (rooms.length === 0) {
-    return res.status(404).json({ status: 'error', message: 'No rooms found for deletion' });
-  }
-
-  const deletedCount = await Room.deleteMany({ _id: { $in: ids } });
-
-  // Log audit events for each deleted room
-  for (const room of rooms) {
-    await logEvent({
-      userId: req.user._id,
-      action: 'ROOM_DELETE',
-      details: { roomId: room._id, roomNumber: room.roomNumber, bulk: true },
-      req
-    });
-  }
-
-  res.json({ status: 'success', message: `${deletedCount.deletedCount} rooms deleted successfully` });
-}));
-
-// @route   POST /api/rooms/bulk-block
-// @desc    Block multiple rooms for a period (Admin/Staff only)
-// @access  Private (Admin/Staff)
-router.post('/bulk-block', [
-  authMiddleware,
-  staffMiddleware,
-  body('ids').isArray().withMessage('Room IDs must be an array'),
-  body('startDate').isISO8601().withMessage('Valid start date is required'),
-  body('endDate').isISO8601().withMessage('Valid end date is required'),
-  body('reason').optional().isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
-], asyncHandler(async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ status: 'error', message: 'Validation failed', errors: errors.array() });
-  }
-
-  const { ids, startDate, endDate, reason } = req.body;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  if (start >= end) {
-    return res.status(400).json({ status: 'error', message: 'End date must be after start date' });
-  }
-
-  const result = await Room.updateMany(
-    { _id: { $in: ids } },
-    {
-      $set: {
-        status: 'suspended',
-        holdBy: null,
-        holdUntil: null,
-        suspensionRecord: {
-          startDate: start,
-          endDate: end,
-          reason: reason || 'Mass block for official requisition',
-          suspendedBy: req.user._id
-        }
-      }
-    }
-  );
-
-  // Broadcast updates and log audit
-  for (const id of ids) {
-    try { getIO().of('/').emit('roomStatusUpdated', { roomId: id, status: 'suspended' }); } catch { }
-  }
-
-  await logEvent({
-    userId: req.user._id,
-    action: 'ROOM_BULK_BLOCK',
-    details: { roomIds: ids, count: ids.length, startDate, endDate, reason },
-    req
-  });
-
-  res.json({
-    status: 'success',
-    message: `Successfully blocked ${result.modifiedCount} rooms`,
-    data: { modifiedCount: result.modifiedCount }
-  });
-}));
 // @route   DELETE /api/rooms/:id
 // @desc    Delete room (Admin/Staff only)
 // @access  Private (Admin/Staff)
@@ -761,7 +848,10 @@ router.put('/:id/status', [
   authMiddleware,
   staffMiddleware,
   param('id').isMongoId().withMessage('Invalid room ID'),
-  body('status').isIn(['vacant', 'booked', 'held', 'maintenance', 'suspended']).withMessage('Invalid status')
+  body('status').isIn(['vacant', 'booked', 'held', 'maintenance', 'suspended']).withMessage('Invalid status'),
+  body('startDate').optional({ values: 'falsy' }).isISO8601().withMessage('Valid start date is required'),
+  body('endDate').optional({ values: 'falsy' }).isISO8601().withMessage('Valid end date is required'),
+  body('reason').optional({ values: 'falsy' }).isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
 ], asyncHandler(async (req, res) => {
   // Check for validation errors
   const errors = validationResult(req);
@@ -773,7 +863,7 @@ router.put('/:id/status', [
     });
   }
 
-  const { status } = req.body;
+  const { status, startDate, endDate, reason } = req.body;
   const room = await Room.findById(req.params.id);
 
   if (!room) {
@@ -783,7 +873,37 @@ router.put('/:id/status', [
     });
   }
 
-  await room.updateStatus(status);
+  // Build update payload
+  room.status = status;
+  if (status !== 'held') {
+    room.holdBy = null;
+    room.holdUntil = null;
+  }
+
+  // Handle Maintenance/Suspension metadata
+  if (status === 'maintenance') {
+    room.maintenanceSchedule = {
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : null,
+      reason: reason || 'Individual maintenance assignment',
+      scheduledBy: req.user._id
+    };
+  } else if (status === 'suspended') {
+    room.suspensionRecord = {
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : null,
+      reason: reason || 'Individual room block',
+      suspendedBy: req.user._id
+    };
+  }
+
+  // Cleanup schedules if moving to vacant/booked
+  if (status === 'vacant' || status === 'booked' || status === 'held') {
+    room.maintenanceSchedule = { startDate: null, endDate: null, reason: '', scheduledBy: null };
+    room.suspensionRecord = { startDate: null, endDate: null, reason: '', suspendedBy: null };
+  }
+
+  await room.save();
   try { getIO().of('/').emit('roomStatusUpdated', { roomId: room._id, status: room.status }); } catch { }
 
   res.json({
@@ -804,7 +924,7 @@ router.post('/:id/maintenance', [
   param('id').isMongoId().withMessage('Invalid room ID'),
   body('startDate').isISO8601().withMessage('Valid start date is required'),
   body('endDate').isISO8601().withMessage('Valid end date is required'),
-  body('reason').optional().isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
+  body('reason').optional({ values: 'falsy' }).isLength({ max: 500 }).withMessage('Reason cannot exceed 500 characters')
 ], asyncHandler(async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

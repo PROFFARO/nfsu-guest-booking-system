@@ -303,7 +303,19 @@ export default function RoomBrowsePage() {
                                                                                     room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
                                                                                         room.status === 'suspended' ? 'text-purple-700/60 dark:text-purple-400/60' :
                                                                                             'text-muted-foreground'
-                                                                                    }`}>{room.status === 'suspended' ? 'BLOCKED' : 'UNIT RECORD'}</div>
+                                                                                    }`}>
+                                                                                    {room.status === 'suspended' ? 'BLOCKED' : room.status === 'maintenance' ? 'MAINTENANCE' : 'UNIT RECORD'}
+                                                                                </div>
+                                                                                {room.status === 'suspended' && room.suspensionRecord?.startDate && (
+                                                                                    <div className="text-[6.5px] font-noto-bold text-purple-600 dark:text-purple-400 mt-1 uppercase leading-none">
+                                                                                        {new Date(room.suspensionRecord.startDate).toLocaleDateString()} - {room.suspensionRecord.endDate ? new Date(room.suspensionRecord.endDate).toLocaleDateString() : 'IND.'}
+                                                                                    </div>
+                                                                                )}
+                                                                                {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                                                                                    <div className="text-[6.5px] font-noto-bold text-slate-500 dark:text-slate-400 mt-1 uppercase leading-none">
+                                                                                        {new Date(room.maintenanceSchedule.startDate).toLocaleDateString()} - {room.maintenanceSchedule.endDate ? new Date(room.maintenanceSchedule.endDate).toLocaleDateString() : 'IND.'}
+                                                                                    </div>
+                                                                                )}
                                                                             </button>
                                                                         </div>
                                                                     ))
@@ -376,7 +388,19 @@ export default function RoomBrowsePage() {
                                                                                 <div className={`text-[7px] font-noto-bold uppercase tracking-widest mt-2 opacity-60 font-noto-black ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
                                                                                     room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
                                                                                         'text-muted-foreground'
-                                                                                    }`}>RECORD</div>
+                                                                                    }`}>
+                                                                                    {room.status === 'suspended' ? 'BLOCKED' : room.status === 'maintenance' ? 'MAINTENANCE' : 'UNIT RECORD'}
+                                                                                </div>
+                                                                                {room.status === 'suspended' && room.suspensionRecord?.startDate && (
+                                                                                    <div className="text-[6.5px] font-noto-bold text-purple-600 dark:text-purple-400 mt-1 uppercase leading-none">
+                                                                                        {new Date(room.suspensionRecord.startDate).toLocaleDateString()} - {room.suspensionRecord.endDate ? new Date(room.suspensionRecord.endDate).toLocaleDateString() : 'IND.'}
+                                                                                    </div>
+                                                                                )}
+                                                                                {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                                                                                    <div className="text-[6.5px] font-noto-bold text-slate-500 dark:text-slate-400 mt-1 uppercase leading-none">
+                                                                                        {new Date(room.maintenanceSchedule.startDate).toLocaleDateString()} - {room.maintenanceSchedule.endDate ? new Date(room.maintenanceSchedule.endDate).toLocaleDateString() : 'IND.'}
+                                                                                    </div>
+                                                                                )}
                                                                             </button>
                                                                         </div>
                                                                     ))}

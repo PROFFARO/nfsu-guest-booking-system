@@ -168,13 +168,25 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                 )}
                             </div>
                         </div>
-                        <div className={`mt-3 sm:mt-0 border-2 px-3 sm:px-6 py-1 rounded-md text-[8px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
-                            room.status === 'booked' ? 'status-booked-text status-booked-border' :
-                                room.status === 'held' ? 'status-held-text status-held-border' :
-                                    room.status === 'suspended' ? 'border-purple-200 text-purple-600 bg-purple-50' :
-                                        'status-maintenance-text status-maintenance-border'
-                            }`}>
-                            STATUS: {room.status}
+                        <div className="flex flex-col items-end gap-1.5">
+                            <div className={`border-2 px-3 sm:px-6 py-1 rounded-md text-[8px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
+                                room.status === 'booked' ? 'status-booked-text status-booked-border' :
+                                    room.status === 'held' ? 'status-held-text status-held-border' :
+                                        room.status === 'suspended' ? 'border-purple-200 text-purple-600 bg-purple-50' :
+                                            'status-maintenance-text status-maintenance-border'
+                                }`}>
+                                STATUS: {room.status}
+                            </div>
+                            {room.status === 'suspended' && room.suspensionRecord?.startDate && (
+                                <div className="text-[8px] font-noto-bold text-purple-600 uppercase tracking-widest bg-purple-50 px-2 py-0.5 rounded-sm border border-purple-100">
+                                    Period: {new Date(room.suspensionRecord.startDate).toLocaleDateString()} - {room.suspensionRecord.endDate ? new Date(room.suspensionRecord.endDate).toLocaleDateString() : 'Indefinite'}
+                                </div>
+                            )}
+                            {room.status === 'maintenance' && room.maintenanceSchedule?.startDate && (
+                                <div className="text-[8px] font-noto-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-200">
+                                    Period: {new Date(room.maintenanceSchedule.startDate).toLocaleDateString()} - {room.maintenanceSchedule.endDate ? new Date(room.maintenanceSchedule.endDate).toLocaleDateString() : 'Indefinite'}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : null}

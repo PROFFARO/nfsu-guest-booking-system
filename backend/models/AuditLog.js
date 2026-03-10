@@ -21,6 +21,8 @@ const auditLogSchema = new mongoose.Schema({
       'ROOM_CREATE',
       'ROOM_UPDATE',
       'ROOM_DELETE',
+      'ROOM_BULK_BLOCK',
+      'ROOM_BULK_STATUS_UPDATE',
       'USER_UPDATE',
       'USER_DELETE',
       'SYSTEM_MAINTENANCE',

@@ -218,6 +218,9 @@ roomSchema.statics.getRoomStats = function () {
         },
         maintenance: {
           $sum: { $cond: [{ $eq: ['$status', 'maintenance'] }, 1, 0] }
+        },
+        suspended: {
+          $sum: { $cond: [{ $eq: ['$status', 'suspended'] }, 1, 0] }
         }
       }
     }
