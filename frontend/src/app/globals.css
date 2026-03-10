@@ -500,50 +500,18 @@ body.translated-rtl {
     border: 2px solid var(--border);
     border-radius: 0.75rem; /* Match rounded-xl */
     z-index: 10;
-    overflow: visible; /* Prevent bracket clipping */
-  }
-
-  .calendar-card::before,
-  .calendar-card::after {
-    content: "";
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border-color: #004A99 !important;
-    pointer-events: none;
-    z-index: 100; /* Ensure it stays on top */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Dark mode override for corner color */
-  :is(.dark *) .calendar-card::before,
-  :is(.dark *) .calendar-card::after {
-    border-color: #06b6d4 !important; /* Cyan-500 */
+  .calendar-card:hover {
+    border-color: #004A99 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 74, 153, 0.1), 0 8px 10px -6px rgba(0, 74, 153, 0.1);
   }
 
-  /* Top Right Bracket */
-  .calendar-card::before {
-    top: -2px;
-    right: -2px;
-    border-style: solid;
-    border-width: 5px 5px 0 0;
-    border-top-right-radius: 0.75rem;
-  }
-
-  /* Bottom Left Bracket */
-  .calendar-card::after {
-    bottom: -2px;
-    left: -2px;
-    border-style: solid;
-    border-width: 0 0 5px 5px;
-    border-bottom-left-radius: 0.75rem;
-  }
-
-  .calendar-card:hover::before,
-  .calendar-card:hover::after {
-    width: 36px;
-    height: 36px;
-    border-width: 6px;
+  :is(.dark *) .calendar-card:hover {
+    border-color: #06b6d4 !important;
+    box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.2), 0 8px 10px -6px rgba(6, 182, 212, 0.2);
   }
 
   /* Governmental Headers - Centralized alignment (input_file_0.png style) */

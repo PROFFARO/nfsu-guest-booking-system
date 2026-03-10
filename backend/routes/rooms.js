@@ -125,9 +125,11 @@ router.get('/', [
       _id: { $in: availableRoomIds },
       ...filters
     })
+      .select('-images.data')
       .sort({ floor: 1, block: 1, roomNumber: 1 })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
 
     const total = availableRoomIds.length;
 
@@ -151,9 +153,11 @@ router.get('/', [
 
   // Get rooms with pagination
   rooms = await Room.find(filters)
+    .select('-images.data')
     .sort({ floor: 1, block: 1, roomNumber: 1 })
     .skip(skip)
-    .limit(Number(limit));
+    .limit(Number(limit))
+    .lean();
 
   // Get total count for pagination
   const total = await Room.countDocuments(filters);
@@ -292,7 +296,10 @@ router.get('/availability', [
   if (block) filters.block = block;
 
   // Get all rooms matching basic filters
-  const allRooms = await Room.find(filters).sort({ floor: 1, block: 1, roomNumber: 1 });
+  const allRooms = await Room.find(filters)
+    .select('-images.data')
+    .sort({ floor: 1, block: 1, roomNumber: 1 })
+    .lean();
 
   // If dates are provided, check availability for those specific dates
   if (checkIn && checkOut) {

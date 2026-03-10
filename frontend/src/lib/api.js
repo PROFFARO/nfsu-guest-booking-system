@@ -25,13 +25,20 @@ async function request(endpoint, options = {}) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-        // If token expired or invalid, auto-logout
+        // If token expired or invalid, auto-logout only for critical session validation requests
         if (res.status === 401 && token) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            // Redirect to login if we're in the browser
-            if (typeof window !== 'undefined' && !endpoint.includes('/auth/login')) {
-                window.location.href = '/login?expired=true';
+            const isAuthEndpoint = endpoint.includes('/auth/me');
+
+            if (isAuthEndpoint) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('sessionToken');
+
+                // Only redirect if we are not already on the login/register paths
+                if (typeof window !== 'undefined' &&
+                    !window.location.pathname.includes('/login') &&
+                    !window.location.pathname.includes('/register')) {
+                    window.location.href = '/login?expired=true';
+                }
             }
         }
         const error = new Error(data.message || 'Something went wrong');
