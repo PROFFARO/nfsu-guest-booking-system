@@ -136,35 +136,36 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-[98vw] lg:max-w-7xl w-full h-[95vh] lg:h-[90vh] p-0 overflow-hidden flex flex-col gap-0 border-2 border-[#004A99] dark:border-cyan-800 rounded-xl bg-background shadow-2xl">
+            <DialogContent className="max-w-[100vw] sm:max-w-[98vw] lg:max-w-7xl w-full h-[100dvh] sm:h-[95vh] lg:h-[90vh] p-0 overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl">
                 <DialogTitle className="sr-only">Room {room?.roomNumber} Requisition</DialogTitle>
                 <DialogDescription className="sr-only">Official Room Requisition Portal</DialogDescription>
 
                 {/* Header Area */}
                 {loading ? (
-                    <div className="p-8 border-b border-border bg-muted/5 shrink-0"><Skeleton className="h-10 w-64" /></div>
+                    <div className="p-6 sm:p-8 border-b border-border bg-muted/5 shrink-0">
+                        <Skeleton className="h-10 w-48 sm:w-64" />
+                    </div>
                 ) : room ? (
-                    <div className="flex flex-col sm:flex-row items-center justify-between p-6 sm:px-10 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 pr-14 relative">
-                        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-                            <div>
-                                <h2 className="text-2xl sm:text-3xl font-noto-bold tracking-tighter text-[#004A99] dark:text-cyan-500 uppercase">Unit {room.roomNumber}</h2>
-                                <p className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.4em] mt-1">Allocation ID: {room._id.slice(-8).toUpperCase()}</p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 sm:p-8 border-b-2 border-[#004A99]/20 bg-muted/5 shrink-0 relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 w-full sm:w-auto">
+                            <div className="w-full sm:w-auto">
+                                <h2 className="text-xl sm:text-3xl font-noto-bold tracking-tighter text-[#004A99] dark:text-cyan-500 uppercase">Unit {room.roomNumber}</h2>
                             </div>
                             <div className="hidden sm:block h-10 w-[2px] bg-border/40" />
-                            <div className="flex flex-wrap items-center gap-6 text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest">
+                            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-6 text-[10px] sm:text-[11px] font-noto-bold text-muted-foreground uppercase tracking-widest">
                                 <span className="flex items-center gap-2">
-                                    <MapPin className="h-4 w-4 text-[#004A99] dark:text-cyan-500" />
+                                    <MapPin className="h-3.5 w-3.5 sm:h-4 w-4 text-[#004A99] dark:text-cyan-500" />
                                     Floor {room.floor} • Block {room.block}
                                 </span>
                                 {room.numReviews > 0 && (
-                                    <span className="flex items-center gap-2 text-amber-600 border-l border-border/40 pl-6">
-                                        <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                                    <span className="flex items-center gap-2 text-amber-600 sm:border-l sm:border-border/40 sm:pl-6">
+                                        <Star className="h-3.5 w-3.5 sm:h-4 w-4 fill-amber-500 text-amber-500" />
                                         {room.rating.toFixed(1)} / 5.0
                                     </span>
                                 )}
                             </div>
                         </div>
-                        <div className={`mt-4 sm:mt-0 border-2 px-6 py-1.5 rounded-md text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
+                        <div className={`mt-4 sm:mt-0 border-2 px-4 sm:px-6 py-1 rounded-md text-[9px] sm:text-[10px] font-noto-bold tracking-[0.2em] uppercase ${room.status === 'vacant' ? 'status-vacant-text status-vacant-border' :
                             room.status === 'booked' ? 'status-booked-text status-booked-border' :
                                 room.status === 'held' ? 'status-held-text status-held-border' :
                                     'status-maintenance-text status-maintenance-border'
@@ -175,7 +176,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                 ) : null}
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar bg-background">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-10 custom-scrollbar bg-background">
                     {loading ? (
                         <div className="grid gap-10 lg:grid-cols-2">
                             <Skeleton className="h-[500px] w-full rounded-md" />
@@ -198,17 +199,17 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                 {/* Official Specification Grid */}
                                 <div className="space-y-6">
                                     <h3 className="text-xs font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-[0.3em] border-b border-border pb-2">Unit Specification</h3>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {[
                                             { label: 'Occupancy Type', value: `${room.type} Room`, icon: BedDouble },
                                             { label: 'Authorized Tariff', value: `₹${room.pricePerNight} / Night`, icon: IndianRupee },
                                             { label: 'Inventory Code', value: `F${room.floor}-B${room.block}`, icon: Info },
                                             { label: 'Verification Status', value: 'Certified', icon: Clock },
                                         ].map((item, idx) => (
-                                            <div key={idx} className="flex flex-col p-4 border border-border/60 bg-muted/5 relative">
+                                            <div key={idx} className="flex flex-col p-4 border border-border/60 bg-muted/5 relative overflow-hidden">
                                                 <item.icon className="h-4 w-4 absolute top-4 right-4 text-[#004A99]/40 dark:text-cyan-600/40" />
                                                 <span className="text-[10px] font-noto-bold text-muted-foreground uppercase mb-1">{item.label}</span>
-                                                <span className="text-sm font-noto-bold text-foreground">{item.value}</span>
+                                                <span className="text-sm font-noto-bold text-foreground break-words pr-6">{item.value}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -237,12 +238,12 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                 {/* Guest Feedback Summary */}
                                 <div className="space-y-6 pt-4">
                                     <div className="flex items-center justify-between border-b border-border pb-2">
-                                        <h3 className="text-xs font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-[0.3em]">Evaluation Records</h3>
+                                        <h3 className="text-xs font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-[0.3em]">GUESTS FEEDBACK</h3>
                                         <span className="text-[9px] font-noto-bold text-muted-foreground uppercase">{reviews.length} Files</span>
                                     </div>
                                     {reviews.length === 0 ? (
                                         <div className="p-6 text-center border-2 border-dashed border-border/40 bg-muted/5">
-                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase italic tracking-widest">No previous evaluation entries recorded.</p>
+                                            <p className="text-[10px] font-noto-bold text-muted-foreground uppercase italic tracking-widest">No records found</p>
                                         </div>
                                     ) : (
                                         <div className="relative group">
@@ -253,13 +254,13 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                             </div>
 
                             {/* Right Column: Requisition Form (Column Span 7) */}
-                            <div className="lg:col-span-7 container mx-auto ">
-                                <div className="border border-border/60 rounded-xl bg-card p-6 sm:p-10 shadow-2xl relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-2 h-full bg-[#004A99]" />
+                            <div className="lg:col-span-7 w-full">
+                                <div className="border border-border/60 rounded-xl bg-card p-4 sm:p-10 shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-[#004A99]" />
 
-                                    <h3 className="text-2xl font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-tighter mb-8 flex items-center gap-3">
+                                    <h3 className="text-xl sm:text-2xl font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-tighter mb-6 sm:mb-8 flex items-center gap-3">
                                         Formal Room Requisition
-                                        <ArrowRight className="h-5 w-5 text-muted-foreground/30" />
+                                        <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/30" />
                                     </h3>
 
                                     {room.status === 'vacant' ? (
@@ -343,11 +344,11 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                 </div>
 
                                                 {/* Requisition Summary Table */}
-                                                <div className="pt-8 border-t-2 border-border">
-                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-6 space-y-4">
-                                                        <div className="flex justify-between items-center text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">
+                                                <div className="pt-6 sm:pt-8 border-t-2 border-border">
+                                                    <div className="bg-muted/10 border-2 border-[#004A99]/10 p-4 sm:p-6 space-y-4">
+                                                        <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em]">
                                                             <span>Requisition Duration</span>
-                                                            <span className="text-foreground text-sm uppercase">{nights || '—'} Night(s)</span>
+                                                            <span className="text-foreground text-xs sm:text-sm uppercase">{nights || '—'} Night(s)</span>
                                                         </div>
                                                         <div className="h-[1px] bg-border/40" />
                                                         <div className="flex justify-between items-end">

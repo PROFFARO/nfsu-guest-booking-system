@@ -89,6 +89,10 @@ export default function RoomBrowsePage() {
         double: doubleRooms
     };
 
+    // Dynamic Filter Options derived from Master Data
+    const availableFloors = Array.from(new Set(rooms.map(r => String(r.floor)))).sort((a, b) => Number(a) - Number(b));
+    const availableBlocks = Array.from(new Set(rooms.map(r => String(r.block)))).sort();
+
     return (
         <div className="container mx-auto px-4 py-6 lg:py-10 max-w-[1600px]">
             {/* Header Section */}
@@ -157,12 +161,12 @@ export default function RoomBrowsePage() {
                         </Select>
                     </div>
                     <div className="space-y-1.5">
-                        <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest pl-1">Level / Floor</Label>
+                        <Label className="text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest pl-1">Floor Selection</Label>
                         <Select value={filters.floor || 'all'} onValueChange={(v) => updateFilter('floor', v)}>
                             <SelectTrigger className="rounded-lg border-2 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-[#004A99] h-11 font-noto-medium text-xs bg-white dark:bg-slate-900 transition-all"><SelectValue /></SelectTrigger>
                             <SelectContent className="rounded-lg border-2 border-slate-200 dark:border-slate-800">
                                 <SelectItem value="all">Global (All Floors)</SelectItem>
-                                {['1', '2', '3', '4', '5', '6'].map((f) => (
+                                {availableFloors.map((f) => (
                                     <SelectItem key={f} value={f}>Floor {f}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -174,7 +178,7 @@ export default function RoomBrowsePage() {
                             <SelectTrigger className="rounded-lg border-2 border-slate-200 dark:border-slate-800 focus:ring-0 focus:border-[#004A99] h-11 font-noto-medium text-xs bg-white dark:bg-slate-900 transition-all"><SelectValue /></SelectTrigger>
                             <SelectContent className="rounded-lg border-2 border-slate-200 dark:border-slate-800">
                                 <SelectItem value="all">All Blocks</SelectItem>
-                                {['A', 'B', 'C', 'D', 'E', 'F'].map((b) => (
+                                {availableBlocks.map((b) => (
                                     <SelectItem key={b} value={b}>Block {b}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -232,7 +236,8 @@ export default function RoomBrowsePage() {
                                 </div>
 
                                 <div className="border-2 border-slate-300 dark:border-slate-800 rounded-2xl overflow-hidden bg-card shadow-xl">
-                                    <div className="overflow-x-auto custom-scrollbar">
+                                    {/* Desktop Matrix View (md and up) */}
+                                    <div className="hidden md:block overflow-x-auto custom-scrollbar">
                                         <div className="min-w-max">
                                             {/* Block Headers Row */}
                                             <div className="flex border-b-2 border-slate-300 dark:border-slate-800 bg-muted/40">
@@ -295,6 +300,59 @@ export default function RoomBrowsePage() {
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+
+                                    {/* Mobile Stacked View (below md) */}
+                                    <div className="md:hidden divide-y-2 divide-slate-100 dark:divide-slate-800">
+                                        {sortedFloors.map(floor => (
+                                            <div key={floor} className="p-5 space-y-8 bg-white dark:bg-slate-950">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="bg-[#004A99] text-white px-3 py-1 rounded text-xs font-noto-bold uppercase tracking-widest">Floor {floor}</div>
+                                                    <div className="h-[1px] flex-1 bg-slate-100 dark:bg-slate-900" />
+                                                </div>
+
+                                                <div className="space-y-10 pl-2">
+                                                    {sortedBlocks.map(block => {
+                                                        const cellRooms = occ.rooms.filter(r => String(r.floor) === String(floor) && String(r.block) === String(block))
+                                                            .sort((a, b) => a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }));
+
+                                                        if (cellRooms.length === 0) return null;
+
+                                                        return (
+                                                            <div key={block} className="space-y-4">
+                                                                <h4 className="text-[10px] font-noto-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                                                    BLOCK {block}
+                                                                    <div className="h-[1px] w-8 bg-slate-100/50" />
+                                                                </h4>
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    {cellRooms.map((room) => (
+                                                                        <div key={room._id} className="relative group">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSelectedRoomId(room._id);
+                                                                                    setIsModalOpen(true);
+                                                                                }}
+                                                                                className="calendar-card w-full h-[75px] p-3 text-left transition-all active:scale-95 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800/80 rounded-xl"
+                                                                            >
+                                                                                <div className="flex justify-between items-start mb-2">
+                                                                                    <span className="text-base font-noto-bold text-foreground leading-none">{room.roomNumber}</span>
+                                                                                    <div className={`h-2 w-2 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                                                                                        room.status === 'booked' ? 'bg-red-500' :
+                                                                                            room.status === 'held' ? 'bg-amber-500' :
+                                                                                                'bg-slate-400'
+                                                                                        }`} />
+                                                                                </div>
+                                                                                <div className="text-[7px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-2 opacity-60 font-noto-black">RECORD</div>
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
