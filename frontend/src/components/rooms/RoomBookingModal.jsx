@@ -138,7 +138,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent
                 showCloseButton={true}
-                className="!fixed !inset-0 !z-[70] !p-0 !m-0 !max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[98vw] lg:!w-full lg:max-w-7xl sm:!h-[95vh] lg:!h-[90vh] overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl"
+                className="!fixed !inset-0 !z-[70] !p-0 !m-0 !max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[96vw] lg:!max-w-5xl sm:!h-[95vh] lg:!h-[82vh] overflow-hidden flex flex-col gap-0 border-0 sm:border-2 border-[#004A99] dark:border-cyan-800 rounded-none sm:rounded-xl bg-background shadow-2xl"
             >
                 <DialogTitle className="sr-only">Room {room?.roomNumber} Requisition</DialogTitle>
                 <DialogDescription className="sr-only">Official Room Requisition Portal</DialogDescription>

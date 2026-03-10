@@ -242,12 +242,12 @@ export default function RoomBrowsePage() {
                                         <div className="min-w-max">
                                             {/* Block Headers Row */}
                                             <div className="flex border-b-2 border-slate-300 dark:border-slate-800 bg-muted/40">
-                                                <div className="w-[120px] p-6 flex items-center justify-center border-r-2 border-slate-300 dark:border-slate-800 bg-muted/20 shrink-0">
-                                                    <span className="text-[9px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em] text-center">Floor \<br />Block</span>
+                                                <div className="w-[100px] p-4 flex items-center justify-center border-r-2 border-slate-300 dark:border-slate-800 bg-muted/20 shrink-0">
+                                                    <span className="text-[8px] font-noto-bold text-muted-foreground uppercase tracking-[0.2em] text-center">Floor \<br />Block</span>
                                                 </div>
                                                 {sortedBlocks.map(block => (
-                                                    <div key={block} className="flex-1 min-w-[300px] p-6 flex items-center justify-center border-r-2 border-slate-200 dark:border-slate-800 last:border-r-0">
-                                                        <span className="text-sm font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-[0.4em]">Block {block}</span>
+                                                    <div key={block} className="flex-1 min-w-[250px] p-4 flex items-center justify-center border-r-2 border-slate-200 dark:border-slate-800 last:border-r-0">
+                                                        <span className="text-xs font-noto-bold text-[#004A99] dark:text-cyan-600 uppercase tracking-[0.4em]">Block {block}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -256,9 +256,9 @@ export default function RoomBrowsePage() {
                                             {sortedFloors.map(floor => (
                                                 <div key={floor} className="flex border-b-2 border-slate-100 dark:border-slate-800 last:border-b-0 hover:bg-slate-50/30 dark:hover:bg-slate-900/5 transition-colors">
                                                     {/* Floor Label Sidebar */}
-                                                    <div className="w-[120px] p-8 flex flex-col items-center justify-center border-r-2 border-slate-300 dark:border-slate-800 bg-muted/5 shrink-0">
-                                                        <span className="text-[9px] font-noto-bold text-muted-foreground uppercase tracking-[0.3em] mb-1">Floor</span>
-                                                        <span className="text-4xl font-noto-bold text-[#004A99] dark:text-cyan-600 leading-none">{floor}</span>
+                                                    <div className="w-[100px] p-6 flex flex-col items-center justify-center border-r-2 border-slate-300 dark:border-slate-800 bg-muted/5 shrink-0">
+                                                        <span className="text-[8px] font-noto-bold text-muted-foreground uppercase tracking-[0.3em] mb-1">Floor</span>
+                                                        <span className="text-3xl font-noto-bold text-[#004A99] dark:text-cyan-600 leading-none">{floor}</span>
                                                     </div>
 
                                                     {/* Block Cells */}
@@ -267,7 +267,7 @@ export default function RoomBrowsePage() {
                                                             .sort((a, b) => a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }));
 
                                                         return (
-                                                            <div key={block} className="flex-1 min-w-[300px] p-8 flex flex-wrap gap-6 items-start content-start border-r-2 border-slate-100 dark:border-slate-800 last:border-r-0">
+                                                            <div key={block} className="flex-1 min-w-[250px] p-6 flex flex-wrap gap-4 items-start content-start border-r-2 border-slate-100 dark:border-slate-800 last:border-r-0">
                                                                 {cellRooms.length > 0 ? (
                                                                     cellRooms.map((room) => (
                                                                         <div key={room._id} className="relative group">
@@ -276,7 +276,7 @@ export default function RoomBrowsePage() {
                                                                                     setSelectedRoomId(room._id);
                                                                                     setIsModalOpen(true);
                                                                                 }}
-                                                                                className={`calendar-card w-[115px] h-[80px] p-3 text-left transition-all hover:scale-105 hover:shadow-xl active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
+                                                                                className={`calendar-card w-[100px] h-[70px] p-2.5 text-left transition-all hover:scale-105 hover:shadow-xl active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
                                                                                     ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800/50'
                                                                                     : room.status === 'booked'
                                                                                         ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
@@ -287,19 +287,19 @@ export default function RoomBrowsePage() {
                                                                                                 : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
                                                                                     }`}
                                                                             >
-                                                                                <div className="flex justify-between items-start mb-2">
-                                                                                    <span className={`text-lg font-noto-bold leading-none ${room.status === 'booked' ? 'text-red-900 dark:text-red-400' :
+                                                                                <div className="flex justify-between items-start mb-1">
+                                                                                    <span className={`text-base font-noto-bold leading-none ${room.status === 'booked' ? 'text-red-900 dark:text-red-400' :
                                                                                         room.status === 'held' ? 'text-amber-900 dark:text-amber-400' :
                                                                                             'text-foreground'
                                                                                         }`}>{room.roomNumber}</span>
-                                                                                    <div className={`h-2.5 w-2.5 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' :
-                                                                                        room.status === 'booked' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]' :
+                                                                                    <div className={`h-2 w-2 rounded-full ${room.status === 'vacant' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                                                                                        room.status === 'booked' ? 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.2)]' :
                                                                                             room.status === 'held' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' :
                                                                                                 room.status === 'suspended' ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]' :
                                                                                                     'bg-slate-400'
                                                                                         }`} />
                                                                                 </div>
-                                                                                <div className={`text-[8px] font-noto-bold uppercase tracking-widest mt-4 opacity-70 ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
+                                                                                <div className={`text-[7px] font-noto-bold uppercase tracking-widest mt-2 opacity-70 ${room.status === 'booked' ? 'text-red-700/60 dark:text-red-400/60' :
                                                                                     room.status === 'held' ? 'text-amber-700/60 dark:text-amber-400/60' :
                                                                                         room.status === 'suspended' ? 'text-purple-700/60 dark:text-purple-400/60' :
                                                                                             'text-muted-foreground'
@@ -350,7 +350,7 @@ export default function RoomBrowsePage() {
                                                                                     setSelectedRoomId(room._id);
                                                                                     setIsModalOpen(true);
                                                                                 }}
-                                                                                className={`calendar-card w-full h-[75px] p-3 text-left transition-all active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
+                                                                                className={`calendar-card w-full h-[65px] p-2.5 text-left transition-all active:scale-95 rounded-xl border-2 ${room.status === 'vacant'
                                                                                     ? 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800/80'
                                                                                     : room.status === 'booked'
                                                                                         ? 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-800/40'
@@ -361,7 +361,7 @@ export default function RoomBrowsePage() {
                                                                                                 : 'bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/40'
                                                                                     }`}
                                                                             >
-                                                                                <div className="flex justify-between items-start mb-2">
+                                                                                <div className="flex justify-between items-start mb-1">
                                                                                     <span className={`text-base font-noto-bold leading-none ${room.status === 'booked' ? 'text-red-900 dark:text-red-400' :
                                                                                         room.status === 'held' ? 'text-amber-900 dark:text-amber-400' :
                                                                                             'text-foreground'
@@ -397,20 +397,20 @@ export default function RoomBrowsePage() {
 
             {/* Bottom Legend Ledger */}
             {!loading && rooms.length > 0 && (
-                <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 py-8 sm:py-10 border-2 border-slate-300 dark:border-slate-800 bg-muted/5 px-6 sm:px-8 rounded-2xl mt-12 shadow-md">
-                    <span className="text-[11px] font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-[0.4em] border-r-2 border-slate-300 dark:border-slate-800 pr-10 hidden lg:block">Status Legend</span>
+                <div className="grid grid-cols-1 xs:grid-cols-2 lg:flex lg:flex-wrap items-center justify-center gap-y-4 gap-x-6 sm:gap-8 py-6 sm:py-6 border-2 border-slate-300 dark:border-slate-800 bg-muted/5 px-6 sm:px-8 rounded-2xl mt-12 shadow-md">
+                    <span className="text-[9px] font-noto-bold text-[#004A99] dark:text-cyan-500 uppercase tracking-[0.4em] border-r-2 border-slate-300 dark:border-slate-800 pr-8 hidden lg:block">Status Legend</span>
                     {[
                         { label: 'Available / Vacant', dot: 'bg-emerald-500', fill: 'bg-white dark:bg-slate-900 border-slate-200' },
                         { label: 'Occupied / Booked', dot: 'bg-red-500', fill: 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60' },
                         { label: 'Requisition Held', dot: 'bg-amber-500', fill: 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-200/60' },
                         { label: 'Official Block', dot: 'bg-purple-500', fill: 'bg-purple-50/70 dark:bg-purple-950/20 border-purple-200/60' },
                         { label: 'Maintenance / Service', dot: 'bg-slate-400', fill: 'bg-slate-100 dark:bg-slate-800/30 border-slate-200/60' }
-                    ].map(item => (
-                        <div key={item.label} className="flex items-center gap-3 group transition-all">
-                            <div className={`h-8 w-12 rounded-md ${item.fill} border flex items-center justify-center relative overflow-hidden shadow-sm px-2`}>
-                                <div className={`h-2 w-2 rounded-full ${item.dot} shadow-sm`} />
+                    ].map((item, idx) => (
+                        <div key={item.label} className={`flex items-center gap-2 group transition-all ${idx === 4 ? 'xs:col-span-2 xs:justify-self-center lg:col-auto' : ''}`}>
+                            <div className={`h-6 w-10 rounded-md ${item.fill} border flex items-center justify-center relative overflow-hidden shadow-sm px-1.5`}>
+                                <div className={`h-1.5 w-1.5 rounded-full ${item.dot} shadow-sm`} />
                             </div>
-                            <span className="text-[10px] font-noto-bold text-foreground uppercase tracking-widest">{item.label}</span>
+                            <span className="text-[9px] font-noto-bold text-foreground uppercase tracking-widest whitespace-nowrap">{item.label}</span>
                         </div>
                     ))}
                 </div>
