@@ -329,20 +329,12 @@ html, body {
    Utility Classes for GOI Font Weights
    ========================================================================== */
 
-@layer utilities {
-  .font-noto-regular {
-    font-weight: 400;
-  }
-  .font-noto-medium {
-    font-weight: 500;
-  }
-  .font-noto-semibold {
-    font-weight: 600;
-  }
-  .font-noto-bold {
-    font-weight: 700;
-  }
+@utility font-noto-regular { font-weight: 400; }
+@utility font-noto-medium { font-weight: 500; }
+@utility font-noto-semibold { font-weight: 600; }
+@utility font-noto-bold { font-weight: 700; }
 
+@layer utilities {
   /* GOI: No all-caps for long text */
   .no-all-caps {
     text-transform: none !important;
@@ -494,4 +486,129 @@ body.translated-ltr,
 body.translated-rtl {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
+}
+
+/* ==========================================================================
+   Governmental & Calendar-style UI Components
+   ========================================================================== */
+
+@layer components {
+  /* Calendar-style card with offset/bracket border effect (input_file_2.png inspiration) */
+  .calendar-card {
+    position: relative;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 0.75rem; /* Match rounded-xl */
+    z-index: 10;
+    overflow: visible; /* Prevent bracket clipping */
+  }
+
+  .calendar-card::before,
+  .calendar-card::after {
+    content: "";
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: #004A99 !important;
+    pointer-events: none;
+    z-index: 100; /* Ensure it stays on top */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Dark mode override for corner color */
+  :is(.dark *) .calendar-card::before,
+  :is(.dark *) .calendar-card::after {
+    border-color: #06b6d4 !important; /* Cyan-500 */
+  }
+
+  /* Top Right Bracket */
+  .calendar-card::before {
+    top: -2px;
+    right: -2px;
+    border-style: solid;
+    border-width: 5px 5px 0 0;
+    border-top-right-radius: 0.75rem;
+  }
+
+  /* Bottom Left Bracket */
+  .calendar-card::after {
+    bottom: -2px;
+    left: -2px;
+    border-style: solid;
+    border-width: 0 0 5px 5px;
+    border-bottom-left-radius: 0.75rem;
+  }
+
+  .calendar-card:hover::before,
+  .calendar-card:hover::after {
+    width: 36px;
+    height: 36px;
+    border-width: 6px;
+  }
+
+  /* Governmental Headers - Centralized alignment (input_file_0.png style) */
+  .gov-section-header {
+    @apply font-noto-bold text-[#004A99] dark:text-cyan-400 uppercase tracking-[0.2em] text-center border-b-2 border-border pb-4 mb-10 mt-6;
+    font-size: 1.25rem;
+  }
+
+  /* Floor Label in the row layout */
+  .gov-floor-label {
+    @apply font-noto-bold text-[#333] dark:text-gray-300 uppercase tracking-tighter text-xl md:text-2xl min-w-[120px];
+    letter-spacing: -0.05em;
+  }
+
+  /* Vertical divider in the floor-wise layout */
+  .gov-vertical-divider {
+    @apply w-[2px] bg-border/40 mx-4 h-auto self-stretch hidden sm:block;
+  }
+
+  /* Status Styles (Subtle/Professional Colors from input_file_0.png) */
+  .status-vacant-border { border-color: #10b981 !important; }
+  .status-booked-border { border-color: #ef4444 !important; }
+  .status-held-border { border-color: #f59e0b !important; }
+  .status-maintenance-border { border-color: #6b7280 !important; }
+
+  .status-vacant-text { color: #10b981 !important; }
+  .status-booked-text { color: #ef4444 !important; }
+  .status-held-text { color: #f59e0b !important; }
+  .status-maintenance-text { color: #6b7280 !important; }
+
+  /* Modal Enhancements */
+  .gov-modal-container {
+    @apply border-2 border-[#004A99] dark:border-cyan-800 rounded-lg shadow-2xl;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+  }
+
+  /* Table Bordering System for Leadger */
+  .gov-inventory-ledger {
+    @apply border-2 border-slate-300 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm;
+  }
+
+  .gov-inventory-column {
+    @apply border-r-2 border-slate-200 dark:border-slate-800 last:border-r-0;
+  }
+
+  .gov-inventory-category-header {
+    @apply border-b-2 border-slate-200 dark:border-slate-800 bg-muted/30;
+  }
+
+  .gov-inventory-floor-row {
+    @apply border-b border-slate-200 dark:border-slate-800 last:border-b-0;
+  }
+
+  .gov-inventory-floor-label-cell {
+    @apply border-r-2 border-slate-100 dark:border-slate-800/50 bg-muted/5;
+  }
 }
