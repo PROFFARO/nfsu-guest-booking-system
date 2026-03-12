@@ -58,6 +58,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
     }, [user]);
 
     useEffect(() => {
+        console.log(`[RoomBookingModal] State Change - isOpen: ${isOpen}, roomId: ${roomId}`);
         if (!isOpen || !roomId) return;
         let isMounted = true;
 
@@ -96,20 +97,25 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log('[RoomBookingModal] handleSubmit called');
         if (!user) {
+            console.warn('[RoomBookingModal] Submission blocked: No user');
             toast.error('Authentication required.');
             router.push('/login');
             return;
         }
         if (user.role === 'admin' || user.role === 'staff') {
+            console.warn('[RoomBookingModal] Submission blocked: Privileged account');
             toast.error('Privileged accounts cannot initiate guest requisition.');
             return;
         }
         if (nights <= 0) {
+            console.warn('[RoomBookingModal] Submission blocked: Invalid duration');
             toast.error('Stay duration must be at least one night.');
             return;
         }
         setSubmitting(true);
+        console.log('[RoomBookingModal] Sending booking request...');
         try {
             await api.bookings.create({
                 roomId,
@@ -124,10 +130,12 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                 specialRequests: form.specialRequests,
                 paymentOption: 'pay_later',
             });
+            console.log('[RoomBookingModal] Booking successful');
             toast.success('Official Requisition Submitted Successfully');
             onClose();
             router.push('/book/confirmation');
         } catch (err) {
+            console.error('[RoomBookingModal] Booking failed:', err);
             toast.error(err.message || 'Submission Failed');
         } finally {
             setSubmitting(false);
@@ -330,7 +338,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                                     <SelectTrigger className="rounded-md border-2 border-border focus:ring-0 h-9 sm:h-10 font-noto-medium text-[11px] sm:text-xs">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
-                                                                    <SelectContent className="rounded-md z-50">
+                                                                    <SelectContent className="rounded-md !z-[100]">
                                                                         <SelectItem value="academic" className="font-noto-medium text-[11px] sm:text-xs">Academic / Research</SelectItem>
                                                                         <SelectItem value="business" className="font-noto-medium text-[11px] sm:text-xs">Official / Govt Business</SelectItem>
                                                                         <SelectItem value="personal" className="font-noto-medium text-[11px] sm:text-xs">Personal Visit</SelectItem>
@@ -344,7 +352,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                                     <SelectTrigger className="rounded-md border-2 border-border focus:ring-0 h-9 sm:h-10 font-noto-medium text-[11px] sm:text-xs">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
-                                                                    <SelectContent className="rounded-md z-50">
+                                                                    <SelectContent className="rounded-md !z-[100]">
                                                                         {[1, 2, 3, 4].map((n) => (
                                                                             <SelectItem key={n} value={String(n)} className="font-noto-medium text-[11px] sm:text-xs">{n} Person{n > 1 ? 's' : ''}</SelectItem>
                                                                         ))}

@@ -142,34 +142,36 @@ export default function DashboardPage() {
                                 {bookings.slice(0, 5).map((booking) => (
                                     <div
                                         key={booking._id}
-                                        className="flex items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors"
+                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-background hover:bg-muted/30 transition-colors gap-3 sm:gap-4"
                                     >
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
                                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-muted/30 border border-border">
                                                 <BedDouble className="h-5 w-5 text-[#0056b3] dark:text-cyan-500" />
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-noto-bold text-foreground uppercase tracking-tight">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-noto-bold text-foreground uppercase tracking-tight truncate">
                                                     Room {booking.room?.roomNumber || 'N/A'}
                                                 </p>
-                                                <p className="flex items-center gap-2 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                                                    <Clock className="h-3 w-3" />
-                                                    {format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}
-                                                    <span className="text-border mx-1">•</span>
-                                                    <span className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-sm border border-border group/id relative cursor-pointer active:scale-95 transition-transform" onClick={(e) => {
+                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[10px] font-noto-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <Clock className="h-3 w-3 shrink-0" />
+                                                        <span>{format(new Date(booking.checkIn), 'dd MMM yyyy')} — {format(new Date(booking.checkOut), 'dd MMM yyyy')}</span>
+                                                    </div>
+                                                    <span className="hidden sm:inline text-border">•</span>
+                                                    <span className="flex items-center gap-1 bg-muted/50 px-1.5 py-0.5 rounded-sm border border-border group/id relative cursor-pointer active:scale-95 transition-transform max-w-fit" onClick={(e) => {
                                                         e.stopPropagation();
                                                         navigator.clipboard.writeText(booking._id);
                                                         toast.success('Booking ID Copied');
                                                     }}>
-                                                        <span className="font-mono text-[9px] lowercase opacity-70 tracking-normal">ID: {booking._id.substring(0, 8)}...</span>
+                                                        <span className="font-mono text-[9px] lowercase opacity-70 tracking-normal truncate">ID: {booking._id.substring(0, 8)}...</span>
                                                         <Copy className="h-2.5 w-2.5 opacity-40 group-hover/id:opacity-100 transition-opacity" />
                                                     </span>
-                                                </p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-[3.25rem] sm:pl-0">
                                             <span className="text-sm font-noto-bold text-[#0056b3] dark:text-cyan-500">₹{booking.totalAmount}</span>
-                                            <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 ${statusColors[booking.status]}`}>
+                                            <Badge variant="outline" className={`rounded-sm border uppercase text-[10px] font-noto-bold tracking-widest px-2 py-0 h-5 shrink-0 ${statusColors[booking.status]}`}>
                                                 {booking.status}
                                             </Badge>
                                         </div>
