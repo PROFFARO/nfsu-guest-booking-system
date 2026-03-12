@@ -135,10 +135,10 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} className="overflow-x-hidden">
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent
                 showCloseButton={true}
-                className="!fixed !inset-0 !z-[70] !p-0 !m-0 !max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col gap-0 border-0 rounded-none bg-background shadow-2xl overflow-hidden sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[90vw] sm:h-auto sm:max-h-[90vh] md:!w-[70vw] lg:!w-[60vw] xl:!w-[50vw] sm:rounded-xl sm:border-2 border-[#004A99] dark:border-cyan-800"
+                className="!fixed !inset-0 !z-[70] !p-0 !m-0 !max-w-none !w-screen !h-screen !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col gap-0 border-0 rounded-none bg-background shadow-2xl sm:!inset-auto sm:!top-[50%] sm:!left-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:!w-[90vw] sm:h-auto sm:max-h-[90vh] md:!w-[70vw] lg:!w-[60vw] xl:!w-[50vw] sm:rounded-xl sm:border-2 border-[#004A99] dark:border-cyan-800"
             >
                 <DialogTitle className="sr-only">Room {room?.roomNumber} Requisition</DialogTitle>
                 <DialogDescription className="sr-only">Official Room Requisition Portal</DialogDescription>
@@ -330,7 +330,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                                     <SelectTrigger className="rounded-md border-2 border-border focus:ring-0 h-9 sm:h-10 font-noto-medium text-[11px] sm:text-xs">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
-                                                                    <SelectContent className="rounded-md">
+                                                                    <SelectContent className="rounded-md z-50">
                                                                         <SelectItem value="academic" className="font-noto-medium text-[11px] sm:text-xs">Academic / Research</SelectItem>
                                                                         <SelectItem value="business" className="font-noto-medium text-[11px] sm:text-xs">Official / Govt Business</SelectItem>
                                                                         <SelectItem value="personal" className="font-noto-medium text-[11px] sm:text-xs">Personal Visit</SelectItem>
@@ -344,7 +344,7 @@ export function RoomBookingModal({ isOpen, onClose, roomId }) {
                                                                     <SelectTrigger className="rounded-md border-2 border-border focus:ring-0 h-9 sm:h-10 font-noto-medium text-[11px] sm:text-xs">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
-                                                                    <SelectContent className="rounded-md">
+                                                                    <SelectContent className="rounded-md z-50">
                                                                         {[1, 2, 3, 4].map((n) => (
                                                                             <SelectItem key={n} value={String(n)} className="font-noto-medium text-[11px] sm:text-xs">{n} Person{n > 1 ? 's' : ''}</SelectItem>
                                                                         ))}
