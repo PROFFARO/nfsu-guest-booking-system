@@ -116,7 +116,7 @@ export const api = {
         markPaid: (id) => request(`/bookings/${id}/mark-paid`, { method: 'POST' }),
         downloadInvoice: async (id) => {
             const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            // Use the global API_BASE defined at the top of the file
             const res = await fetch(`${API_BASE}/bookings/${id}/invoice`, {
                 headers: { Authorization: `Bearer ${token}` },
             });

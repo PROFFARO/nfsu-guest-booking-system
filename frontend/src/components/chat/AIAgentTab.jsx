@@ -164,6 +164,18 @@ export function AIAgentTab() {
         const { action, result } = msg.metadata;
 
         if (action === 'get_available_rooms' && Array.isArray(result)) {
+            // Helper to get base URL for images without trailing /api
+            const getImgBaseUrl = () => {
+                if (process.env.NEXT_PUBLIC_API_URL) {
+                    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, '');
+                }
+                if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+                    return ''; // Use relative paths in production
+                }
+                return 'http://localhost:5000';
+            };
+            const imgBaseUrl = getImgBaseUrl();
+
             return (
                 <div className="mt-2 space-y-2">
                     {result.map((room, i) => (
@@ -171,7 +183,7 @@ export function AIAgentTab() {
                             {room.primaryImage && (
                                 <div className="aspect-video w-full rounded overflow-hidden border border-border/50 mb-1">
                                     <img
-                                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${room.primaryImage}`}
+                                        src={`${imgBaseUrl}${room.primaryImage}`}
                                         className="w-full h-full object-cover"
                                         alt={room.roomNumber}
                                     />
@@ -450,12 +462,24 @@ export function AIAgentTab() {
 
         // Room Details (Deep Dive)
         if (action === 'get_room_details' && result && !result.error) {
+            // Helper to get base URL for images without trailing /api
+            const getImgBaseUrl = () => {
+                if (process.env.NEXT_PUBLIC_API_URL) {
+                    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api$/, '');
+                }
+                if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+                    return ''; // Use relative paths in production
+                }
+                return 'http://localhost:5000';
+            };
+            const imgBaseUrl = getImgBaseUrl();
+
             return (
                 <div className="mt-2 p-4 border border-border rounded-lg bg-card space-y-3 shadow-sm font-noto-regular">
                     {result.primaryImage && (
                         <div className="relative aspect-video rounded-md overflow-hidden border border-border mb-2">
                             <img
-                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${result.primaryImage}`}
+                                src={`${imgBaseUrl}${result.primaryImage}`}
                                 alt={`Room ${result.roomNumber}`}
                                 className="object-cover w-full h-full"
                             />
