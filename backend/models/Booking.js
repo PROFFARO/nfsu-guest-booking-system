@@ -16,6 +16,10 @@ const bookingSchema = new mongoose.Schema({
     required: [true, 'Check-in date is required'],
     validate: {
       validator: function (value) {
+        // If this is an existing booking (not new), skip "past date" validation
+        // to allow admin/staff to modify past bookings.
+        if (!this.isNew) return true;
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return value >= today;
@@ -183,12 +187,14 @@ bookingSchema.pre('save', function (next) {
       return;
     }
 
-    // Check if check-in is at least today (no past bookings)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (this.checkIn < today) {
-      next(new Error('Check-in date cannot be in the past'));
-      return;
+    // Skip past date validation for existing bookings (Admin/Staff freedom)
+    if (this.isNew) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (this.checkIn < today) {
+        next(new Error('Check-in date cannot be in the past'));
+        return;
+      }
     }
   }
   next();

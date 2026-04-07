@@ -640,7 +640,7 @@ router.put('/:id', [
   }
 
   // If dates are being updated, check availability
-  if ((req.body.checkIn || req.body.checkOut) && req.user.role === 'user') {
+  if ((req.body.checkIn || req.body.checkOut)) {
     const checkIn = req.body.checkIn ? new Date(req.body.checkIn) : booking.checkIn;
     const checkOut = req.body.checkOut ? new Date(req.body.checkOut) : booking.checkOut;
 
@@ -659,9 +659,32 @@ router.put('/:id', [
     }
   }
 
+  // Calculate new total amount if dates changed
+  if (req.body.checkIn || req.body.checkOut) {
+    const checkIn = req.body.checkIn ? new Date(req.body.checkIn) : booking.checkIn;
+    const checkOut = req.body.checkOut ? new Date(req.body.checkOut) : booking.checkOut;
+    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+    
+    // We need room price to recalculate
+    if (!booking.room.pricePerNight) {
+      await booking.populate('room', 'pricePerNight');
+    }
+    booking.totalAmount = nights * booking.room.pricePerNight;
+  }
+
   // Update booking
+  const oldBooking = { ...booking.toObject() };
   Object.assign(booking, req.body);
   await booking.save();
+
+  // If admin/staff updated, send notification
+  if (req.user.role !== 'user') {
+    const updatedFields = Object.keys(req.body);
+    const priceDiff = booking.totalAmount - oldBooking.totalAmount;
+    
+    await booking.populate('room', 'roomNumber type floor block pricePerNight');
+    sendEmail(booking.email, bookingUpdateEmail(booking, updatedFields, priceDiff)).catch(() => { });
+  }
 
   await logEvent({
     userId: req.user._id,
